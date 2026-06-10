@@ -980,7 +980,7 @@ pick = cheapest PROVEN-FIT x          <span class="t-dim"># judged on its worst-
     Putting it all together — <strong>one query, end to end</strong>, exactly as the engine runs it:</p>
 
     <figure>
-      <svg viewBox="0 0 840 730" width="100%" role="img" aria-label="Animated walkthrough of one decision: a question arrives, candidates are pulled from CONFIGURATIONS, their measurements are fetched from OBSERVATIONS and summarized as intervals, each candidate gets a verdict, the engine finds no provable answer, refuses, ranks the blocking measurements by value over cost, and after the named measurement is taken the query re-runs and decides.">
+      <svg viewBox="0 0 840 748" width="100%" role="img" aria-label="Animated walkthrough of one decision: a question arrives, candidates are pulled from CONFIGURATIONS, their measurements are fetched from OBSERVATIONS and summarized as intervals, each candidate gets a verdict, the engine finds no provable answer, refuses, ranks the blocking measurements by value over cost, and after the named measurement is taken the query re-runs and decides.">
         <defs>
           <marker id="warr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="#69788a"/>
@@ -1049,20 +1049,23 @@ pick = cheapest PROVEN-FIT x          <span class="t-dim"># judged on its worst-
         <!-- stage 7: the measurement plan + loop back -->
         <g class="stg stg7">
           <line x1="420" y1="518" x2="420" y2="538" stroke="#69788a" stroke-width="1.6" marker-end="url(#warr)"/>
-          <text x="420" y="560" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#3d4a57">&#9316; turn the refusal into a plan — rank each blocking measurement by (regret it removes &divide; cost to take it)</text>
-          <rect x="130" y="572" width="580" height="76" rx="13" fill="#fbf3e0" stroke="#9a6b00" stroke-width="1.8"/>
-          <text x="420" y="598" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#11181f"><tspan font-weight="800">1 &middot; price of gpt-4</tspan> — removes the bigger uncertainty, and a price lookup is the cheapest check &rarr; <tspan font-weight="800" fill="#9a6b00">MEASURE THIS</tspan></text>
-          <text x="420" y="624" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57"><tspan font-weight="700">2 &middot; quality of llama-70b</tspan> — needs a full evaluation, ~6&times; costlier &rarr; only if step 1 doesn't settle it</text>
-          <text x="420" y="682" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1a7f4b">the new price lands as one more row in OBSERVATIONS &rarr; the same query re-runs (dashed loop) &rarr;</text>
-          <text x="420" y="706" text-anchor="middle" font-family="Inter,sans-serif" font-size="12.5" font-weight="800" fill="#1a7f4b">&#10004; DECIDED — gpt-4, provably the cheapest that fits (price came back &le; $5)</text>
-          <path class="flow-edge" d="M712,610 H800 V29 H676" fill="none" stroke="#1a7f4b" stroke-width="1.8" marker-end="url(#larr)"/>
-          <text x="814" y="320" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#1a7f4b" transform="rotate(-90 814 320)">re-run with the new evidence</text>
+          <text x="420" y="560" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#3d4a57">&#9316; turn the refusal into a plan — rank what to measure by (regret removed &divide; cost)</text>
+          <rect x="120" y="572" width="600" height="76" rx="13" fill="#fbf3e0" stroke="#9a6b00" stroke-width="1.8"/>
+          <text x="420" y="598" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#11181f"><tspan font-weight="800">1 &middot; price of gpt-4</tspan> — cheapest check, biggest blocker removed &rarr; <tspan font-weight="800" fill="#9a6b00">MEASURE THIS</tspan></text>
+          <text x="420" y="624" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57"><tspan font-weight="700">2 &middot; quality of llama-70b</tspan> — a full evaluation, ~6&times; costlier &rarr; only if #1 isn't enough</text>
+          <text x="420" y="680" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1a7f4b">you measure it: gpt-4 costs $3/query. That number is written into OBSERVATIONS as one new row —</text>
+          <text x="420" y="700" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1a7f4b">the dark “empty cell” is now filled <tspan fill="#69788a">(by a real measurement, never a guess)</tspan>. Ask the same question again (dashed loop):</text>
+          <text x="420" y="724" text-anchor="middle" font-family="Inter,sans-serif" font-size="12.5" font-weight="800" fill="#1a7f4b">&#10004; DECIDED — gpt-4, provably the cheapest that fits ($3 &le; $5, quality already proven)</text>
+          <path class="flow-edge" d="M726,610 H800 V29 H676" fill="none" stroke="#1a7f4b" stroke-width="1.8" marker-end="url(#larr)"/>
+          <text x="814" y="320" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#1a7f4b" transform="rotate(-90 814 320)">ask again — with the measured price now in the database</text>
         </g>
       </svg>
       <figcaption style="text-align:center"><b>One decision, end to end.</b> The seven stages appear in
-      the order the engine executes them, and the dashed green loop closes the cycle: measure the one
-      named thing, re-run, decide. Note what the engine never does: it never fills in the dark cell, and
-      it never grabs llama-70b just because it looks cheap — that shortcut is exactly the 57.1%.</figcaption>
+      the order the engine executes them. The dashed green loop is the payoff of refusing well: the
+      refusal told you the <em>one</em> measurement worth paying for; once that real number is in the
+      database, the very same question becomes provable and the engine decides. Note what it never does:
+      it never invents a value for the dark cell, and it never grabs llama-70b just because it looks
+      cheap — that shortcut is exactly the 57.1%.</figcaption>
     </figure>
 
     <!-- ---------- STEP 4: grading ---------- -->
