@@ -97,16 +97,22 @@ the hidden one*, not universally.
    blocking axes and a cost-aware VoI-ranked acquisition plan, under a distribution-free coverage
    guarantee `P(feasible ∧ min-sufficient | commit) ≥ 1−α`. We prove the acquisition is anchored
    to a limit theorem: **`VoI(a*) = Δ(R) = δλ/(δ+λ)`** exactly, making the abstention's "measure
-   this next" the theorem's irreducible-regret bound made operational.
+   this next" the theorem's irreducible-regret bound made operational. The procedure's *positive*
+   action is validated too: across all 31 biting slices it commits **527** configs that are
+   **100% feasible and 100% minimum-sufficient** (zero regret) against ground truth, and the
+   min-sufficiency half of the guarantee is calibrated on real held-out GT via a two-sided band
+   (test min-sufficiency-risk ≤ α).
 4. **A falsification of current practice and the abstention's payoff (C2).** Across **28
    H-confidence biting slices (476 queries) with real measured ground truth**, observed-Pareto,
    imputation, and cost-accuracy hidden-violate at a pooled **0.57** while the selective procedure
    hidden-violates **0.0**; the gap **0.57 [0.53, 0.62]** is significant against both must-beat
-   baselines (McNemar 272/0, p ≈ 0) **without relying on any medium-confidence data**, and the VoI
-   pick converts an abstention into a correct commit **5/5 (1.0)** vs **1/5 (0.2)** for a random axis
-   — demonstrated with honest no-bite controls that keep the claim falsifiable. The coverage
-   guarantee further holds against genuine full-sample measured ground truth (test feasibility-risk
-   ≤ α at α∈{0.05, 0.10} on a held-out split).
+   baselines (McNemar 272/0, p ≈ 0) **without relying on any medium-confidence data**, and at scale
+   the VoI pick converts an abstention into a correct commit **527/527 (1.0)** vs **0.129** for a
+   random axis (McNemar 459/0, p ≪ 0.05) — demonstrated with honest no-bite controls that keep the
+   claim falsifiable. The biting axes are **certified binding per-instance** from Pareto structure
+   (not declared from tags): the mis-sizing bite tracks active-constraint binding exactly
+   (`bite ⟺ binding` agreement 1.0). The coverage guarantee holds against genuine full-sample
+   measured ground truth (test feasibility-risk ≤ α at α∈{0.05, 0.10} on a held-out split).
 
 All numbers in this paper are reproduced verbatim from frozen, seeded artifacts; the substrate is
 read only through an immutable `candidates / cell / required_fields` interface (C7), and no

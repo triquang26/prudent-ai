@@ -44,12 +44,18 @@ memory_hw) there is no data to drop-test, so the **C1 91.1% magnitude** continue
 with the binding-INDEPENDENT 72.4%/16.0% attribution rather than a per-instance
 recovery. This node strengthens C2/C3, not the C1 headline. [§11 Q2]
 
-## Q3 — Real mis-sizing exceeds `Δ(R)` (empirical, partly P5)
-Whether real leaderboard mis-sizing on the slice *exceeds* the theorem's `Δ(R)`
-(because cost–latency–energy are correlated / heavy-tailed) is empirical confirmation,
-NOT a corollary of the theorem. P5 shows the hidden-violation gap (categorical +
-significant); still to do: quantify the *magnitude* of cost-regret (DV2) where the
-masked axis binds and compare to `Δ(R)` directly. [§11 Q3 / §8.8]
+## Q3 — Real mis-sizing exceeds `Δ(R)` — **CLOSED** (node `mfxhvu`)
+Whether real leaderboard mis-sizing on the slice *exceeds* the theorem's `Δ(R)` is
+empirical confirmation, NOT a corollary. **Done** (`src/prudent_ai/analysis/regret_delta.py`,
+`docs/W4_minsuff_Q3_regret.md` §2, `outputs/p4/q3_regret.json`): the §8.2 gadget is
+instantiated with real RouterBench geometry (δ = price of caution = cost(min-cost-feasible)
+− cost(global-cheapest); λ = declared violation penalty), giving the real-calibrated floor
+`Δ(R)=δλ/(δ+λ)`. On **41/41** biting slices `Δ(R) ≤ min(δ,λ)` — both naive rules
+(cost-min regret λ, over-provisioner regret δ) strictly exceed the floor; the closed-form
+Δ(R) matches the proven gadget minimax to 8.7e-19. The real cost stake is concrete: mean
+**overshoot_rel = 0.748** (over-provisioning to guarantee feasibility costs ~75% more than
+the cheapest infeasible config). The selective procedure pays 0 by abstaining; the Δ(R) it
+would pay is the acquirable VoI. [§11 Q3 / §8.8]
 
 ## Q4 — Implemented VoI tracks `Δ(R)` on real data (partly done)
 The identity `VoI(a*) = Δ(R)` is proven EXACT on the gadget (tests/test_procedure.py).
@@ -60,7 +66,9 @@ discriminates. Open: a cleaner real-data demonstration that the implemented VoI
 commit-correct 1.0-vs-0.2 signal). [§11 Q4]
 
 ## Also deferred
-- Distribution-free guarantee on a TRUE held-out ground-truth slice (P5 currently
-  calibrates on a richer-κ *proxy*; real-GT calibration is the honest P5-completion).
+- ~~Distribution-free guarantee on a TRUE held-out ground-truth slice~~ — **DONE**:
+  feasibility (node `eyfl2u`, `coverage_risk_gt`) and **min-sufficiency** (node `mfxhvu`,
+  two-sided band, `minsuff_guarantee`) both calibrated on real held-out RouterBench GT.
 - V3 live deployment runs (vLLM energy + small human study for governance/burden) —
-  stretch, resource-gated.
+  stretch, resource-gated. *(A prospective prompt-split "live" evaluation on real
+  RouterBench traffic is the achievable surrogate — see node `mfxhvu`'s child.)*
