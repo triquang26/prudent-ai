@@ -25,7 +25,18 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
 from prudent_ai.substrate import Substrate
+from prudent_ai.substrate.orm import (
+    Component,
+    Config,
+    ConfigComponent,
+    Source,
+)
+from prudent_ai.substrate.orm import (
+    Observation as ObsORM,
+)
 
 DB_PATH = Path("data/apt_substrate.db")
 
@@ -70,90 +81,83 @@ HELM_LITE_MMLU_SCORES: list[tuple[str, str, str, float]] = [
 # ---------------------------------------------------------------------------
 
 
-def _insert_sources(conn: sqlite3.Connection) -> None:
+def _insert_sources(session) -> None:
     """Insert (or ignore) source provenance rows."""
     for src in (HELM_LITE_SOURCE, HELM_LITE_PAPER_SOURCE):
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO source
-                (evidence_id, source_type, citation, snapshot_version)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                src["evidence_id"],
-                src["source_type"],
-                src["citation"],
-                src["snapshot_version"],
-            ),
+        session.execute(
+            sqlite_insert(Source).values(
+                evidence_id=src["evidence_id"],
+                source_type=src["source_type"],
+                citation=src["citation"],
+                snapshot_version=src["snapshot_version"],
+            ).on_conflict_do_nothing()
         )
 
 
-def _insert_models(conn: sqlite3.Connection) -> None:
+def _insert_models(session) -> None:
     """Insert component rows (model + provider) and config/config_component rows."""
     # Collect unique providers first.
     providers_seen: set[str] = set()
     for model_id, provider, config_id, _ in HELM_LITE_MMLU_SCORES:
         if provider not in providers_seen:
-            conn.execute(
-                "INSERT OR IGNORE INTO component (id, kind, name) VALUES (?, ?, ?)",
-                (f"provider-{provider}", "provider", provider),
+            session.execute(
+                sqlite_insert(Component).values(
+                    id=f"provider-{provider}", kind="provider", name=provider
+                ).on_conflict_do_nothing()
             )
             providers_seen.add(provider)
 
         # Model component
-        conn.execute(
-            "INSERT OR IGNORE INTO component (id, kind, name) VALUES (?, ?, ?)",
-            (f"model-{model_id}", "model", model_id),
+        session.execute(
+            sqlite_insert(Component).values(
+                id=f"model-{model_id}", kind="model", name=model_id
+            ).on_conflict_do_nothing()
         )
 
         # Config row — tau = 'general-qa' (HELM Lite task archetype)
-        conn.execute(
-            "INSERT OR IGNORE INTO config (id, tau) VALUES (?, ?)",
-            (config_id, "general-qa"),
+        session.execute(
+            sqlite_insert(Config).values(
+                id=config_id, tau="general-qa"
+            ).on_conflict_do_nothing()
         )
 
         # Link config → model component and config → provider component
-        conn.execute(
-            "INSERT OR IGNORE INTO config_component (config_id, component_id) VALUES (?, ?)",
-            (config_id, f"model-{model_id}"),
+        session.execute(
+            sqlite_insert(ConfigComponent).values(
+                config_id=config_id, component_id=f"model-{model_id}"
+            ).on_conflict_do_nothing()
         )
-        conn.execute(
-            "INSERT OR IGNORE INTO config_component (config_id, component_id) VALUES (?, ?)",
-            (config_id, f"provider-{provider}"),
+        session.execute(
+            sqlite_insert(ConfigComponent).values(
+                config_id=config_id, component_id=f"provider-{provider}"
+            ).on_conflict_do_nothing()
         )
 
 
-def _insert_observations(conn: sqlite3.Connection) -> None:
+def _insert_observations(session) -> None:
     """Insert quality observations from the leaderboard source."""
     evidence_id = HELM_LITE_SOURCE["evidence_id"]
     for _model_id, _provider, config_id, score in HELM_LITE_MMLU_SCORES:
         obs_id = f"obs-{config_id}-quality-{evidence_id}"
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO observation
-                (obs_id, config_id, axis, value_num, value_cat,
-                 confidence, evidence_id,
-                 hardware_tier, dataset, split, decoding_cfg, obs_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                obs_id,
-                config_id,
-                "quality",
-                score,
-                None,          # value_cat — numeric axis
-                "M",           # leaderboard → M (confidence policy)
-                evidence_id,
-                "openai-api",  # hardware_tier: all HELM Lite calls went through vendor APIs
-                "mmlu",
-                "test",
-                "temperature-0.0",
-                "2023-11",
-            ),
+        session.execute(
+            sqlite_insert(ObsORM).values(
+                obs_id=obs_id,
+                config_id=config_id,
+                axis="quality",
+                value_num=score,
+                value_cat=None,
+                confidence="M",
+                evidence_id=evidence_id,
+                hardware_tier="openai-api",
+                dataset="mmlu",
+                split="test",
+                decoding_cfg="temperature-0.0",
+                obs_date="2023-11",
+            ).on_conflict_do_nothing()
         )
 
 
-def _insert_multi_obs_demo(conn: sqlite3.Connection) -> None:
+def _insert_multi_obs_demo(session) -> None:
     """Insert a second quality observation for gpt-4 (paper_reported, greedy decoding).
 
     Gate requirement: ≥1 cell must have multiple observations with differing
@@ -167,28 +171,21 @@ def _insert_multi_obs_demo(conn: sqlite3.Connection) -> None:
     paper_evidence_id = HELM_LITE_PAPER_SOURCE["evidence_id"]
     config_id = "gpt4-0314"
     obs_id = f"obs-{config_id}-quality-{paper_evidence_id}"
-    conn.execute(
-        """
-        INSERT OR IGNORE INTO observation
-            (obs_id, config_id, axis, value_num, value_cat,
-             confidence, evidence_id,
-             hardware_tier, dataset, split, decoding_cfg, obs_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            obs_id,
-            config_id,
-            "quality",
-            0.864,     # same reported score, different source/decoding context
-            None,
-            "M",       # paper_reported → M (confidence policy)
-            paper_evidence_id,
-            "openai-api",
-            "mmlu",
-            "test",
-            "greedy",   # different decoding_cfg — distinguishes the two observations
-            "2022-11",
-        ),
+    session.execute(
+        sqlite_insert(ObsORM).values(
+            obs_id=obs_id,
+            config_id=config_id,
+            axis="quality",
+            value_num=0.864,
+            value_cat=None,
+            confidence="M",
+            evidence_id=paper_evidence_id,
+            hardware_tier="openai-api",
+            dataset="mmlu",
+            split="test",
+            decoding_cfg="greedy",
+            obs_date="2022-11",
+        ).on_conflict_do_nothing()
     )
 
 
@@ -241,15 +238,14 @@ def seed(db_path: Path = DB_PATH) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     sub = Substrate(db_path)
-    conn = sub._conn
-    conn.execute("PRAGMA foreign_keys = ON")
+    session = sub._session
 
-    _insert_sources(conn)
-    _insert_models(conn)
-    _insert_observations(conn)
-    _insert_multi_obs_demo(conn)
+    _insert_sources(session)
+    _insert_models(session)
+    _insert_observations(session)
+    _insert_multi_obs_demo(session)
 
-    conn.commit()
+    session.commit()
     sub.close()
 
     print(f"Seeded {db_path}")

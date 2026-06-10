@@ -35,54 +35,41 @@ def seeded_substrate(tmp_path):
       cfg-llama   (general-qa)  — 1 quality obs: confidence M
       cfg-mistral (general-qa)  — 0 quality obs  → ⊥ under any kappa
     """
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+    from prudent_ai.substrate.orm import Component, Config, ConfigComponent, Source
+    from prudent_ai.substrate.orm import Observation as ObsORM
+
     sub = Substrate(":memory:")
-    conn = sub._conn
-    conn.execute("PRAGMA foreign_keys = ON")
 
-    # Source — (evidence_id, source_type, citation, snapshot_version)
-    conn.execute(
-        "INSERT INTO source VALUES ('src-1','leaderboard','HELM 2023','2023-11')"
-    )
+    def _i(session, model, **kw):
+        session.execute(sqlite_insert(model).values(**kw).on_conflict_do_nothing())
 
-    # Components — (id, kind, name)
-    conn.execute("INSERT INTO component VALUES ('m-gpt4','model','GPT-4')")
-    conn.execute("INSERT INTO component VALUES ('m-llama','model','Llama-2-70B')")
-    conn.execute("INSERT INTO component VALUES ('m-mistral','model','Mistral-7B')")
-
-    # Configs — (id, tau)
-    conn.execute("INSERT INTO config VALUES ('cfg-gpt4','general-qa')")
-    conn.execute("INSERT INTO config VALUES ('cfg-llama','general-qa')")
-    conn.execute("INSERT INTO config VALUES ('cfg-mistral','general-qa')")
-
-    # Config-component — (config_id, component_id)
-    conn.execute("INSERT INTO config_component VALUES ('cfg-gpt4','m-gpt4')")
-    conn.execute("INSERT INTO config_component VALUES ('cfg-llama','m-llama')")
-    conn.execute("INSERT INTO config_component VALUES ('cfg-mistral','m-mistral')")
-
-    # Observations — (obs_id, config_id, axis, value_num, value_cat,
-    #                  confidence, evidence_id,
-    #                  hardware_tier, dataset, split, decoding_cfg, obs_date)
-    #
-    # cfg-gpt4: two quality observations (multi-obs demo)
-    conn.execute(
-        "INSERT INTO observation VALUES "
-        "('o1','cfg-gpt4','quality',0.864,NULL,'M','src-1',"
-        "'openai-api','mmlu','test','temperature-0.0','2023-11')"
-    )
-    conn.execute(
-        "INSERT INTO observation VALUES "
-        "('o3','cfg-gpt4','quality',0.871,NULL,'H','src-1',"
-        "'openai-api','mmlu','test','greedy','2023-11')"
-    )
-    # cfg-llama: one quality observation
-    conn.execute(
-        "INSERT INTO observation VALUES "
-        "('o2','cfg-llama','quality',0.686,NULL,'M','src-1',"
-        "'aws-a100','mmlu','test','temperature-0.0','2023-11')"
-    )
-    # cfg-mistral: no observations → ⊥
-
-    conn.commit()
+    s = sub._session
+    _i(s, Source, evidence_id="src-1", source_type="leaderboard",
+       citation="HELM 2023", snapshot_version="2023-11")
+    _i(s, Component, id="m-gpt4", kind="model", name="GPT-4")
+    _i(s, Component, id="m-llama", kind="model", name="Llama-2-70B")
+    _i(s, Component, id="m-mistral", kind="model", name="Mistral-7B")
+    _i(s, Config, id="cfg-gpt4", tau="general-qa")
+    _i(s, Config, id="cfg-llama", tau="general-qa")
+    _i(s, Config, id="cfg-mistral", tau="general-qa")
+    _i(s, ConfigComponent, config_id="cfg-gpt4", component_id="m-gpt4")
+    _i(s, ConfigComponent, config_id="cfg-llama", component_id="m-llama")
+    _i(s, ConfigComponent, config_id="cfg-mistral", component_id="m-mistral")
+    _i(s, ObsORM, obs_id="o1", config_id="cfg-gpt4", axis="quality",
+       value_num=0.864, value_cat=None, confidence="M", evidence_id="src-1",
+       hardware_tier="openai-api", dataset="mmlu",
+       split="test", decoding_cfg="temperature-0.0", obs_date="2023-11")
+    _i(s, ObsORM, obs_id="o3", config_id="cfg-gpt4", axis="quality",
+       value_num=0.871, value_cat=None, confidence="H", evidence_id="src-1",
+       hardware_tier="openai-api", dataset="mmlu",
+       split="test", decoding_cfg="greedy", obs_date="2023-11")
+    _i(s, ObsORM, obs_id="o2", config_id="cfg-llama", axis="quality",
+       value_num=0.686, value_cat=None, confidence="M", evidence_id="src-1",
+       hardware_tier="aws-a100", dataset="mmlu",
+       split="test", decoding_cfg="temperature-0.0", obs_date="2023-11")
+    s.commit()
     return sub
 
 

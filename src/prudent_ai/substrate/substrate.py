@@ -14,9 +14,26 @@ Invariants enforced by this module:
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
+
+from sqlalchemy import create_engine, event, select
+from sqlalchemy.orm import Session
+
+from prudent_ai.substrate.orm import (
+    Base,
+    ConfigComponent,
+    Source,
+)
+from prudent_ai.substrate.orm import (
+    Component as ComponentORM,
+)
+from prudent_ai.substrate.orm import (
+    Config as ConfigORM,
+)
+from prudent_ai.substrate.orm import (
+    Observation as ObsORM,
+)
 
 # ---------------------------------------------------------------------------
 # Public type definitions
@@ -95,14 +112,13 @@ def is_missing(obs: list[Observation], kappa: tuple[str, ...]) -> bool:
 # Substrate
 # ---------------------------------------------------------------------------
 
-_SCHEMA_FILE = Path(__file__).with_name("schema.sql")
-
 
 class Substrate:
     """Thin evidential data layer for APT.
 
     Opens (or creates) a SQLite database, enforces foreign-key integrity, and
-    initialises the schema.  All query methods are κ-free and φ-free.
+    initialises the schema via SQLAlchemy ORM.  All query methods are κ-free
+    and φ-free.
 
     Args:
         db_path: Path to a SQLite file, or ``":memory:"`` for an in-process DB.
@@ -110,25 +126,15 @@ class Substrate:
 
     def __init__(self, db_path: Path | str = ":memory:") -> None:
         self._db_path = str(db_path)
-        self._conn = sqlite3.connect(self._db_path)
-        self._conn.row_factory = sqlite3.Row
-        # Must be run per-connection, not stored in the schema file.
-        self._conn.execute("PRAGMA foreign_keys = ON;")
-        self.load_schema()
+        url = "sqlite://" if self._db_path == ":memory:" else f"sqlite:///{self._db_path}"
+        self._engine = create_engine(url)
 
-    # ------------------------------------------------------------------
-    # Schema initialisation
-    # ------------------------------------------------------------------
+        @event.listens_for(self._engine, "connect")
+        def _set_fk(dbapi_conn, _):
+            dbapi_conn.execute("PRAGMA foreign_keys = ON")
 
-    def load_schema(self, schema_path: Path | None = None) -> None:
-        """Execute the DDL from *schema_path* (default: the bundled schema.sql)."""
-        path = schema_path if schema_path is not None else _SCHEMA_FILE
-        ddl = Path(path).read_text(encoding="utf-8")
-        # executescript handles multi-statement SQL natively (including comments)
-        # and issues an implicit COMMIT before running.  We re-enable FK enforcement
-        # afterwards because executescript resets connection-level PRAGMAs.
-        self._conn.executescript(ddl)
-        self._conn.execute("PRAGMA foreign_keys = ON;")
+        Base.metadata.create_all(self._engine)
+        self._session = Session(self._engine)
 
     # ------------------------------------------------------------------
     # Core interface (immutable once P1 starts — constraint C7)
@@ -151,29 +157,19 @@ class Substrate:
             "candidates() must never be called with a bundle parameter"
         )
 
-        # Fetch all configs for this tau.
-        config_rows = self._conn.execute(
-            "SELECT id, tau FROM config WHERE tau = ?", (tau,)
-        ).fetchall()
-
-        result: list[Candidate] = []
-        for cfg in config_rows:
-            comp_rows = self._conn.execute(
-                """
-                SELECT comp.id, comp.kind, comp.name
-                FROM config_component cc
-                JOIN component comp ON comp.id = cc.component_id
-                WHERE cc.config_id = ?
-                ORDER BY comp.id
-                """,
-                (cfg["id"],),
-            ).fetchall()
-            components = tuple(
-                ComponentRef(id=r["id"], kind=r["kind"], name=r["name"])
-                for r in comp_rows
-            )
-            result.append(Candidate(id=cfg["id"], tau=cfg["tau"], components=components))
-
+        cfg_rows = (
+            self._session.execute(select(ConfigORM).where(ConfigORM.tau == tau)).scalars().all()
+        )
+        result = []
+        for cfg in cfg_rows:
+            comp_rows = self._session.execute(
+                select(ComponentORM)
+                .join(ConfigComponent, ConfigComponent.component_id == ComponentORM.id)
+                .where(ConfigComponent.config_id == cfg.id)
+                .order_by(ComponentORM.id)
+            ).scalars().all()
+            components = tuple(ComponentRef(id=c.id, kind=c.kind, name=c.name) for c in comp_rows)
+            result.append(Candidate(id=cfg.id, tau=cfg.tau, components=components))
         return result
 
     def cell(self, x: str, a: str) -> list[Observation]:
@@ -189,49 +185,32 @@ class Substrate:
         Returns:
             List of ``Observation`` objects (may be empty if no rows exist).
         """
-        rows = self._conn.execute(
-            """
-            SELECT
-                o.obs_id,
-                o.config_id,
-                o.axis,
-                o.value_num,
-                o.value_cat,
-                o.confidence,
-                o.evidence_id,
-                s.source_type,
-                o.hardware_tier,
-                o.dataset,
-                o.split,
-                o.decoding_cfg,
-                o.obs_date
-            FROM observation o
-            JOIN source s ON s.evidence_id = o.evidence_id
-            WHERE o.config_id = ? AND o.axis = ?
-            """,
-            (x, a),
-        ).fetchall()
+        rows = self._session.execute(
+            select(ObsORM, Source.source_type)
+            .join(Source, Source.evidence_id == ObsORM.evidence_id)
+            .where(ObsORM.config_id == x, ObsORM.axis == a)
+        ).all()
 
         # Invariant: no confidence filtering is performed here.
-        observations: list[Observation] = []
-        for r in rows:
+        observations = []
+        for obs_row, source_type in rows:
             ctx = Context(
-                hardware_tier=r["hardware_tier"],
-                dataset=r["dataset"],
-                split=r["split"],
-                decoding_cfg=r["decoding_cfg"],
-                obs_date=r["obs_date"],
+                hardware_tier=obs_row.hardware_tier,
+                dataset=obs_row.dataset,
+                split=obs_row.split,
+                decoding_cfg=obs_row.decoding_cfg,
+                obs_date=obs_row.obs_date,
             )
             observations.append(
                 Observation(
-                    obs_id=r["obs_id"],
-                    config_id=r["config_id"],
-                    axis=r["axis"],
-                    value_num=r["value_num"],
-                    value_cat=r["value_cat"],
-                    confidence=r["confidence"],
-                    evidence_id=r["evidence_id"],
-                    source_type=r["source_type"],
+                    obs_id=obs_row.obs_id,
+                    config_id=obs_row.config_id,
+                    axis=obs_row.axis,
+                    value_num=obs_row.value_num,
+                    value_cat=obs_row.value_cat,
+                    confidence=obs_row.confidence,
+                    evidence_id=obs_row.evidence_id,
+                    source_type=source_type,
                     context=ctx,
                 )
             )
@@ -259,8 +238,9 @@ class Substrate:
     # ------------------------------------------------------------------
 
     def close(self) -> None:
-        """Close the underlying SQLite connection."""
-        self._conn.close()
+        """Close the underlying SQLAlchemy session and engine."""
+        self._session.close()
+        self._engine.dispose()
 
     def __enter__(self) -> Substrate:
         return self
