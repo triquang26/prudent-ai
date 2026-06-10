@@ -1,4 +1,7 @@
-"""Seed the APT substrate with HELM Lite leaderboard data.
+"""Seed the APT substrate with HELM Lite leaderboard data (legacy shim).
+
+Deprecated: use `prudent_ai.substrate.helm_lite.seeder` directly.
+This module is kept for backwards compatibility with the P1 gate test fixture.
 
 HELM Lite leaderboard: https://crfm.stanford.edu/helm/lite/
 Citation: HELM (Liang et al. 2022), arxiv 2211.09110
