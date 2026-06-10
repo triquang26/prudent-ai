@@ -70,5 +70,8 @@ commit-correct 1.0-vs-0.2 signal). [§11 Q4]
   feasibility (node `eyfl2u`, `coverage_risk_gt`) and **min-sufficiency** (node `mfxhvu`,
   two-sided band, `minsuff_guarantee`) both calibrated on real held-out RouterBench GT.
 - V3 live deployment runs (vLLM energy + small human study for governance/burden) —
-  stretch, resource-gated. *(A prospective prompt-split "live" evaluation on real
-  RouterBench traffic is the achievable surrogate — see node `mfxhvu`'s child.)*
+  the full serving stack remains resource-gated, BUT the **prospective prompt-split
+  surrogate is DONE** (node `ksmbut`, `docs/V3_live_eval.md`): deciding on a MEASURE
+  split and scoring the committed config on disjoint LIVE prompts, the selective margin
+  cuts live constraint-violations from **36.6%** (blind) to **3.8%** (m=0.10) on real
+  held-out future traffic — the deployment claim validated out-of-sample.

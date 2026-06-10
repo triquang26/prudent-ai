@@ -303,15 +303,19 @@ longer rests on a single corpus *or* on any M-confidence data (closing mock-revi
 is degenerate-by-violation on the biting slices (§7.7.3), so DV3 is the load-bearing metric and it
 passes the "beat B2 and B3 with significance" bar.
 
-**C3 — informative abstention + VoI — supported by V2.** The selective procedure's
-coverage-0/violation-0 column *is* the safe action: it escalates exactly the queries where it
-cannot certify the binding axis, instead of shipping a blind commit. V2 shows the escalation is
-*informative* — the field it names unblocks the decision 5/5 (1.0) vs 1/5 (0.2) random. This is the
-**Trust-or-Escalate shape** (§17.1) now with **measured violations on the other side** and a
-**measured VoI lift** on the abstention: §6/P4 showed reliability is purchasable only by abstaining
-on most traffic (commit ≈ 8.9% coverage at 0 committed risk); §7 shows *what the alternative costs*
-(blind rules hidden-violate at **57% pooled on H-confidence ground truth** on the biting axis) *and*
-that the abstention pays back (VoI names the unblocking field).
+**C3 — informative abstention + VoI — supported by V2 (at scale) + the validated COMMIT branch.**
+The selective procedure's coverage-0/violation-0 column *is* the safe action: it escalates exactly
+the queries where it cannot certify the binding axis, instead of shipping a blind commit. At scale
+V2 shows the escalation is *informative* — the field it names unblocks the decision **527/527 (1.0)
+vs 0.129** random (McNemar 459/0, p ≪ 0.05; §7.4). Its *positive* action is correct too: under full
+evidence the procedure commits **527** configs that are 100% feasible and 100% minimum-sufficient
+(§7.4b). This is the **Trust-or-Escalate shape** (§17.1) now with **measured violations on the other
+side** and a **measured VoI lift** on the abstention: §6/P4 showed reliability is purchasable only by
+abstaining on most traffic; §7 shows *what the alternative costs* (blind rules hidden-violate at
+**57% pooled on H-confidence ground truth**) *and* that the abstention pays back (VoI names the
+unblocking field). **Prospectively** (V3, `V3_live_eval.md`): deciding on a measurement sample and
+scoring on *disjoint future* traffic, the safety margin cuts live constraint-violations from
+**36.6%** (blind) to **3.8%** (m=0.10) — the abstention generalizes out-of-sample, not just in it.
 
 ---
 
