@@ -1072,12 +1072,14 @@ pick = cheapest PROVEN-FIT x          <span class="t-dim"># judged on its worst-
     <h3 style="text-align:center;margin-top:44px">Step 4 — Grading it against hidden ground truth</h3>
 
     <p style="max-width:760px;margin-left:auto;margin-right:auto">
-    One harness grades every claim on this page: <strong>hide a requirement's measurements from
-    everyone, let everyone decide, reveal the truth, count the silent violations.</strong> The mirror
-    test closes the loop: un-hide the measurements and all 527 refusals flip to correct decisions.</p>
+    Steps 1–3 are the engine itself. Step 4 answers a different question: <strong>how do we know the
+    engine's refusals and decisions are actually right?</strong> Same cast as above — but this time we
+    take a special slice of the data where the truth <em>is</em> fully measured for everyone (28 such
+    benchmark slices exist), <strong>hide one column from all deciders alike</strong>, let each one
+    decide, then reveal the hidden truth and count who silently violated it.</p>
 
     <figure>
-      <svg viewBox="0 0 840 250" width="100%" role="img" aria-label="Mask-and-predict in three panels: take a fully measured slice, hide one requirement's column from everyone, let everyone decide, then reveal the truth and grade.">
+      <svg viewBox="0 0 840 250" width="100%" role="img" aria-label="Mask-and-predict with the same three models: take a slice where quality and price are fully measured, hide the quality column from everyone, standard practice ships the cheapest model whose hidden quality is far below the bar, while the engine refuses.">
         <defs>
           <marker id="garr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="#69788a"/>
@@ -1086,53 +1088,56 @@ pick = cheapest PROVEN-FIT x          <span class="t-dim"># judged on its worst-
         <!-- panel 1: truth -->
         <rect x="10" y="20" width="225" height="210" rx="13" fill="#ffffff" stroke="#cbd6e0" stroke-width="1.5"/>
         <text x="122" y="46" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#11181f">1 &middot; a fully-measured slice</text>
-        <text x="78" y="78" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#69788a">quality</text>
-        <text x="158" y="78" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#69788a">price</text>
-        <text x="38" y="103" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3d4a57">A</text>
-        <rect x="50" y="88" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="78" y="103" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">0.81</text>
-        <rect x="130" y="88" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="158" y="103" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">$4</text>
-        <text x="38" y="131" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3d4a57">B</text>
-        <rect x="50" y="116" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="78" y="131" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">0.62</text>
-        <rect x="130" y="116" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="158" y="131" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">$1</text>
-        <text x="38" y="159" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3d4a57">C</text>
-        <rect x="50" y="144" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="78" y="159" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">0.74</text>
-        <rect x="130" y="144" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="158" y="159" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">$2</text>
-        <text x="122" y="200" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#69788a">truth measured first-hand</text>
-        <text x="122" y="216" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#69788a">for every candidate</text>
-        <!-- panel 2: masked -->
+        <text x="124" y="78" text-anchor="middle" font-family="monospace" font-size="10" fill="#69788a">quality</text>
+        <text x="188" y="78" text-anchor="middle" font-family="monospace" font-size="10" fill="#69788a">price</text>
+        <text x="22" y="103" font-family="monospace" font-size="9.5" fill="#3d4a57">gpt-4</text>
+        <rect x="98" y="88" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="124" y="103" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">0.83</text>
+        <rect x="162" y="88" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="188" y="103" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">$3</text>
+        <text x="22" y="131" font-family="monospace" font-size="9.5" fill="#3d4a57">llama-70b</text>
+        <rect x="98" y="116" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="124" y="131" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">0.76</text>
+        <rect x="162" y="116" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="188" y="131" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">$1.1</text>
+        <text x="22" y="159" font-family="monospace" font-size="9.5" fill="#3d4a57">mistral-7b</text>
+        <rect x="98" y="144" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="124" y="159" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">0.41</text>
+        <rect x="162" y="144" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="188" y="159" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">$0.5</text>
+        <text x="122" y="200" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#69788a">the same three models — truth</text>
+        <text x="122" y="216" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#69788a">known first-hand for all of them</text>
+        <!-- panel 2: masked (quality hidden) -->
         <rect x="307" y="20" width="225" height="210" rx="13" fill="#ffffff" stroke="#cbd6e0" stroke-width="1.5"/>
-        <text x="419" y="46" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#11181f">2 &middot; hide one column</text>
-        <text x="375" y="78" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#69788a">quality</text>
-        <text x="455" y="78" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#69788a">price</text>
-        <text x="335" y="103" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3d4a57">A</text>
-        <rect x="347" y="88" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="375" y="103" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">0.81</text>
-        <rect class="pulse-node" x="427" y="88" width="56" height="22" rx="4" fill="#16202b"/><text x="455" y="103" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#ffd54f">?</text>
-        <text x="335" y="131" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3d4a57">B</text>
-        <rect x="347" y="116" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="375" y="131" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">0.62</text>
-        <rect class="pulse-node" x="427" y="116" width="56" height="22" rx="4" fill="#16202b"/><text x="455" y="131" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#ffd54f">?</text>
-        <text x="335" y="159" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3d4a57">C</text>
-        <rect x="347" y="144" width="56" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="375" y="159" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#11181f">0.74</text>
-        <rect class="pulse-node" x="427" y="144" width="56" height="22" rx="4" fill="#16202b"/><text x="455" y="159" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#ffd54f">?</text>
+        <text x="419" y="46" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#11181f">2 &middot; hide the quality column</text>
+        <text x="421" y="78" text-anchor="middle" font-family="monospace" font-size="10" fill="#69788a">quality</text>
+        <text x="485" y="78" text-anchor="middle" font-family="monospace" font-size="10" fill="#69788a">price</text>
+        <text x="319" y="103" font-family="monospace" font-size="9.5" fill="#3d4a57">gpt-4</text>
+        <rect class="pulse-node" x="395" y="88" width="52" height="22" rx="4" fill="#16202b"/><text x="421" y="103" text-anchor="middle" font-family="monospace" font-size="10" fill="#ffd54f">?</text>
+        <rect x="459" y="88" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="485" y="103" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">$3</text>
+        <text x="319" y="131" font-family="monospace" font-size="9.5" fill="#3d4a57">llama-70b</text>
+        <rect class="pulse-node" x="395" y="116" width="52" height="22" rx="4" fill="#16202b"/><text x="421" y="131" text-anchor="middle" font-family="monospace" font-size="10" fill="#ffd54f">?</text>
+        <rect x="459" y="116" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="485" y="131" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">$1.1</text>
+        <text x="319" y="159" font-family="monospace" font-size="9.5" fill="#3d4a57">mistral-7b</text>
+        <rect class="pulse-node" x="395" y="144" width="52" height="22" rx="4" fill="#16202b"/><text x="421" y="159" text-anchor="middle" font-family="monospace" font-size="10" fill="#ffd54f">?</text>
+        <rect x="459" y="144" width="52" height="22" rx="4" fill="#e6f4ec" stroke="#cbd6e0"/><text x="485" y="159" text-anchor="middle" font-family="monospace" font-size="10" fill="#11181f">$0.5</text>
         <text x="419" y="200" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#69788a">the engine and every baseline</text>
         <text x="419" y="216" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#69788a">see exactly the same masked data</text>
         <!-- panel 3: grade -->
         <rect x="605" y="20" width="225" height="210" rx="13" fill="#ffffff" stroke="#cbd6e0" stroke-width="1.5"/>
         <text x="717" y="46" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#11181f">3 &middot; decide &middot; reveal &middot; grade</text>
-        <rect x="621" y="64" width="193" height="66" rx="10" fill="#fbeae9" stroke="#b3261e" stroke-width="1.5"/>
-        <text x="717" y="86" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#b3261e">standard practice ships a pick</text>
-        <text x="717" y="104" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57">&rarr; violates the hidden truth</text>
-        <text x="717" y="121" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#b3261e">57.1% of the time, silently</text>
-        <rect x="621" y="146" width="193" height="66" rx="10" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="1.5"/>
-        <text x="717" y="168" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1a7f4b">our engine refuses, or decides</text>
-        <text x="717" y="186" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57">with proof &rarr; violations:</text>
-        <text x="717" y="203" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1a7f4b">0% on the same 476 decisions</text>
+        <rect x="621" y="64" width="193" height="72" rx="10" fill="#fbeae9" stroke="#b3261e" stroke-width="1.5"/>
+        <text x="717" y="84" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#b3261e">standard practice ships</text>
+        <text x="717" y="100" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#b3261e">mistral-7b — the cheapest</text>
+        <text x="717" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#3d4a57">reveal: quality 0.41, bar was 0.8</text>
+        <text x="717" y="130" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" font-weight="700" fill="#b3261e">silent violation — 57.1% overall</text>
+        <rect x="621" y="148" width="193" height="66" rx="10" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="1.5"/>
+        <text x="717" y="169" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#1a7f4b">our engine refuses — quality</text>
+        <text x="717" y="186" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#1a7f4b">is unproven for every model</text>
+        <text x="717" y="203" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#3d4a57">&rarr; 0% violations, 476 decisions</text>
         <!-- edges -->
         <line class="flow-edge" x1="235" y1="125" x2="303" y2="125" stroke="#69788a" stroke-width="1.8" marker-end="url(#garr)"/>
         <line class="flow-edge" x1="532" y1="125" x2="601" y2="125" stroke="#69788a" stroke-width="1.8" marker-end="url(#garr)"/>
       </svg>
-      <figcaption style="text-align:center"><b>Mask-and-predict.</b> Same evidence in, same questions,
-      same grading — run over 28 independent benchmark slices. This is the harness behind every
-      verified number on this page.</figcaption>
+      <figcaption style="text-align:center"><b>Mask-and-predict — the same three models as Step 3.</b>
+      With quality hidden, the cheap model is exactly the trap: standard practice grabs it and silently
+      violates the quality bar; the engine refuses because nothing is provable. Then the mirror test:
+      un-hide the column and the engine's refusals flip to correct decisions — all 527 of them. Run over
+      28 independent benchmark slices, this harness produces every verified number on this page.</figcaption>
     </figure>
   </div>
 </section>
