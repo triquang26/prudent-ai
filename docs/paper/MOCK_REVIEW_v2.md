@@ -180,6 +180,22 @@ W1**: the adversarial prior is still a *synthetic re-weighting of declared bindi
 recover a first-class `bind(q)` lower bound, or demote 91.1% to "decidability of declared constraints"
 and headline the binding-independent 72.4%/16.0% attribution. This remains the load-bearing Oral gate.
 
+> **UPDATE — node `c90ge4-w1-per-instance-binding` (empirical half closed).** The reviewer's named
+> fix — *"a Pareto-recovered `bind(q)` lower bound that keeps the gap high on truly-binding axes"* — is
+> now delivered on the GT/measurable axes (`src/prudent_ai/validation/binding.py`,
+> [`W1_per_instance_binding.md`](../W1_per_instance_binding.md), `outputs/p5/w1_binding.json`).
+> `bind(q)` is recovered **per instance** from the slice's Pareto structure (axis `a` binds iff
+> `min_cost(q without a) < min_cost(q)` — the active-constraint test), not from tags. Across all V1
+> biting slices + a non-binding control, the C2 bite tracks Pareto-binding **exactly**: `bite ⟺ binding`
+> agreement **1.0** (287 binding&bite, 257 nonbinding&no-bite, **0 off-diagonal**); C2 on the
+> certified-binding subset is **undiminished** (B2 1.0 vs selective 0.0, n=287); the latency control
+> certifies 0.0 binding / 0 bites. So the C2 biting axes are *recovered* binding, not declared — the
+> "declared ≠ binding so the bite is inflated" attack is answered where GT exists. **Not closed:** the
+> C1 91.1% magnitude rides on corpus-wide-⊥ axes with no GT (binding-unrecoverable), so C1 keeps leading
+> with the binding-INDEPENDENT 72.4%/16.0% per the v1 fix; and the general `cl(R)` theorem (W7/Q1) stays
+> open. Net: W1 downgraded from CRITICAL-blocking to **resolved for C2/C3**; the residual Oral gate is
+> now the *theory* (W7), not the empirical binding attack.
+
 ### W7 — The theorem is gadget-level; §8.6 closure open. **Severity: MAJOR. STILL OPEN.**
 
 Untouched, by design (`docs/OPEN_QUESTIONS.md`: the gadget-level theorem stands; the full
@@ -211,8 +227,8 @@ clean general proof or foregrounding C1+C2 and demoting "limit theorem" to "anch
 | Dimension | v1 | **v2** | Justification for the change |
 |---|---|---|---|
 | **Novelty** | 8/10 | **8/10** | Unchanged. The identifiability reframe and VoI=Δ(R) identity are the novelty; the hardening was empirical robustness work, not a new idea. Still capped below 9 by the gadget-level theorem (W7). |
-| **Soundness** | 7/10 | **8/10** | +1. The four closures remove three of the four v1 soundness caps: prior-robustness is now demonstrated under an adversarial prior (W3), the feasibility guarantee is real-GT-backed and transfers on a held-out split (W4), the flagship significance is H-confidence-only with n=476 (W5), and the battery is 4× larger with an honestly-reported HVR spread incl. null slices (W6). Held at 8 (not 9) by: W1 still under the headline, the min-sufficiency half of the guarantee still proxy-only (W4 residual), and the open §8.6 closure (W7). |
-| **Significance** | 8/10 | **8/10** | Unchanged. The reframe's importance is the same; the hardening makes the *evidence* for it more bulletproof but does not enlarge the claim. Still capped by W1 (magnitude rides on declared-not-binding). *(W11 since closed — node `zh6apu`: the positive COMMIT branch is now validated on all 31 biting slices, 527 commits, feasible_frac=1.0, min_sufficient_frac=1.0, with the masked-regime abstain dual; and V2-lift scaled to n=527, McNemar 459/0, p≪0.05. Significance now capped by W1 alone.)* |
+| **Soundness** | 7/10 | **8/10** | +1. The four closures remove three of the four v1 soundness caps: prior-robustness is now demonstrated under an adversarial prior (W3), the feasibility guarantee is real-GT-backed and transfers on a held-out split (W4), the flagship significance is H-confidence-only with n=476 (W5), and the battery is 4× larger with an honestly-reported HVR spread incl. null slices (W6). Held at 8 (not 9) by: W1 still under the headline, the min-sufficiency half of the guarantee still proxy-only (W4 residual), and the open §8.6 closure (W7). *(W1 empirical half since closed — node `c90ge4`: Pareto-recovered per-instance binding, bite⟺binding 1.0; the C1 magnitude still rides on binding-unrecoverable ⊥ axes, so the cap is now W7/Q1 theory + W4 residual.)* |
+| **Significance** | 8/10 | **8/10** | Unchanged at v2-time. *(Since updated — nodes `zh6apu` + `c90ge4`: **W11 closed** (positive COMMIT validated on all 31 biting slices, 527 commits, feasible/min-sufficient 1.0, masked-abstain dual; V2-lift scaled n=527, McNemar 459/0, p≪0.05) and the **empirical half of W1 closed** (Pareto-recovered per-instance `bind(q)`, bite⟺binding agreement 1.0, C2 on certified-binding subset B2 1.0 vs selective 0.0). The C2/C3 empirical attacks are answered; significance is now capped only by the **theory** — the C1 magnitude still riding on binding-unrecoverable ⊥ axes and the gadget-level theorem W7/Q1.)* |
 | **Clarity** | 8/10 | **8/10** | Unchanged pending the W2 edit. The new artifacts are exceptionally clear and self-flagging (the W4 doc explicitly separates the feasibility guarantee it *does* deliver from the min-sufficiency one it does *not*). Will rise to 9 once §1 is rewritten to lead with the n=476 H-only scaled result instead of the n=5 pilot. |
 
 **Net:** Soundness 7 → 8. Novelty / Significance / Clarity steady. The hardening did exactly what

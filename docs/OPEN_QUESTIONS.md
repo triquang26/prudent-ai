@@ -18,16 +18,31 @@ is the candidate theory-collaborator task. If it cannot be made clean → drop t
 theorem, fall back to NeurIPS-ED (measurement-as-thesis needs no theorem). [§11 Q1]
 
 ## Q2 — Binding axis operational at the PER-INSTANCE level (the deeper gate)
+**Status: empirical half CLOSED on the GT/measurable axes (node `c90ge4`); the
+corpus-wide-⊥ half stays unrecoverable by construction.**
+
 P3/Q2 closed the query distribution at the **distribution** level: the ZenML tag→axis
 taxonomy says which axes are *salient* in a deployment (regulatory_compliance →
-governance is salient). It does NOT yet establish which axis actually **binds at the
-optimum** for a specific query — i.e. the axis whose constraint, if relaxed, changes
-`x*`. The decidability/validation results currently treat the constrained axes as the
-binding set. To make `bind(q)` rigorous per §1/§11-Q2, need: (a) a Pareto-structure
-test that identifies the active constraint at the realized optimum on the GT slice,
-(b) ideally a real per-deployment constraint trace (not tag-inferred). This is the
-honest residual of Q2 and the main reviewer-attack surface ("are these really the
-binding axes?"). [§11 Q2]
+governance is salient). The deeper gate was whether a *declared* constraint actually
+**binds at the optimum** for a specific query — the axis whose constraint, if relaxed,
+changes `x*`.
+
+**Done (a):** the Pareto-structure active-constraint test is implemented —
+`bind(q) = { a : min_cost(q without a) < min_cost(q) }`
+(`src/prudent_ai/validation/binding.py`, `docs/W1_per_instance_binding.md`,
+`outputs/p5/w1_binding.json`). On all V1 biting slices + a non-binding control, the C2
+bite tracks Pareto-binding **exactly**: `bite ⟺ binding` agreement **1.0** (287 binding
+& bite, 257 non-binding & no-bite, 0 off-diagonal); C2 on the certified-binding subset
+B2 1.0 vs selective 0.0. So the C2 biting axes are *recovered* binding, not declared —
+the main reviewer attack ("are these really the binding axes?") is answered where GT
+exists.
+
+**Remaining residual.** (b) a real per-deployment constraint trace (not tag-inferred) is
+still ideal but not blocking. And the binding test is **only recoverable where GT
+exists** (the measurable axes) — for the corpus-wide-⊥ axes (governance, reviewer_burden,
+memory_hw) there is no data to drop-test, so the **C1 91.1% magnitude** continues to lead
+with the binding-INDEPENDENT 72.4%/16.0% attribution rather than a per-instance
+recovery. This node strengthens C2/C3, not the C1 headline. [§11 Q2]
 
 ## Q3 — Real mis-sizing exceeds `Δ(R)` (empirical, partly P5)
 Whether real leaderboard mis-sizing on the slice *exceeds* the theorem's `Δ(R)`

@@ -23,9 +23,13 @@
 | **P5** Validation (Oral pillar, 4 axes) | V1 mask-and-predict vs B1–B6 + V2 VoI-acquisition + coverage–risk, with significance | ✅ done (V1+V2 + scaled); V3 ⛔ stretch | **4iezqz** (RouterBench GT data) → **jal8id** (V1/V2 pilot) → scaled in **worcj5** | `docs/P5_validation.md`, `outputs/p5/validation_scaled.{json,md}`, `docs/paper/07_evaluation.md` | **7 biting slices / 119 queries**: B2/B3/B6 HVR **0.882** vs selective **0.0**; gap **0.8824 [0.824, 0.941]**, McNemar **105/0**, **p≈0 SIGNIFICANT**. V2 VoI-lift 1.0 vs 0.2. **Proves C2.** |
 | **P6** Write / ablation / rebuttal-proof / talk | Full paper, evidence-regime ablation, repro package, figures, mock review ≥ Oral bar | ✅ done (concrete) · 🟡 polish + theory-gap remain | **worcj5** (paper+scale) → **tfumqf** (figures+ablation+mock) → **eyfl2u** (final hardening, active) | `docs/paper/*.md` (10 §), `docs/paper/figures/*.png` (5), `docs/paper/A1_ablation.md`, `docs/paper/MOCK_REVIEW.md`, `REPRODUCE.md` | Paper drafted (~1786 lines), 5 figures from frozen data, ablation tied to limit theorem, mock review **Spotlight-leaning-Oral** (N8/S7/Sig8/C8). W2 fixed; W1/W7 deferred. |
 
-**Phase summary:** P0–P5 done; P6 concrete deliverables done, with the active `eyfl2u`
-node finishing presentation hardening (W3–W6) while the two theory weaknesses (W1, W7)
-are deferred to `docs/OPEN_QUESTIONS.md`.
+**Phase summary:** P0–P5 done; P6 concrete deliverables done. Post-hardening nodes
+`zh6apu` (W11: positive COMMIT validated + V2-lift scaled to n=527) and `c90ge4` (W1:
+per-instance binding Pareto-recovered, `bite⟺binding` 1.0) closed the two remaining
+*empirical* attack surfaces. The only residual Oral gate is now **theory** — the
+gadget-level limit theorem / general `cl(R)` closure (**W7/Q1**) and the C1 magnitude
+riding on binding-unrecoverable ⊥ axes — deferred to `docs/OPEN_QUESTIONS.md` (needs a
+theory collaborator).
 
 ---
 
@@ -34,7 +38,7 @@ are deferred to `docs/OPEN_QUESTIONS.md`.
 | Claim | Statement (master §1) | DV that proves it | Status | Headline number | Significance |
 |---|---|---|---|---|---|
 | **C1** (measurement) | On real deployment traffic, many right-sizing decisions are **evidence-underdetermined** due to **structured** missingness (all 8 axes). | **DV1** (P3, decidability map over the empirical ZenML prior) | ✅ evidenced | **91.1% underdetermined** (1563/1716) at full regime; 100% accuracy-only; **72.4%** blocked by a corpus-wide-⊥ axis | 95% CI [89.7, 92.4]; κ-robust (≥89.3%); tag-drop-one robust (≥83.2%); grid→empirical **Δ +5.4%** (sharpens, not cherry-picks) |
-| **C2** (x>y, gây đau) | Leaderboard-style rules **answer anyway** and **mis-size measurably** (4 measurable axes). | **DV2** (regret) + **DV3** (hidden-violation), P5 V1, vs B2/B3 | ✅ evidenced, **SIGNIFICANT** | hidden-violation **0.882** (B2=B3=B6) vs selective **0.0**, gap **0.8824** across 7 slices / 119 queries | **95% CI [0.8235, 0.9412]** excl. 0; **McNemar 105/0**; one-sided exact-binomial **p≈0**; every slice individually significant. (DV2 regret degenerate-by-violation → DV3 carries it; W10.) |
+| **C2** (x>y, gây đau) | Leaderboard-style rules **answer anyway** and **mis-size measurably** (4 measurable axes). | **DV2** (regret) + **DV3** (hidden-violation), P5 V1, vs B2/B3 | ✅ evidenced, **SIGNIFICANT** | hidden-violation **0.882** (B2=B3=B6) vs selective **0.0**, gap **0.8824** across 7 slices / 119 queries | **95% CI [0.8235, 0.9412]** excl. 0; **McNemar 105/0**; one-sided exact-binomial **p≈0**; every slice individually significant. (DV2 regret degenerate-by-violation → DV3 carries it; W10.) **W1 empirical-closed** (node `c90ge4`): the biting axes are Pareto-certified binding per-instance, `bite⟺binding` agreement **1.0**, so the gap is on *truly*-binding axes not declared. |
 | **C3** (method) | 3-state selective procedure + **VoI** + **coverage guarantee** — abstain *informatively* (name the field to measure), commit only when ≥1−α correct. | **DV4** (coverage–risk) + **DV5** (VoI-lift), P4 + P5 V2 + commit-validation | ✅ evidenced (proxy-truth) · 🟡 real-GT calibration open | VoI(a*)=Δ(R) exact; guarantee risk **0%** @ coverage **10.5%**; V2 VoI-pick commit-correct **1.0 vs 0.129** (scaled **n=527**, McNemar 459/0); **positive COMMIT validated** (527 commits, feasible 1.0, min-sufficient 1.0) | VoI=Δ(R) pinned rel_tol 1e-9 (4 pts); coverage–risk on proxy-truth (κ_truth=H+M+L, **not** held-out GT — W4); **W11 closed** (node `zh6apu`): COMMIT branch scored + V2-lift significant (pooled & H-only) |
 
 **Claim→proof map (master §16.241):** C1 ← DV1 (P3, 8 axes) · C2 ← DV2+DV3 (P5 V1, 4 axes, vs B2/B3) · C3 ← DV4+DV5 (P4+P5 V2). All three have working, significance-backed (C1/C2) or exact-identity (C3) evidence.
@@ -51,6 +55,7 @@ are deferred to `docs/OPEN_QUESTIONS.md`.
 | **DV4** coverage–risk | coverage at guarantee 1−α | ✅ yes (proxy-truth) | risk **0.0%** @ coverage **10.5%** (margin 0, α=0.05 & 0.10); coverage→0 past margin 0.2 | `docs/P4_selective_procedure.md` §3.4; `outputs/p4/coverage_risk.json` |
 | **DV5** VoI lift | regret reduction measuring top-VoI vs random | ✅ yes, **SIGNIFICANT (n=527)** | V2 scaled: VoI-pick commit-correct **1.000 (527/527)** vs random **0.129**, McNemar **459/0**, p≪0.05 (H-only 510, 445/0); P4 cost-aware VoI/cost lift 1.03× | `docs/P5_commit_branch_voi.md` §2; `outputs/p5/commit_voi.json` (`scale_v2`) |
 | **DV6** COMMIT validity | positive COMMIT feasible + min-sufficient on biting slices (W11) | ✅ yes | **527 commits**, feasible_frac **1.0**, min_sufficient_frac **1.0**, regret 0; dual: same 527 ABSTAIN when blind | `docs/P5_commit_branch_voi.md` §1; `outputs/p5/commit_voi.json` (`commit_validation`) |
+| **DV7** per-instance binding | C2 bite is on *Pareto-certified* binding axes, not declared (W1) | ✅ yes | **bite⟺binding agreement 1.0** (287 bind&bite / 257 nonbind&no-bite / 0 off-diag); C2 on certified-binding subset B2 1.0 vs sel 0.0; latency control 0.0 binding | `docs/W1_per_instance_binding.md`; `outputs/p5/w1_binding.json` (`binding_certification`) |
 
 ---
 

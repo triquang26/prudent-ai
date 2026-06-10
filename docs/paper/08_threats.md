@@ -29,8 +29,17 @@ it* (85.7% on the uniform grid → 91.1% on real traffic), because real deployme
 off-evidence axes more heavily than a uniform grid does. **The per-instance-binding caveat is
 stated plainly:** a deployment tag is evidence that an axis is *declared a hard requirement*, a
 conservative over-approximation of *binding at the optimum* (`bind(q)` = active-at-optimum). We
-close Q2 at the *distribution* level, not the per-instance level; the deeper recovery of `bind(q)`
-from the constraint bundle and observed Pareto structure is future work. The distribution-level
+close Q2 at the *distribution* level, not the per-instance level for the C1 magnitude. **For the
+C2/C3 validation, however, we now recover `bind(q)` per instance from Pareto structure** (an axis
+binds at `q` iff `min_cost(q without a) < min_cost(q)`, the active-constraint test;
+`src/prudent_ai/validation/binding.py`, `docs/W1_per_instance_binding.md`). Across every biting
+slice plus a non-binding control, the mis-sizing bite tracks Pareto-binding **exactly** —
+`bite ⟺ binding` agreement **1.0** (287 binding-and-bite, 257 non-binding-and-no-bite, zero
+off-diagonal), and the C2 gap on the certified-binding subset is undiminished (B2 1.0 vs selective
+0.0). So on the measurable axes the biting constraints are *recovered* binding, not merely declared.
+The residual is honest: for the corpus-wide-⊥ axes (governance, reviewer_burden, memory_hw) there is
+no GT to drop-test, so the **C1 91.1% magnitude** still leads with the binding-INDEPENDENT
+72.4%/16.0% attribution. The distribution-level
 claim does not depend on resolving it, since the decisive off-evidence axes are ⊥ in every τ
 regardless, and `throughput`/`energy` are deliberately left ⊥-able (never bound from a tag), which
 can only *under*-state underdetermination.

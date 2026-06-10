@@ -36,6 +36,7 @@ from prudent_ai.solver import Phi
 from prudent_ai.solver.procedure import Action, right_size
 from prudent_ai.solver.regimes import ALL_AXES
 from prudent_ai.validation.baselines import ALL_RULES, SelectiveRule
+from prudent_ai.validation.binding import is_pareto_binding
 from prudent_ai.validation.harness import (
     BenchmarkSubstrate,
     MaskAndPredict,
@@ -835,4 +836,113 @@ class ValidationRunner:
             "slices": slices_out,
             "pooled": _summ(agg),
             "pooled_h_only": _summ(agg_h),
+        }
+
+    # --------------------------------------------- per-instance binding (W1) ----
+
+    def binding_certification(
+        self,
+        benchmarks: tuple[str, ...] | None = None,
+        min_feasible_configs: int | None = None,
+    ) -> dict:
+        """Recover `bind(q)` per instance from Pareto structure and test bite⟺binding (W1).
+
+        For each query on each slice, certify whether the masked axis is **Pareto-
+        binding** (`is_pareto_binding`: dropping its constraint strictly lowers the true
+        min-cost) and whether the must-beat baseline B2 **bites** (hidden-violates). We
+        run the biting slices (mask the binding axis) PLUS a non-binding **control**
+        (BFCL mask=`latency_p95`, where cheap==fast so latency is slack), and build the
+        2×2 confusion of (certified-binding × baseline-bites). The C2 mechanism predicts
+        the diagonal: bite ⇔ the masked axis is Pareto-binding — an independent,
+        data-recovered certificate that the biting axes really bind, not just declared.
+
+        Also reports C2 **restricted to certified-binding queries**: selective vs B2
+        hidden-violation, to show the gap is undiminished on the truly-binding subset.
+        """
+        pcts = tuple(range(10, 95, 5))
+        min_cfg = (
+            self._MIN_FEASIBLE_CONFIGS if min_feasible_configs is None
+            else min_feasible_configs
+        )
+        sel = _SELECTIVE
+        b2 = _MUST_BEAT_RULES["B2_observed_pareto"]
+
+        control = [(
+            "BFCL/bind=quality+latency/mask=latency_p95 [CONTROL: non-binding]",
+            "function-calling", ("quality", "latency_p95"), "latency_p95", None, "M",
+        )]
+        all_slices = list(self._scale_slices(benchmarks)) + control
+
+        slices_out: dict[str, dict] = {}
+        confusion = {"bind_bite": 0, "bind_nobite": 0,
+                     "nobind_bite": 0, "nobind_nobite": 0}
+        restr = {"n": 0, "sel_hv": 0, "b2_hv": 0}
+
+        for key, tau, bind_axes, masked_axis, bench, conf in all_slices:
+            is_control = "CONTROL" in key
+            sub = BenchmarkSubstrate(self.sub, bench) if bench else self.sub
+            n_candidates = len(sub.candidates(tau))
+            if n_candidates < min_cfg:
+                slices_out[key] = {
+                    "meta": {
+                        "tau": tau, "benchmark": bench, "confidence": conf,
+                        "masked_axis": masked_axis, "is_control": is_control,
+                        "n_candidates": n_candidates, "skipped": True,
+                    },
+                }
+                continue
+            mp = MaskAndPredict(sub, kappa=self.kappa, phi=self.phi)
+            queries = mp.generate_queries(tau, bind_axes, pcts=pcts)
+            b2pq = mp.score_rule_per_query(b2, queries, masked_axis)
+            selpq = mp.score_rule_per_query(sel, queries, masked_axis)
+
+            n_cert = n_bite = 0
+            for q, bq, sq in zip(queries, b2pq, selpq, strict=True):
+                cert = is_pareto_binding(sub, q, masked_axis, self.kappa, self.phi)
+                bite = bool(bq["hidden_violation"])
+                n_cert += int(cert)
+                n_bite += int(bite)
+                bucket = ("bind" if cert else "nobind") + ("_bite" if bite else "_nobite")
+                confusion[bucket] += 1
+                if cert:
+                    restr["n"] += 1
+                    restr["sel_hv"] += int(sq["hidden_violation"])
+                    restr["b2_hv"] += int(bq["hidden_violation"])
+
+            nq = len(queries)
+            slices_out[key] = {
+                "meta": {
+                    "tau": tau, "benchmark": bench, "confidence": conf,
+                    "bind_axes": list(bind_axes), "masked_axis": masked_axis,
+                    "is_control": is_control, "n_queries": nq,
+                    "n_candidates": n_candidates,
+                    "certified_binding": n_cert,
+                    "certified_binding_frac": round(n_cert / nq, 4) if nq else 0.0,
+                    "baseline_bites": n_bite,
+                },
+            }
+
+        total = sum(confusion.values())
+        agree = (
+            (confusion["bind_bite"] + confusion["nobind_nobite"]) / total
+            if total else 0.0
+        )
+        return {
+            "meta": {
+                "pcts": list(pcts),
+                "n_slices": len(slices_out),
+                "definition":
+                    "bind(q) = {a : min_cost(q\\{a}) < min_cost(q)} (Pareto active "
+                    "constraint on the GT slice)",
+            },
+            "slices": slices_out,
+            "confusion": confusion,
+            "bite_iff_binding_agreement": round(agree, 4),
+            "c2_restricted_to_certified_binding": {
+                "n": restr["n"],
+                "selective_hidden_violation_rate":
+                    round(restr["sel_hv"] / restr["n"], 4) if restr["n"] else 0.0,
+                "b2_hidden_violation_rate":
+                    round(restr["b2_hv"] / restr["n"], 4) if restr["n"] else 0.0,
+            },
         }
