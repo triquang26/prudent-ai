@@ -252,6 +252,8 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
   .js figure.seen .stg3{animation-delay:1.75s}
   .js figure.seen .stg4{animation-delay:2.55s}
   .js figure.seen .stg5{animation-delay:3.35s}
+  .js figure.seen .stg6{animation-delay:4.15s}
+  .js figure.seen .stg7{animation-delay:4.95s}
   @keyframes stgin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 }
 
@@ -978,10 +980,13 @@ pick = cheapest PROVEN-FIT x          <span class="t-dim"># judged on its worst-
     Putting it all together — <strong>one query, end to end</strong>, exactly as the engine runs it:</p>
 
     <figure>
-      <svg viewBox="0 0 840 470" width="100%" role="img" aria-label="Animated walkthrough of one decision: a question arrives, candidates are pulled from CONFIGURATIONS, their measurements are fetched from OBSERVATIONS and summarized as intervals, each candidate gets a verdict, and the engine refuses, naming the cheapest unblocking measurement.">
+      <svg viewBox="0 0 840 730" width="100%" role="img" aria-label="Animated walkthrough of one decision: a question arrives, candidates are pulled from CONFIGURATIONS, their measurements are fetched from OBSERVATIONS and summarized as intervals, each candidate gets a verdict, the engine finds no provable answer, refuses, ranks the blocking measurements by value over cost, and after the named measurement is taken the query re-runs and decides.">
         <defs>
           <marker id="warr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="#69788a"/>
+          </marker>
+          <marker id="larr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#1a7f4b"/>
           </marker>
         </defs>
         <!-- stage 1: the question -->
@@ -1018,27 +1023,46 @@ pick = cheapest PROVEN-FIT x          <span class="t-dim"># judged on its worst-
         </g>
         <!-- stage 4: verdicts -->
         <g class="stg stg4">
-          <text x="420" y="262" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#3d4a57">&#9314; verdict per candidate — whole interval vs the bar</text>
+          <text x="420" y="262" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#3d4a57">&#9314; verdict per candidate — the whole interval vs the bar</text>
           <text x="200" y="284" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#9a6b00">UNKNOWN</text>
           <text x="200" y="300" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#69788a">price never measured</text>
           <text x="420" y="284" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#9a6b00">UNKNOWN</text>
           <text x="420" y="300" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#69788a">quality straddles the 0.8 bar</text>
           <text x="640" y="284" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#b3261e">PROVEN-UNFIT</text>
-          <text x="640" y="300" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#69788a">whole quality range misses</text>
+          <text x="640" y="300" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#69788a">whole quality range misses — eliminated</text>
         </g>
-        <!-- stage 5: output -->
+        <!-- stage 5: search for a provable answer -->
         <g class="stg stg5">
           <line x1="420" y1="312" x2="420" y2="332" stroke="#69788a" stroke-width="1.6" marker-end="url(#warr)"/>
-          <rect x="150" y="338" width="540" height="86" rx="13" fill="#fbeae9" stroke="#b3261e" stroke-width="1.8"/>
-          <text x="420" y="364" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="800" fill="#b3261e">&#9995; REFUSED — no candidate is provably fit, so no provably-cheapest pick exists</text>
-          <text x="420" y="387" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57">blocking measurements: price of gpt-4 &middot; quality of llama-70b</text>
-          <text x="420" y="409" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#9a6b00">ranked by value &divide; measurement cost &rarr; next step: measure gpt-4's price</text>
-          <text x="420" y="452" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1a7f4b">…and if that price comes back &le; $5: re-run &rarr; &#10004; DECIDE gpt-4, provably the cheapest that fits.</text>
+          <text x="420" y="354" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#3d4a57">&#9315; look for a provable answer — a PROVEN-FIT pick that no unknown rival could undercut</text>
+          <rect x="170" y="366" width="500" height="56" rx="12" fill="#fbf3e0" stroke="#9a6b00" stroke-width="1.5"/>
+          <text x="420" y="389" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#11181f">provably-fit candidates: <tspan font-weight="800">none</tspan> — gpt-4 blocked by price, llama-70b by quality</text>
+          <text x="420" y="409" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57">&rarr; from today's evidence, <tspan font-weight="700">no answer can be proven</tspan> — and the engine will not guess</text>
+        </g>
+        <!-- stage 6: the refusal -->
+        <g class="stg stg6">
+          <line x1="420" y1="426" x2="420" y2="446" stroke="#69788a" stroke-width="1.6" marker-end="url(#warr)"/>
+          <rect x="150" y="452" width="540" height="64" rx="13" fill="#fbeae9" stroke="#b3261e" stroke-width="1.8"/>
+          <text x="420" y="478" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="800" fill="#b3261e">&#9995; REFUSED — answering now would be a guess, not a decision</text>
+          <text x="420" y="500" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57">blocking measurements: price of gpt-4 &middot; quality of llama-70b</text>
+        </g>
+        <!-- stage 7: the measurement plan + loop back -->
+        <g class="stg stg7">
+          <line x1="420" y1="518" x2="420" y2="538" stroke="#69788a" stroke-width="1.6" marker-end="url(#warr)"/>
+          <text x="420" y="560" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#3d4a57">&#9316; turn the refusal into a plan — rank each blocking measurement by (regret it removes &divide; cost to take it)</text>
+          <rect x="130" y="572" width="580" height="76" rx="13" fill="#fbf3e0" stroke="#9a6b00" stroke-width="1.8"/>
+          <text x="420" y="598" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#11181f"><tspan font-weight="800">1 &middot; price of gpt-4</tspan> — removes the bigger uncertainty, and a price lookup is the cheapest check &rarr; <tspan font-weight="800" fill="#9a6b00">MEASURE THIS</tspan></text>
+          <text x="420" y="624" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" fill="#3d4a57"><tspan font-weight="700">2 &middot; quality of llama-70b</tspan> — needs a full evaluation, ~6&times; costlier &rarr; only if step 1 doesn't settle it</text>
+          <text x="420" y="682" text-anchor="middle" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1a7f4b">the new price lands as one more row in OBSERVATIONS &rarr; the same query re-runs (dashed loop) &rarr;</text>
+          <text x="420" y="706" text-anchor="middle" font-family="Inter,sans-serif" font-size="12.5" font-weight="800" fill="#1a7f4b">&#10004; DECIDED — gpt-4, provably the cheapest that fits (price came back &le; $5)</text>
+          <path class="flow-edge" d="M712,610 H800 V29 H676" fill="none" stroke="#1a7f4b" stroke-width="1.8" marker-end="url(#larr)"/>
+          <text x="814" y="320" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#1a7f4b" transform="rotate(-90 814 320)">re-run with the new evidence</text>
         </g>
       </svg>
-      <figcaption style="text-align:center"><b>One decision, end to end.</b> The five stages appear in
-      the order the engine executes them. Note what it never does: it never fills in the dark cell,
-      and it never grabs llama-70b just because it looks cheap.</figcaption>
+      <figcaption style="text-align:center"><b>One decision, end to end.</b> The seven stages appear in
+      the order the engine executes them, and the dashed green loop closes the cycle: measure the one
+      named thing, re-run, decide. Note what the engine never does: it never fills in the dark cell, and
+      it never grabs llama-70b just because it looks cheap — that shortcut is exactly the 57.1%.</figcaption>
     </figure>
 
     <!-- ---------- STEP 4: grading ---------- -->
