@@ -146,6 +146,17 @@ biting slice still has selective **coverage = 0.0000** (it *abstains* on all bit
 battery validates *when to abstain*, never *a correct positive COMMIT*. That is no longer a battery-
 size problem (W6 is closed) — it is the W1/W11 substance, addressed below.
 
+> **UPDATE — node `zh6apu-commit-branch-voi-scale` (closes W11 + the V2-lift residual).** Both
+> halves of this residual are now retired (`outputs/p5/commit_voi.json`, [`P5_commit_branch_voi.md`](../P5_commit_branch_voi.md)):
+> - **V2-lift scaled (`scale_v2`):** pooled over BFCL + all per-benchmark RouterBench slices,
+>   VoI-pick commit-correct **1.000 (527/527)** vs random **0.129**, McNemar **459/0**, one-sided
+>   binomial p ≪ 0.05 — and the same at **H-only (510, 445/0)**. The n=5 pilot was not an artefact.
+> - **Positive COMMIT validated (`commit_validation`):** running the procedure under the *full*
+>   regime on the same biting slices, it COMMITs **527** configs, **feasible_frac=1.0**,
+>   **min_sufficient_frac=1.0**, regret 0; the dual confirms all 527 ABSTAIN when the axis is masked.
+>   So selective abstains when blind AND commits correctly when sighted. W11 is closed; the only
+>   remaining Oral gate is the **W1/Q2** theory item (per-instance binding), still deferred.
+
 ---
 
 ## 2. The remaining DEFERRED-theory blockers (unchanged by the hardening)
@@ -201,7 +212,7 @@ clean general proof or foregrounding C1+C2 and demoting "limit theorem" to "anch
 |---|---|---|---|
 | **Novelty** | 8/10 | **8/10** | Unchanged. The identifiability reframe and VoI=Δ(R) identity are the novelty; the hardening was empirical robustness work, not a new idea. Still capped below 9 by the gadget-level theorem (W7). |
 | **Soundness** | 7/10 | **8/10** | +1. The four closures remove three of the four v1 soundness caps: prior-robustness is now demonstrated under an adversarial prior (W3), the feasibility guarantee is real-GT-backed and transfers on a held-out split (W4), the flagship significance is H-confidence-only with n=476 (W5), and the battery is 4× larger with an honestly-reported HVR spread incl. null slices (W6). Held at 8 (not 9) by: W1 still under the headline, the min-sufficiency half of the guarantee still proxy-only (W4 residual), and the open §8.6 closure (W7). |
-| **Significance** | 8/10 | **8/10** | Unchanged. The reframe's importance is the same; the hardening makes the *evidence* for it more bulletproof but does not enlarge the claim. Still capped by W1 (magnitude rides on declared-not-binding) and the fact that the positive COMMIT branch is still never validated on a biting slice (W11/W6 residual: selective coverage = 0 on every biting slice). |
+| **Significance** | 8/10 | **8/10** | Unchanged. The reframe's importance is the same; the hardening makes the *evidence* for it more bulletproof but does not enlarge the claim. Still capped by W1 (magnitude rides on declared-not-binding). *(W11 since closed — node `zh6apu`: the positive COMMIT branch is now validated on all 31 biting slices, 527 commits, feasible_frac=1.0, min_sufficient_frac=1.0, with the masked-regime abstain dual; and V2-lift scaled to n=527, McNemar 459/0, p≪0.05. Significance now capped by W1 alone.)* |
 | **Clarity** | 8/10 | **8/10** | Unchanged pending the W2 edit. The new artifacts are exceptionally clear and self-flagging (the W4 doc explicitly separates the feasibility guarantee it *does* deliver from the min-sufficiency one it does *not*). Will rise to 9 once §1 is rewritten to lead with the n=476 H-only scaled result instead of the n=5 pilot. |
 
 **Net:** Soundness 7 → 8. Novelty / Significance / Clarity steady. The hardening did exactly what

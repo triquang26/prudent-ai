@@ -558,3 +558,281 @@ class ValidationRunner:
             },
             "per_query": per_query,
         }
+
+    # ---------------------------------------------------------- V2 (scaled) ----
+
+    @staticmethod
+    def _commit_correct(
+        mp: MaskAndPredict, query: Query, rule: SelectiveRule, sub,
+        visible: frozenset[str], kappa: tuple[str, ...], phi: Phi,
+    ) -> tuple[bool, bool]:
+        """(committed, commit_truly_feasible) for *rule* reading *sub* under *visible*."""
+        pred = rule.decide(sub, query, visible, kappa, phi)
+        if pred is None:
+            return (False, False)
+        return (True, mp.true_feasible(query, pred))
+
+    @staticmethod
+    def _voi_significance(pairs: list[tuple[bool, bool]]) -> dict:
+        """McNemar one-sided exact-binomial test that VoI-pick beats a random axis.
+
+        ``pairs = [(topvoi_commit_correct, random_commit_correct), ...]`` over the
+        abstained queries. ``b`` = queries where the VoI pick yields a correct commit
+        and a random axis does not; ``c`` = the reverse. The one-sided exact binomial
+        ``P(X >= b)``, ``X ~ Binom(b+c, 0.5)``, tests H1: VoI-pick strictly better on
+        the discordant pairs. ``significant`` iff ``b>c`` and ``p<0.05``.
+        """
+        n = len(pairs)
+        topvoi_cc = sum(1 for t, _ in pairs if t)
+        random_cc = sum(1 for _, r in pairs if r)
+        b = sum(1 for t, r in pairs if t and not r)
+        c = sum(1 for t, r in pairs if r and not t)
+        nd = b + c
+        p_value = _binom_sf_ge(b, nd, 0.5) if nd else 1.0
+        return {
+            "n": n,
+            "topvoi_commit_correct": topvoi_cc,
+            "random_commit_correct": random_cc,
+            "topvoi_commit_correct_frac": round(topvoi_cc / n, 4) if n else 0.0,
+            "random_commit_correct_frac": round(random_cc / n, 4) if n else 0.0,
+            "mcnemar_b": b,
+            "mcnemar_c": c,
+            "binom_p_one_sided": round(p_value, 8),
+            "significant": bool(nd > 0 and b > c and p_value < 0.05),
+        }
+
+    def scale_v2(
+        self,
+        seed: int = 12345,
+        benchmarks: tuple[str, ...] | None = None,
+        min_feasible_configs: int | None = None,
+    ) -> dict:
+        """Scaled VoI-guided acquisition (§10) with significance — lifts the n=5 pilot.
+
+        Same construction as :meth:`v2_acquisition` (mask the biting binding axis,
+        let the procedure ABSTAIN, then "measure" the top-VoI axis vs a random axis
+        and re-decide), but run over BFCL PLUS every per-benchmark RouterBench slice
+        (discovered from the substrate via the C7 interface), pooling the per-query
+        ``(VoI-pick-correct, random-correct)`` pairs into a McNemar one-sided binomial
+        test. Pooled twice — over ALL slices and over H-confidence slices only
+        (RouterBench) — mirroring ``scale_v1``'s W5 flagship discipline.
+        """
+        pcts = tuple(range(10, 95, 5))
+        rng = random.Random(seed)
+        all_axes = sorted(ALL_AXES)
+        sel = SelectiveRule()
+        min_cfg = (
+            self._MIN_FEASIBLE_CONFIGS if min_feasible_configs is None
+            else min_feasible_configs
+        )
+
+        slices_out: dict[str, dict] = {}
+        pooled_pairs: list[tuple[bool, bool]] = []
+        pooled_h_pairs: list[tuple[bool, bool]] = []
+
+        for key, tau, bind_axes, masked_axis, bench, conf in self._scale_slices(
+            benchmarks
+        ):
+            sub = BenchmarkSubstrate(self.sub, bench) if bench else self.sub
+            n_candidates = len(sub.candidates(tau))
+            if n_candidates < min_cfg:
+                slices_out[key] = {
+                    "meta": {
+                        "tau": tau, "benchmark": bench, "confidence": conf,
+                        "masked_axis": masked_axis, "n_candidates": n_candidates,
+                        "skipped": True,
+                    },
+                    "acquisition": {"n": 0},
+                }
+                continue
+            mp = MaskAndPredict(sub, kappa=self.kappa, phi=self.phi)
+            queries = mp.generate_queries(tau, bind_axes, pcts=pcts)
+            masked_sub = MaskedSubstrate(sub, masked_axis)
+            visible_masked = ALL_AXES - {masked_axis}
+
+            pairs: list[tuple[bool, bool]] = []
+            for q in queries:
+                rec = right_size(masked_sub, q, self.kappa, self.phi, visible_masked)
+                if rec.action is not Action.ABSTAIN:
+                    continue
+                top_axis = rec.acquire_next
+                rand_axis = rng.choice(all_axes)
+                # reveal: un-mask only if the measured axis is the blocking one;
+                # measuring any other field leaves the blocking axis still hidden.
+                ts, tr = (
+                    (sub, ALL_AXES) if top_axis == masked_axis
+                    else (masked_sub, visible_masked)
+                )
+                _, top_ok = self._commit_correct(
+                    mp, q, sel, ts, tr, self.kappa, self.phi
+                )
+                rs, rr = (
+                    (sub, ALL_AXES) if rand_axis == masked_axis
+                    else (masked_sub, visible_masked)
+                )
+                _, rand_ok = self._commit_correct(
+                    mp, q, sel, rs, rr, self.kappa, self.phi
+                )
+                pairs.append((top_ok, rand_ok))
+
+            slices_out[key] = {
+                "meta": {
+                    "tau": tau, "benchmark": bench, "confidence": conf,
+                    "bind_axes": list(bind_axes), "masked_axis": masked_axis,
+                    "n_candidates": n_candidates, "n_abstained": len(pairs),
+                },
+                "acquisition": self._voi_significance(pairs),
+            }
+            pooled_pairs.extend(pairs)
+            if conf == "H":
+                pooled_h_pairs.extend(pairs)
+
+        n_with_signal = sum(
+            1 for v in slices_out.values() if v["acquisition"].get("n", 0) > 0
+        )
+        return {
+            "meta": {
+                "seed": seed,
+                "pcts": list(pcts),
+                "n_slices": len(slices_out),
+                "n_slices_with_abstentions": n_with_signal,
+                "construction":
+                    "mask-blocking-axis / measure-VoI-pick-vs-random / re-decide",
+            },
+            "slices": slices_out,
+            "pooled": self._voi_significance(pooled_pairs),
+            "pooled_h_only": self._voi_significance(pooled_h_pairs),
+        }
+
+    # ------------------------------------------------ COMMIT-branch validity ----
+
+    def commit_validation(
+        self,
+        benchmarks: tuple[str, ...] | None = None,
+        min_feasible_configs: int | None = None,
+    ) -> dict:
+        """Exercise + score the POSITIVE COMMIT action of the procedure (closes W11).
+
+        On every biting GT slice (the slices ``scale_v1`` masks), run the selective
+        procedure under the FULL evidence regime — where the binding axis IS observed
+        — so it COMMITs instead of abstaining, and score each commit against ground
+        truth:
+          * ``feasible``        — the committed config truly satisfies the bound axes
+            (``true_feasible``); the selective rule must never commit a violation;
+          * ``min_sufficient``  — its true cost equals the B5-oracle min-cost feasible
+            config (zero decision-regret): the commit is not merely feasible but the
+            CHEAPEST feasible config.
+        Each query is also re-run under the masked regime to record the DUAL: the same
+        slice forces ABSTAIN when the binding axis is hidden (selective coverage 0).
+        Together — abstains when blind, commits correctly when sighted — this closes
+        the gap that the COMMIT branch was never validated on a biting slice.
+        """
+        pcts = tuple(range(10, 95, 5))
+        min_cfg = (
+            self._MIN_FEASIBLE_CONFIGS if min_feasible_configs is None
+            else min_feasible_configs
+        )
+
+        slices_out: dict[str, dict] = {}
+        agg = {"n_commit": 0, "n_feasible": 0, "n_min_sufficient": 0,
+               "sum_regret": 0.0, "n_regret": 0, "n_queries": 0,
+               "n_masked_abstain": 0}
+        agg_h = dict(agg)
+
+        for key, tau, bind_axes, masked_axis, bench, conf in self._scale_slices(
+            benchmarks
+        ):
+            sub = BenchmarkSubstrate(self.sub, bench) if bench else self.sub
+            n_candidates = len(sub.candidates(tau))
+            if n_candidates < min_cfg:
+                slices_out[key] = {
+                    "meta": {
+                        "tau": tau, "benchmark": bench, "confidence": conf,
+                        "masked_axis": masked_axis, "n_candidates": n_candidates,
+                        "skipped": True,
+                    },
+                    "commit": {},
+                }
+                continue
+            mp = MaskAndPredict(sub, kappa=self.kappa, phi=self.phi)
+            queries = mp.generate_queries(tau, bind_axes, pcts=pcts)
+            masked_sub = MaskedSubstrate(sub, masked_axis)
+            visible_masked = ALL_AXES - {masked_axis}
+
+            n_q = len(queries)
+            n_commit = n_feas = n_minsuf = n_reg = n_masked_abstain = 0
+            sum_reg = 0.0
+            for q in queries:
+                rec = right_size(sub, q, self.kappa, self.phi, ALL_AXES)
+                if rec.action is Action.COMMIT:
+                    n_commit += 1
+                    cid = rec.committed_config
+                    if mp.true_feasible(q, cid):
+                        n_feas += 1
+                        oc = mp.oracle_cost(q)
+                        pc = mp._true_val(cid, "cost")
+                        if oc is not None and pc is not None:
+                            reg = max(0.0, pc - oc)
+                            sum_reg += reg
+                            n_reg += 1
+                            if reg <= 1e-9:
+                                n_minsuf += 1
+                # dual: hide the binding axis → the selective rule should abstain.
+                mrec = right_size(masked_sub, q, self.kappa, self.phi, visible_masked)
+                if mrec.action is Action.ABSTAIN:
+                    n_masked_abstain += 1
+
+            n_commit_safe = n_commit or 0
+            slices_out[key] = {
+                "meta": {
+                    "tau": tau, "benchmark": bench, "confidence": conf,
+                    "bind_axes": list(bind_axes), "masked_axis": masked_axis,
+                    "n_candidates": n_candidates, "n_queries": n_q,
+                },
+                "commit": {
+                    "n_commit": n_commit,
+                    "coverage": round(n_commit / n_q, 4) if n_q else 0.0,
+                    "feasible_frac": round(n_feas / n_commit_safe, 4) if n_commit else 0.0,
+                    "min_sufficient_frac": round(n_minsuf / n_feas, 4) if n_feas else 0.0,
+                    "mean_regret": round(sum_reg / n_reg, 6) if n_reg else 0.0,
+                    "n_feasible": n_feas,
+                    "n_min_sufficient": n_minsuf,
+                    "n_masked_abstain": n_masked_abstain,
+                    "dual_validated": bool(n_commit > 0 and n_masked_abstain == n_q),
+                },
+            }
+            for a in ((agg, agg_h) if conf == "H" else (agg,)):
+                a["n_commit"] += n_commit
+                a["n_feasible"] += n_feas
+                a["n_min_sufficient"] += n_minsuf
+                a["sum_regret"] += sum_reg
+                a["n_regret"] += n_reg
+                a["n_queries"] += n_q
+                a["n_masked_abstain"] += n_masked_abstain
+
+        def _summ(a: dict) -> dict:
+            nc, nf, nr = a["n_commit"], a["n_feasible"], a["n_regret"]
+            return {
+                "n_queries": a["n_queries"],
+                "n_commit": nc,
+                "coverage": round(nc / a["n_queries"], 4) if a["n_queries"] else 0.0,
+                "n_feasible": nf,
+                "feasible_frac": round(nf / nc, 4) if nc else 0.0,
+                "n_min_sufficient": a["n_min_sufficient"],
+                "min_sufficient_frac": round(a["n_min_sufficient"] / nf, 4) if nf else 0.0,
+                "mean_regret": round(a["sum_regret"] / nr, 6) if nr else 0.0,
+                "n_masked_abstain": a["n_masked_abstain"],
+            }
+
+        return {
+            "meta": {
+                "pcts": list(pcts),
+                "n_slices": len(slices_out),
+                "construction":
+                    "full-regime COMMIT scored vs GT (feasible + min-sufficient); "
+                    "masked-regime dual = ABSTAIN",
+            },
+            "slices": slices_out,
+            "pooled": _summ(agg),
+            "pooled_h_only": _summ(agg_h),
+        }

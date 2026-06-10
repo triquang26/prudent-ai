@@ -216,9 +216,47 @@ unblocks*, right 5/5 vs 1/5 for a blind guess. This cashes out the **VoI = Δ(R)
 §6 / P4 (`tests/test_procedure.py::test_voi_equals_delta_R`): the axis with the highest VoI is
 exactly the one whose measurement converts an abstention into a correct commit.
 
-*(Scope note: V2 is the pilot construction (n=5 abstentions on the BFCL biting bind); scaling the
-VoI-lift across the 29 biting slices, and the §10 multi-reveal "reveal-until-decidable" cascade,
-remain V2 stretch items — §7.7.)*
+**Scaled (`scale_v2`, `outputs/p5/commit_voi.json`, seed=12345).** The pilot is now run over
+**BFCL + every per-benchmark RouterBench slice**, pooling the per-query (VoI-pick-correct,
+random-correct) pairs into a McNemar one-sided exact binomial test. The verdict survives at scale:
+
+| pool | n | VoI-pick cc | random cc | McNemar b/c | significant |
+|---|---|---|---|---|---|
+| ALL slices | **527** | **1.000** | 0.129 | **459 / 0** | **YES** (p ≪ 0.05) |
+| H-confidence only (RouterBench flagship) | **510** | **1.000** | 0.128 | **445 / 0** | **YES** (p ≪ 0.05) |
+
+The VoI pick yields a truly-feasible commit **527/527**; a random axis succeeds only when its draw
+lands on the single blocking axis (`0.129 ≈ 1/8`). McNemar discordance **459/0** — zero queries
+where random beat VoI. The n=5 pilot was not a small-sample artefact.
+
+*(Stretch item remaining — §7.7: the §10 multi-reveal "reveal-until-decidable" cascade on
+multi-binding-axis slices.)*
+
+## 7.4b COMMIT-branch validity — the positive action is correct (closes W11)
+
+C2 and §7.4 score the procedure's *negative* action (when to abstain, what to measure next). The
+v1/v2 batteries never scored a *positive* COMMIT: on every biting slice the binding axis is masked,
+so selective coverage is 0 (it abstains on all of them). `commit_validation`
+(`outputs/p5/commit_voi.json`) closes that. On each biting slice we run the procedure under the
+**full** evidence regime — the binding axis is observed, so the query is decidable and the procedure
+**COMMITs** — and score each commit against ground truth: *feasible* (truly satisfies the bound
+axes) and *minimum-sufficient* (true cost equals the B5-oracle min-cost feasible config → zero
+regret). Each query is re-run masked to record the **dual** (the same slice abstains when blind).
+
+| pool | n_commit | feasible_frac | min_sufficient_frac | mean_regret | dual (abstains when blind) |
+|---|---|---|---|---|---|
+| ALL slices (31) | **527** | **1.0000** | **1.0000** | 0.0000 | **527 / 527** |
+| H-confidence only (30) | **510** | **1.0000** | **1.0000** | 0.0000 | **510 / 510** |
+
+The positive branch is exercised at scale (527 commits) and correct on every one: the selective rule
+**never** commits a constraint violation and **always** commits the cheapest feasible config. Paired
+with the dual, this is the full picture: **selective abstains when blind AND commits correctly when
+sighted.** This is correct-by-design — when decidable, `right_size` commits the provably-feasible
+min-cost config, which under full present evidence equals the oracle's pick (regret 0 is structural)
+— so it is a *soundness/coverage check of the implementation*, not a new empirical surprise. Its job
+is to rule out an off-by-one in the feasibility certification and to retire the W11 critique that the
+method's positive action was never validated on a biting slice. (Full write-up:
+[`P5_commit_branch_voi.md`](../P5_commit_branch_voi.md).)
 
 ---
 
