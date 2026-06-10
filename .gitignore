@@ -1,0 +1,24 @@
+# Experiments vault — nested git repo (symlink → ../prudent-ai-vault), ignored from outer repo
+# No trailing slash: .experiments is a symlink (a file to git), not a real dir.
+.experiments
+
+# uv / virtualenv
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Experiment outputs / artifacts (tracked in HF bucket instead)
+outputs/
+
+# Large data — download from HF bucket: hf sync hf://buckets/twanghcmut/prudent-ai-bucket/PrudentAI/... ./data/...
+data/
+
+# OS
+.DS_Store
