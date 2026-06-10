@@ -16,6 +16,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 DATASET = "zenml/llmops-database"
 CONFIG = "default"
@@ -36,8 +37,31 @@ class ZenMLClient:
     def __init__(self, timeout: int = 30) -> None:
         self.timeout = timeout
 
-    def fetch_all_rows(self, limit: int | None = None) -> list[dict]:
-        """Return all (or up to *limit*) row dicts from the dataset."""
+    def fetch_all_rows(
+        self, limit: int | None = None, cache_path: str | Path | None = None
+    ) -> list[dict]:
+        """Return all (or up to *limit*) row dicts from the dataset.
+
+        If *cache_path* is given and exists, the frozen snapshot is loaded from
+        disk (C3: reproducible, versioned corpus — and avoids re-hammering the
+        datasets-server). Otherwise the dataset is fetched and, if *cache_path* is
+        given, written there as the snapshot.
+        """
+        if cache_path is not None:
+            p = Path(cache_path)
+            if p.exists():
+                data = json.loads(p.read_text(encoding="utf-8"))
+                return data[:limit] if limit is not None else data
+
+        rows = self._fetch_all_rows_network(limit)
+
+        if cache_path is not None:
+            p = Path(cache_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps(rows), encoding="utf-8")
+        return rows
+
+    def _fetch_all_rows_network(self, limit: int | None = None) -> list[dict]:
         rows: list[dict] = []
         offset = 0
         while True:
@@ -64,10 +88,14 @@ class ZenMLClient:
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                     return json.loads(resp.read().decode("utf-8"))
             except urllib.error.HTTPError as exc:
-                # 502/503 from datasets-server are transient — retry.
+                # 502/503 transient; 429 rate-limit — retry with backoff.
                 if exc.code in (404, 401, 403):
                     raise
                 last_exc = exc
+                # 429 needs a longer cool-off than transient 5xx.
+                if exc.code == 429 and attempt < _MAX_RETRIES - 1:
+                    time.sleep(10 * (attempt + 1))
+                    continue
             except Exception as exc:  # noqa: BLE001
                 last_exc = exc
             if attempt < _MAX_RETRIES - 1:
