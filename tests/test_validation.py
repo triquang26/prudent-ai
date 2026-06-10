@@ -25,7 +25,7 @@ from prudent_ai.substrate.orm import (
     Observation as ObsORM,
 )
 from prudent_ai.validation import ALL_RULES, MaskAndPredict
-from prudent_ai.validation.harness import MaskedSubstrate
+from prudent_ai.validation.harness import BenchmarkSubstrate, MaskedSubstrate
 
 
 def _i(session, model, **kw):
@@ -106,3 +106,61 @@ def test_masking_latency_does_not_falsely_bite():
     sub.close()
     # B2 commits 'cheap' which truly satisfies quality≥0.4 → no violation
     assert rep.rules["B2_observed_pareto"]["hidden_violation_rate"] == 0.0
+
+
+class _Cand:
+    def __init__(self, cid: str) -> None:
+        self.id = cid
+
+
+class _StubSub:
+    """Minimal substrate stub: candidates(tau) by τ, delegating cell/etc."""
+
+    def __init__(self, cands_by_tau: dict[str, list[str]]) -> None:
+        self._by_tau = cands_by_tau
+        self.sentinel = "ok"
+
+    def candidates(self, tau):
+        return [_Cand(c) for c in self._by_tau.get(tau, [])]
+
+    def cell(self, x, a):
+        return [("cell", x, a)]
+
+    def required_fields(self, bundle):
+        return ("rf", bundle)
+
+
+def test_benchmark_substrate_filters_to_one_benchmark():
+    """BenchmarkSubstrate restricts a routerbench τ to config_ids ending -{bench}."""
+    ids = [
+        "rb-claude-v2-mmlu",
+        "rb-gpt-4-1106-preview-mmlu",
+        "rb-mistralai-mistral-7b-chat-hellaswag",
+        "rb-meta-llama-2-70b-chat-arc-challenge",
+        "rb-zero-one-ai-yi-34b-chat-mmlu",
+    ]
+    stub = _StubSub({"routerbench": ids, "function-calling": ["bfcl-a", "bfcl-b"]})
+
+    bs = BenchmarkSubstrate(stub, "mmlu")
+    got = sorted(c.id for c in bs.candidates("routerbench"))
+    assert got == [
+        "rb-claude-v2-mmlu",
+        "rb-gpt-4-1106-preview-mmlu",
+        "rb-zero-one-ai-yi-34b-chat-mmlu",
+    ]
+    # every returned config really ends with the benchmark suffix
+    assert all(c.id.endswith("-mmlu") for c in bs.candidates("routerbench"))
+
+    # a benchmark with a hyphen in its name is matched as a whole suffix
+    bs_arc = BenchmarkSubstrate(stub, "arc-challenge")
+    assert [c.id for c in bs_arc.candidates("routerbench")] == [
+        "rb-meta-llama-2-70b-chat-arc-challenge"
+    ]
+
+    # non-routerbench τ is delegated unchanged (no filtering)
+    assert [c.id for c in bs.candidates("function-calling")] == ["bfcl-a", "bfcl-b"]
+
+    # cell / required_fields / __getattr__ all delegate to the wrapped substrate
+    assert bs.cell("x", "quality") == [("cell", "x", "quality")]
+    assert bs.required_fields("bundle") == ("rf", "bundle")
+    assert bs.sentinel == "ok"

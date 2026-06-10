@@ -35,6 +35,42 @@ _AXIS_OP: dict[str, str] = {
 VIOLATION_PENALTY = 1.0
 
 
+class BenchmarkSubstrate:
+    """Substrate proxy restricting a RouterBench τ to ONE benchmark slice.
+
+    RouterBench config_ids are formatted ``rb-{model_slug}-{benchmark}`` and the
+    raw ``routerbench`` τ mixes every (model × benchmark) pair, so cross-benchmark
+    cost is not comparable (P5 §3.3 confound). This proxy holds the benchmark
+    fixed: for a τ that ``startswith('routerbench')`` it returns ONLY the configs
+    whose ``config_id`` ends with ``-{benchmark}`` — the 11 models on a single
+    task, where cost IS comparable, so the cost-minimizer is the weakest model and
+    masking the quality floor bites. For any other τ it delegates unchanged.
+
+    C7-shaped: identical interface, just a candidate-set restriction; cell /
+    required_fields / everything else delegate to the wrapped substrate.
+    """
+
+    def __init__(self, sub, benchmark: str) -> None:
+        self._sub = sub
+        self._benchmark = benchmark
+        self._suffix = f"-{benchmark}"
+
+    def candidates(self, tau):
+        cands = self._sub.candidates(tau)
+        if str(tau).startswith("routerbench"):
+            return [c for c in cands if c.id.endswith(self._suffix)]
+        return cands
+
+    def cell(self, x, a):
+        return self._sub.cell(x, a)
+
+    def required_fields(self, bundle):
+        return self._sub.required_fields(bundle)
+
+    def __getattr__(self, name):
+        return getattr(self._sub, name)
+
+
 class MaskedSubstrate:
     """Substrate proxy that hides one axis — `cell(x, masked)` returns [].
 
@@ -202,6 +238,28 @@ class MaskAndPredict:
                 m.sum_regret_feasible += max(0.0, pc - oc)
                 m.n_regret_feasible += 1
         return m
+
+    def score_rule_per_query(
+        self, rule: DecisionRule, queries: list[Query], masked_axis: str
+    ) -> list[dict]:
+        """Per-query outcome for *rule*: ``[{committed, hidden_violation}, ...]``.
+
+        Same masking discipline as :meth:`score_rule` (oracle sees the real
+        substrate, every other rule reads through ``MaskedSubstrate``), but emits
+        the per-query booleans the significance test pairs on instead of only the
+        aggregate counts. ``hidden_violation`` is True iff the rule COMMITs a
+        config that violates the true (full-regime) masked constraint.
+        """
+        visible = ALL_AXES - {masked_axis}
+        rule_sub = self.sub if getattr(rule, "sees_masked", False) else \
+            MaskedSubstrate(self.sub, masked_axis)
+        out: list[dict] = []
+        for q in queries:
+            pred = rule.decide(rule_sub, q, visible, self.kappa, self.phi)
+            committed = pred is not None
+            violated = committed and not self.true_feasible(q, pred)
+            out.append({"committed": committed, "hidden_violation": violated})
+        return out
 
     def run(
         self, rules: list[DecisionRule], tau: str, bind_axes: tuple[str, ...],
