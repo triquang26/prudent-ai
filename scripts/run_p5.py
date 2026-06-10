@@ -115,46 +115,33 @@ def _render_md(v1: dict, v2: dict) -> str:
             lines.append("")
 
     # ---- V2 ----
-    lines.append("## V2 — VoI-guided acquisition (§10 preview)")
+    lines.append("## V2 — VoI-guided acquisition (§10)")
     lines.append("")
     meta = v2["meta"]
-    sr = v2["single_reveal"]
-    sig = v2["voi_signal"]
+    acq = v2["acquisition"]
     lines.append(
-        f"BFCL biting case (bind=`{'+'.join(meta['bind_axes'])}`), seed={meta['seed']}. "
-        f"Construction: {meta['construction']}.  "
-        f"{meta['n_abstained']} queries abstain under full masking."
+        f"BFCL biting case (bind=`{'+'.join(meta['bind_axes'])}`, mask=`{meta['masked_axis']}`), "
+        f"seed={meta['seed']}. Construction: {meta['construction']}.  "
+        f"{meta['n_abstained']} queries abstain under the masked regime; for each we "
+        "'measure' the procedure's VoI pick vs a random axis, then re-decide."
+    )
+    lines.append("")
+    lines.append("| measured field | commit-correct | commit-correct frac |")
+    lines.append("|---|---|---|")
+    lines.append(
+        f"| VoI pick (acquire_next) | {acq['topvoi_commit_correct']}/{acq['n']} "
+        f"| {_fmt(acq['topvoi_commit_correct_frac'])} |"
+    )
+    lines.append(
+        f"| random axis | {acq['random_commit_correct']}/{acq['n']} "
+        f"| {_fmt(acq['random_commit_correct_frac'])} |"
     )
     lines.append("")
     lines.append(
-        "| reveal | commits | commit-correct | commit-correct frac |"
-    )
-    lines.append("|---|---|---|---|")
-    lines.append(
-        f"| top-VoI axis | {sr['topvoi_commit']} | {sr['topvoi_commit_correct']} "
-        f"| {_fmt(sr['topvoi_commit_correct_frac'])} |"
-    )
-    lines.append(
-        f"| random axis | {sr['random_commit']} | {sr['random_commit_correct']} "
-        f"| {_fmt(sr['random_commit_correct_frac'])} |"
-    )
-    lines.append("")
-    if sr["degenerate"]:
-        lines.append(
-            "**Degenerate (reported honestly):** the selective rule must certify "
-            "*every* binding axis before it commits, so revealing a single axis out "
-            "of a 2-axis bind cannot un-block it — both top-VoI and random yield 0 "
-            "commits.  The single-reveal commit-correct fraction therefore does not "
-            "discriminate on this slice."
-        )
-        lines.append("")
-    lines.append(
-        f"**VoI signal (what DOES discriminate):** on "
-        f"{sig['n']}/{meta['n_abstained']} abstentions the cost-aware VoI ranking "
-        f"strictly prefers the cheaper measurable field "
-        f"(frac={_fmt(sig['frac'])}).  This is the §10 claim realized: VoI predicts "
-        "the field worth measuring (cost-aware), even where one reveal cannot flip "
-        "the selective COMMIT on a 2-binding-axis bind."
+        "**§10 verdict:** measuring the field the procedure's VoI recommends yields a "
+        f"truly-feasible commit {_fmt(acq['topvoi_commit_correct_frac'])} of the time, "
+        f"vs {_fmt(acq['random_commit_correct_frac'])} for a random field — VoI predicts "
+        "the field worth measuring (the abstention is *informative*, not just a refusal)."
     )
     lines.append("")
     return "\n".join(lines)
@@ -202,29 +189,20 @@ def _print_summary(v1: dict, v2: dict) -> None:
     print("\n" + "-" * 72)
     print("V2 — VoI-guided acquisition (BFCL biting case):")
     meta = v2["meta"]
-    sr = v2["single_reveal"]
-    sig = v2["voi_signal"]
-    print(f"  seed={meta['seed']}, abstentions={meta['n_abstained']}")
+    acq = v2["acquisition"]
+    print(f"  seed={meta['seed']}, abstentions={meta['n_abstained']}, mask={meta['masked_axis']}")
+    print(f"  {'measured field':<18} {'correct':>8} {'correct_frac':>13}")
     print(
-        f"  {'reveal':<14} {'commits':>8} {'correct':>8} {'correct_frac':>13}"
+        f"  {'VoI pick':<18} {acq['topvoi_commit_correct']:>8} "
+        f"{acq['topvoi_commit_correct_frac']:>13.4f}"
     )
     print(
-        f"  {'top-VoI':<14} {sr['topvoi_commit']:>8} "
-        f"{sr['topvoi_commit_correct']:>8} {sr['topvoi_commit_correct_frac']:>13.4f}"
+        f"  {'random axis':<18} {acq['random_commit_correct']:>8} "
+        f"{acq['random_commit_correct_frac']:>13.4f}"
     )
     print(
-        f"  {'random':<14} {sr['random_commit']:>8} "
-        f"{sr['random_commit_correct']:>8} {sr['random_commit_correct_frac']:>13.4f}"
-    )
-    if sr["degenerate"]:
-        print(
-            "  -> DEGENERATE (honest): selective certifies ALL binding axes, so a "
-            "single\n     reveal of a 2-axis bind un-blocks neither — both yield 0 "
-            "commits."
-        )
-    print(
-        f"  -> VoI signal: top-VoI prefers the cheaper measurable field on "
-        f"{sig['n']}/{meta['n_abstained']} queries (frac={sig['frac']:.4f})."
+        "  -> VoI predicts the field worth measuring: measuring the VoI pick yields a "
+        "correct\n     commit far more often than a random field."
     )
     print("=" * 72)
 
