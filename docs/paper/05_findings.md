@@ -269,6 +269,33 @@ Every drop leaves underdetermination **above 83%**. The single most influential 
 **83.2%**. No single mapping choice is load-bearing; the result is a property of the corpus,
 not of one rule (C8 robustness).
 
+**Prior-robustness: the headline is not an artifact of the ZenML corpus (W3).** The drop-one
+ablation perturbs the *taxonomy* but keeps the ZenML query distribution. Mock-review W3 raised the
+deeper objection that the 91.1% headline is an artifact of that single corpus. We answer it by
+**rebuilding the headline under independent, non-ZenML priors** that strip every plausible ZenML
+bias, classified through the *identical* C7 path (`classify_query`, FULL regime, κ=H+M, φ=point) over
+`CachedSubstrate(Substrate('data/apt_substrate.db'))`, battery 1716/prior, seed=12345 — verbatim
+from `outputs/p3/prior_robustness.{json,md}`. The recomputed ZenML reference reproduces **91.1%**
+exactly, so the comparison is apples-to-apples.
+
+| prior | %underdetermined | Δ vs ZenML 91.1% | % attributable to a ⊥-axis | survives? |
+|---|---|---|---|---|
+| **ZenML (reference)** | 91.1% | — | 72.4% | — |
+| Uniform (every axis p=0.5) | **98.5%** | +7.4% | 94.2% | **YES** |
+| Adversarial governance-light (gov/rev p=0.05) | **95.7%** | +4.6% | 84.5% | **YES** |
+| Benchmark-derived (∝ substrate coverage) | 12.4% | −78.7% | 0.0% | *control* |
+
+The headline **survives every non-control prior**: a large majority of queries stay underdetermined,
+and the *majority of that underdetermination is attributable to a blind-spot (corpus-wide ⊥) axis* —
+**even the adversarial prior that assumes governance/reviewer_burden almost never bind** (95.7%
+underdetermined, 84.5% ⊥-attributable). So 91.1% is **not** an artifact of the ZenML prior; it is a
+property of the substrate's coverage — the evidence corpus is silent on the axes real (or synthetic)
+deployments bind on. The **benchmark-derived prior is a deliberate negative control**: when the prior
+demands *only what the corpus actually measures*, underdetermination collapses to **12.4%** and **0%**
+is ⊥-attributable. That is the causal mechanism stated in reverse — remove the demand for
+un-measured axes and the decisions become decidable — so the control **confirms** the causal story
+rather than refuting the headline.
+
 **Grid vs. empirical.** Grounding the prior does not merely preserve the finding — it
 **sharpens** it:
 
@@ -308,10 +335,13 @@ per-instance binding resolves.
 it does **not** show that a leaderboard rule that commits anyway *mis-sizes by a measurable
 margin*. Decision regret and hidden-violation magnitude (DV2/DV3, Claim C2) are P5 validation.
 Two further caveats are inherited: φ=point is the decidability-over-stating reading, so 91.1%
-is a **floor**; and the prior is ZenML-only — MedHELM returned HTTP 401 at snapshot time, and
-a medical/high-governance corpus would, if anything, *raise* the already-55.6% governance load.
-P3 owns the "many real decisions are undecidable" half of the thesis; "and answering them
-anyway hurts, measurably" is owned by P5.
+is a **floor**; and the *measured* prior is ZenML-only — MedHELM returned HTTP 401 at snapshot
+time, and a medical/high-governance corpus would, if anything, *raise* the already-55.6%
+governance load. The "single-corpus" worry is directly addressed in §5.8: rebuilding the headline
+under **independent synthetic priors** (Uniform, adversarial governance-light) keeps it ≥ 95.7%, so
+the result is not a ZenML artifact — it is a property of the substrate's coverage. P3 owns the "many
+real decisions are undecidable" half of the thesis; "and answering them anyway hurts, measurably" is
+owned by P5.
 
 ## 5.10 Summary of headline numbers
 
@@ -331,5 +361,9 @@ anyway hurts, measurably" is owned by P5.
   unmeasurable corpus-wide; **16.0%** blocked *only* by unmeasurable axes.
 - **Robustness:** underdetermination ≥ **0.893** across κ ∈ {H, H+M, H+M+L} (H-only ⇒ 1.000);
   ≥ **83.2%** under any single tag→axis drop; grid→empirical Δ = **+5.4%** (grounding sharpens).
+- **Prior-robustness (W3):** the 91.1% headline **survives independent non-ZenML priors** — Uniform
+  **98.5%** (+7.4%), Adversarial governance-light **95.7%** (+4.6%), each majority-⊥-attributable;
+  the benchmark-derived negative control collapses to **12.4%** (0% ⊥-attributable), confirming the
+  causal mechanism. Not an artifact of the ZenML corpus.
 - **Regime ladder:** monotonic-then-plateau — the empirical shadow of `decidable ⇔ bind(q) ⊆
   cl(R)` (§8.6) and `VoI(a*) = Δ(R)` (§8.7).

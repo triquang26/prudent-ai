@@ -58,21 +58,25 @@ literal: at α∈{0.05, 0.10} the committed slice has 0% risk but only ≈10% co
 is purchasable only by escalating most traffic.
 
 Underdetermination would be a curiosity if answering anyway were harmless; our **validation**
-shows it is not. On ground-truth slices (BFCL function-calling and six per-benchmark RouterBench
+shows it is not. On ground-truth slices (BFCL function-calling and the per-benchmark RouterBench
 slices where cost is model-comparable) we bind axes, mask one binding axis, let each rule commit
-from the visible evidence, and score against the hidden truth. Across **7 biting slices, 119
-queries**, current honest practice (**B2** observed-Pareto) and both its standard defences — **B3**
-imputation ("just fill it in") and **B6** cost-accuracy (FrugalGPT-style) — commit configurations
-that **silently violate the hidden constraint at a pooled hidden-violation rate of 0.88** (per-slice
-0.71–1.00), while the selective procedure abstains on exactly those queries: hidden-violation
-**0.00**. The gap is significant — difference **0.88, 95% CI [0.82, 0.94]**, one-sided exact
-McNemar **p ≈ 0** (105 discordant pairs, 0 against) — and imputation does not rescue the case: B3's
-hidden-violation equals B2's, refuting the "imputation solves it" objection with a number (Claim
-C2). The abstention pays back: when the procedure names its VoI pick as the field to measure,
-un-masking it yields a correct commit **100% of the time versus 20% for a random axis**. We report
-the no-bite controls (mask-latency, where cheap⇒fast; the RouterBench cross-benchmark confound)
-alongside, so the claim stays falsifiable: current practice mis-sizes *where multiple axes truly
-bind and cheap trades off the hidden one*, not universally.
+from the visible evidence, and score against the hidden truth. Across **28 H-confidence biting
+slices and 476 queries with real measured ground truth** — RouterBench per-benchmark restrictions
+auto-discovered from the substrate — current honest practice (**B2** observed-Pareto) and both its
+standard defences — **B3** imputation ("just fill it in") and **B6** cost-accuracy (FrugalGPT-style)
+— commit configurations that **silently violate the hidden constraint at a pooled hidden-violation
+rate of 0.57** (per-slice 0.06–1.00), while the selective procedure abstains on exactly those
+queries: hidden-violation **0.00**. The gap is significant **on the H-confidence ground-truth data
+alone** — difference **0.57, 95% CI [0.53, 0.62]**, one-sided exact McNemar **p ≈ 0** (272 discordant
+pairs, 0 against) — and the flagship does **not** depend on any medium-confidence data; folding the
+M-confidence BFCL slice back in (29 biting slices, 493 queries) leaves it unchanged (gap **0.58
+[0.54, 0.62]**, McNemar 287/0). Imputation does not rescue the case: B3's hidden-violation equals
+B2's, refuting the "imputation solves it" objection with a number (Claim C2). The abstention pays
+back: when the procedure names its VoI pick as the field to measure, un-masking it yields a correct
+commit **100% of the time versus 20% for a random axis**. We report the no-bite controls
+(mask-latency, where cheap⇒fast; the RouterBench cross-benchmark confound) alongside, so the claim
+stays falsifiable: current practice mis-sizes *where multiple axes truly bind and cheap trades off
+the hidden one*, not universally.
 
 **Contributions.**
 1. **A reframe and its measurement (C1).** We recast deployment right-sizing as an
@@ -94,11 +98,15 @@ bind and cheap trades off the hidden one*, not universally.
    guarantee `P(feasible ∧ min-sufficient | commit) ≥ 1−α`. We prove the acquisition is anchored
    to a limit theorem: **`VoI(a*) = Δ(R) = δλ/(δ+λ)`** exactly, making the abstention's "measure
    this next" the theorem's irreducible-regret bound made operational.
-4. **A falsification of current practice and the abstention's payoff (C2).** On a ground-truth
-   slice with one binding axis masked, observed-Pareto, imputation, and cost-accuracy each
-   hidden-violate **1.0** while the selective procedure hidden-violates **0.0**; and the VoI pick
-   converts an abstention into a correct commit **5/5 (1.0)** vs **1/5 (0.2)** for a random axis —
-   demonstrated with honest no-bite controls that keep the claim falsifiable.
+4. **A falsification of current practice and the abstention's payoff (C2).** Across **28
+   H-confidence biting slices (476 queries) with real measured ground truth**, observed-Pareto,
+   imputation, and cost-accuracy hidden-violate at a pooled **0.57** while the selective procedure
+   hidden-violates **0.0**; the gap **0.57 [0.53, 0.62]** is significant against both must-beat
+   baselines (McNemar 272/0, p ≈ 0) **without relying on any medium-confidence data**, and the VoI
+   pick converts an abstention into a correct commit **5/5 (1.0)** vs **1/5 (0.2)** for a random axis
+   — demonstrated with honest no-bite controls that keep the claim falsifiable. The coverage
+   guarantee further holds against genuine full-sample measured ground truth (test feasibility-risk
+   ≤ α at α∈{0.05, 0.10} on a held-out split).
 
 All numbers in this paper are reproduced verbatim from frozen, seeded artifacts; the substrate is
 read only through an immutable `candidates / cell / required_fields` interface (C7), and no
