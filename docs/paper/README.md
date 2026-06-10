@@ -36,7 +36,7 @@ leaderboard rules hidden-violate on 100% of commits while our rule's hidden-viol
 | 5 | [05_findings.md](05_findings.md) | **C1** — the decidability map; 91.1% underdetermined; structured missingness |
 | 6 | [06_method.md](06_method.md) | **C3** — selective right-sizing: 3-state rule, VoI, coverage guarantee |
 | 7 | [07_evaluation.md](07_evaluation.md) | **C2** — V1/V2 validation: selective HVR 0.0 vs B2/B3/B6 1.0; VoI lift |
-| 8 | [08_discussion.md](08_discussion.md) | Threats, limitations, the structured-$\bot$ frontier, future work |
+| 8 | [08_threats.md](08_threats.md) | Threats, limitations, the structured-$\bot$ frontier, future work |
 | 9 | [09_repro_talk.md](09_repro_talk.md) | Reproducibility, RAI metadata, and the talk outline |
 
 ## Venue note
