@@ -58,19 +58,21 @@ literal: at α∈{0.05, 0.10} the committed slice has 0% risk but only ≈10% co
 is purchasable only by escalating most traffic.
 
 Underdetermination would be a curiosity if answering anyway were harmless; our **validation**
-shows it is not. On a ground-truth slice (BFCL function-calling) we bind two axes, mask one
-binding axis, let each rule commit from the visible evidence, and score against the hidden truth.
-Current honest practice (**B2** observed-Pareto) and both of its standard defences — **B3**
-imputation ("just fill it in") and **B6** cost-accuracy (FrugalGPT-style) — commit a configuration
-that **silently violates the hidden constraint on 100% of queries** (hidden-violation rate 1.0,
-5/5). The selective procedure abstains on exactly those queries: hidden-violation **0.0 ≪ 1.0**.
-Imputation does not rescue the case — B3's hidden-violation is 1.0, identical to B2 — refuting the
-"imputation solves it" objection with a number (Claim C2). And the abstention pays back: when the
-procedure names its VoI pick as the field to measure, un-masking it yields a correct commit **5/5
-(1.0)** versus **1/5 (0.2)** for measuring a random axis. We report the no-bite controls
-(mask-latency, where cheap⇒fast; the RouterBench cross-benchmark confound) alongside, so the claim
-stays falsifiable: current practice mis-sizes *where multiple axes truly bind and cheap trades off
-the hidden one*, not universally.
+shows it is not. On ground-truth slices (BFCL function-calling and six per-benchmark RouterBench
+slices where cost is model-comparable) we bind axes, mask one binding axis, let each rule commit
+from the visible evidence, and score against the hidden truth. Across **7 biting slices, 119
+queries**, current honest practice (**B2** observed-Pareto) and both its standard defences — **B3**
+imputation ("just fill it in") and **B6** cost-accuracy (FrugalGPT-style) — commit configurations
+that **silently violate the hidden constraint at a pooled hidden-violation rate of 0.88** (per-slice
+0.71–1.00), while the selective procedure abstains on exactly those queries: hidden-violation
+**0.00**. The gap is significant — difference **0.88, 95% CI [0.82, 0.94]**, one-sided exact
+McNemar **p ≈ 0** (105 discordant pairs, 0 against) — and imputation does not rescue the case: B3's
+hidden-violation equals B2's, refuting the "imputation solves it" objection with a number (Claim
+C2). The abstention pays back: when the procedure names its VoI pick as the field to measure,
+un-masking it yields a correct commit **100% of the time versus 20% for a random axis**. We report
+the no-bite controls (mask-latency, where cheap⇒fast; the RouterBench cross-benchmark confound)
+alongside, so the claim stays falsifiable: current practice mis-sizes *where multiple axes truly
+bind and cheap trades off the hidden one*, not universally.
 
 **Contributions.**
 1. **A reframe and its measurement (C1).** We recast deployment right-sizing as an
