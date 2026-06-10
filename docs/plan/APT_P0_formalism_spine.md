@@ -278,6 +278,16 @@ build `W₁,W₂` differing on a binding axis outside `cl(R)` → underdetermine
 `cl(R) ⊋ R`. **This is the piece that benefits from a theory collaborator** if pushed to full generality
 (general closure operators, multi-axis binding); the gadget-level version above stands alone.
 
+> **UPGRADE (node `2o35sq`, `docs/theory/W7_closure_characterization.md`).** This is now done to
+> a rigorous general level: `cl(R)` is proven a genuine closure operator (extensive/monotone/
+> idempotent fixpoint of iterated certification); "modulo degeneracies" is pinned (Lemma 2:
+> monotone maps certify one-sided ≤/≥ thresholds, never a non-degenerate `=`); the characterization
+> `q decidable ⇔ Bind*(q) ⊆ cl(R)` holds for **multi-axis** binding under the value/active-constraint
+> reading (⇐ unconditional; ⇒ under the structural (G3), vacuous on current one-sided data; exact-cost
+> ties dissolved by the value reading); the limit theorem sharpens to **cl(R)-restricted** rules
+> (Δ(R) = irreducible residual after closure) and `VoI(a*)=Δ(R)−Δ(R∪{a*})` is a general corollary.
+> Three honest checkpoints remain for a human pass; none blocks C1–C3.
+
 ### 8.7 Corollary — **irreducible regret = value of information of the omitted binding axis**
 
 Define `VoI(a*) =` reduction in achievable worst-case regret from admitting `a*` into the regime

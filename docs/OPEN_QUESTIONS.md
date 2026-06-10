@@ -6,16 +6,34 @@
 > None of them block the measurement (C1) or the empirical validation (C2); they
 > sharpen the limit-theorem half (the ICLR "theorem" pillar, master plan §11).
 
-## Q1 — Closure characterization `cl(R)` in full generality (§8.6)
-The gadget-level limit theorem (§8.2–§8.5) stands: off-regime binding ⇒ irreducible
-regret–coverage tradeoff `Δ(R)=δλ/(δ+λ)`. The *non-routine* part is the
-characterization **`q` decidable under `R` ⇔ `bind(q) ⊆ cl(R)`** where `cl(R)` is
-the certifiable closure (axes that are known monotone/deterministic functions of
-`R` under the fixed context, with the map itself in `E`). Open: make `cl(R)` clean
-and non-trivial for **general closure operators + multi-axis binding**. The
-gadget-level version is enough for the necessity claim; the full characterization
-is the candidate theory-collaborator task. If it cannot be made clean → drop the
-theorem, fall back to NeurIPS-ED (measurement-as-thesis needs no theorem). [§11 Q1]
+## Q1 — Closure characterization `cl(R)` in full generality (§8.6) — **largely CLOSED** (node `2o35sq`)
+**Done** (`docs/theory/W7_closure_characterization.md`, Opus-authored + orchestrator
+adversarial-verified): the gadget-level §8.6 is upgraded to a rigorous general treatment.
+- **`cl(R)` is a genuine closure operator** (extensive/monotone/idempotent, fixpoint of
+  iterated certification) — **Lemma 1, unconditional**.
+- The **"modulo degeneracies"** is pinned: deterministic maps certify any relation;
+  monotone-only maps certify one-sided ≤/≥ thresholds but **never** a non-degenerate `=`
+  (Lemma 2). The closure must be read *per constraint*, not per axis.
+- **Characterization `q decidable under R ⇔ Bind*(q) ⊆ cl(R)`** holds for **multi-axis
+  binding** under the **value / active-constraint reading** (the one `classify_query` /
+  `binding.py` compute) — the ⇐ recovery direction is **unconditional**; the ⇒ direction
+  needs only the structural (G3) (no equality-binding via a non-degenerate monotone map,
+  vacuous on all current one-sided data). The exact-cost-tie "(G2)" degeneracy is
+  **dissolved by the value reading** (a tie makes the axis non-binding by the drop-test).
+- The **limit theorem generalizes** to **cl(R)-restricted** rules (the real sharpening:
+  the rule certifies all closure-axes for free, Δ(R) is the irreducible residual *after*
+  closure), and the **VoI corollary** `VoI(a*)=Δ(R)−Δ(R∪{a*})` is general (single
+  off-closure axis ⇒ VoI=Δ(R); k≥2 ⇒ partial — predicts the Q4 "raw VoI ties" finding).
+- The implementation is a **sound exact instance** when `cl(R)=R` (the present substrate:
+  `M(E)=∅`, no source provides an inter-axis map).
+
+**Residual (3 named checkpoints for a human theory pass, NOT holes — none blocks C1–C3):**
+(i) (G3) structural form-regularity; (ii) `Bind*(q)` (robust, union-over-completions) vs
+`bind(q|θ*)` (single-world, GT-recoverable) — coincide on current slices; (iii) Lemma 2's
+monotone-*discontinuous* edge (sound-but-conservative). Also: the `cl(R)⊋R` content is
+**theory ahead of data** (no inter-axis map in the substrate yet). The "drop the theorem"
+fallback is **no longer needed** — the theorem is clean and general at the level the paper
+requires. [§11 Q1]
 
 ## Q2 — Binding axis operational at the PER-INSTANCE level (the deeper gate)
 **Status: empirical half CLOSED on the GT/measurable axes (node `c90ge4`); the

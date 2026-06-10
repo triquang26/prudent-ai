@@ -23,13 +23,18 @@
 | **P5** Validation (Oral pillar, 4 axes) | V1 mask-and-predict vs B1–B6 + V2 VoI-acquisition + coverage–risk, with significance | ✅ done (V1+V2 + scaled); V3 ⛔ stretch | **4iezqz** (RouterBench GT data) → **jal8id** (V1/V2 pilot) → scaled in **worcj5** | `docs/P5_validation.md`, `outputs/p5/validation_scaled.{json,md}`, `docs/paper/07_evaluation.md` | **7 biting slices / 119 queries**: B2/B3/B6 HVR **0.882** vs selective **0.0**; gap **0.8824 [0.824, 0.941]**, McNemar **105/0**, **p≈0 SIGNIFICANT**. V2 VoI-lift 1.0 vs 0.2. **Proves C2.** |
 | **P6** Write / ablation / rebuttal-proof / talk | Full paper, evidence-regime ablation, repro package, figures, mock review ≥ Oral bar | ✅ done (concrete) · 🟡 polish + theory-gap remain | **worcj5** (paper+scale) → **tfumqf** (figures+ablation+mock) → **eyfl2u** (final hardening, active) | `docs/paper/*.md` (10 §), `docs/paper/figures/*.png` (5), `docs/paper/A1_ablation.md`, `docs/paper/MOCK_REVIEW.md`, `REPRODUCE.md` | Paper drafted (~1786 lines), 5 figures from frozen data, ablation tied to limit theorem, mock review **Spotlight-leaning-Oral** (N8/S7/Sig8/C8). W2 fixed; W1/W7 deferred. |
 
-**Phase summary:** P0–P5 done; P6 concrete deliverables done. Post-hardening nodes
-`zh6apu` (W11: positive COMMIT validated + V2-lift scaled to n=527) and `c90ge4` (W1:
-per-instance binding Pareto-recovered, `bite⟺binding` 1.0) closed the two remaining
-*empirical* attack surfaces. The only residual Oral gate is now **theory** — the
-gadget-level limit theorem / general `cl(R)` closure (**W7/Q1**) and the C1 magnitude
-riding on binding-unrecoverable ⊥ axes — deferred to `docs/OPEN_QUESTIONS.md` (needs a
-theory collaborator).
+**Phase summary:** P0–P5 done; P6 concrete deliverables done. Post-hardening nodes closed
+**every empirical attack surface**: `zh6apu` (W11: positive COMMIT validated + V2-lift
+n=527), `c90ge4` (W1: per-instance binding Pareto-recovered, `bite⟺binding` 1.0), `mfxhvu`
+(W4-residual min-sufficiency guarantee + Q3 regret>Δ(R) + W2), `ksmbut` (V3 prospective
+live-eval). The **theory** gate (W7/Q1) is now **substantially addressed** by `2o35sq`
+(`docs/theory/W7_closure_characterization.md`): `cl(R)` proven a closure operator, the
+multi-axis characterization rigorous under the value reading, the limit theorem sharpened
+to cl(R)-restricted rules + general VoI corollary — Opus-authored, orchestrator
+adversarially-verified. Three honest theory checkpoints remain for a human collaborator
+((G3) form-regularity, `Bind*` vs `bind(θ*)`, the monotone-discontinuous edge) plus the C1
+magnitude on binding-unrecoverable ⊥ axes; **none blocks C1–C3**. The "drop the theorem /
+NeurIPS-ED fallback" is no longer forced.
 
 ---
 

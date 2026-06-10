@@ -206,6 +206,24 @@ exactly where v1 left it. By the authors' own §11/§18.1 honest flag this still
 clean general proof or foregrounding C1+C2 and demoting "limit theorem" to "anchoring identity"
 (and the corresponding ICLR-vs-NeurIPS-ED venue decision).
 
+> **UPDATE — node `2o35sq-w7-closure-characterization` (W7/Q1 largely addressed).** A rigorous
+> general treatment now exists (`docs/theory/W7_closure_characterization.md`, Opus-authored +
+> orchestrator adversarial-verified): (1) `cl(R)` is proven a genuine **closure operator**
+> (Lemma 1, unconditional); (2) the "modulo degeneracies" is pinned precisely — monotone maps
+> certify one-sided thresholds but not equalities (Lemma 2); (3) the **characterization
+> `q decidable ⇔ Bind*(q) ⊆ cl(R)`** holds for **multi-axis binding** under the value /
+> active-constraint reading (⇐ unconditional; ⇒ under the structural (G3), vacuous on all current
+> one-sided data; the exact-cost-tie degeneracy is dissolved by the value reading the code already
+> uses); (4) the **limit theorem sharpens** to **cl(R)-restricted** rules — `Δ(R)` is the irreducible
+> residual *after* free closure-certification — and `VoI(a*)=Δ(R)−Δ(R∪{a*})` is now a general
+> corollary (single off-closure axis ⇒ VoI=Δ(R); k≥2 ⇒ partial, predicting the Q4 tie finding);
+> (5) `classify_query` is a **sound exact instance** for `cl(R)=R` (the present substrate, `M(E)=∅`).
+> Three honest checkpoints remain for a human theory pass ((G3) form-regularity; `Bind*` vs
+> `bind(θ*)`; the monotone-discontinuous certification edge) — **checkpoints, not gaps**, none of
+> which blocks C1–C3. Net: W7 moves from MAJOR-open to **substantially addressed** — the "drop the
+> theorem / fall back to NeurIPS-ED" fallback is no longer forced; the limit theorem is clean and
+> general at the level the paper needs, with the remaining items flagged honestly rather than buried.
+
 ---
 
 ## 3. Updated §18.1 / weakness-ledger disposition
