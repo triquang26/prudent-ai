@@ -44,8 +44,19 @@ decidability/validation pipeline pick it up with no further edits. Re-seeding is
 (idempotent). Run: `PYTHONNOUSERSITE=1 uv run python scripts/seed_all.py`
 (or `--only <name>`).
 
-**Candidate next sources** (master plan §13, deferred content): HAL (R2 agent+cost,
-encrypted traces), MedHELM (governance prior, currently HTTP-401 gated), BEIR/KILT
+**HELM-family suites — generalized seam (`substrate/helm_suite/`).** The HELM family
+publishes many leaderboard suites on the *same* `crfm-helm-public` GCS bucket with an
+identical run layout to HELM Lite. `helm_suite` ingests any of them by prefix: add a
+`SuiteSpec` to `helm_suite.seeder.SUITES` + a `SourceSpec` line with
+`extra_kwargs={"suite": "<name>"}`. **MedHELM is ingested** (node `zdnpkh`, `medical-qa`,
+198 quality + 307 latency obs; quality kept strictly on the [0,1] scale, jury 1–5
+scenarios skipped; the §13 governance blind-spot test — even MedHELM reports no
+governance axis). Confirmed-present next suites: `capabilities`, `classic`, `mmlu`,
+`reasoning`, `finance` (quality); `safety`, `air-bench` (governance-adjacent);
+`efficient_helm` (latency/throughput).
+
+**Other candidate sources** (master plan §13, deferred content): HAL (R2 agent+cost,
+encrypted traces / 401 on the harness API), BEIR/KILT
 (retrieval), AI-Agents-That-Matter.
 
 ## 3. Add a PAPER-ROW extractor — subclass + register

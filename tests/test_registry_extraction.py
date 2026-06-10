@@ -20,7 +20,7 @@ from prudent_ai.substrate.registry import SOURCE_REGISTRY, registry_by_name
 
 def test_registry_lists_all_sources():
     names = {s.name for s in SOURCE_REGISTRY}
-    assert names == {"helm_lite", "bfcl", "mlperf", "mlenergy", "routerbench"}
+    assert names == {"helm_lite", "bfcl", "mlperf", "mlenergy", "routerbench", "medhelm"}
     # every spec is self-describing and seedable
     for s in SOURCE_REGISTRY:
         assert s.tau and s.axes and s.confidence in {"H", "M", "L"}

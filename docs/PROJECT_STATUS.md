@@ -97,6 +97,8 @@ All implemented as `DecisionRule.decide()` over the same C7 interface (`validati
 | **MedHELM** (prior) | query-dist + gov blind-spot | 🟡 gated | — | — | **HTTP 401** (access-gated) at snapshot → prior is ZenML-only (W3). A medical/high-gov corpus would *raise* the 55.6% governance load → ZenML is conservative |
 
 Substrate totals after P5 data: **4052 observations / 512 configs / 4 τ** (general-qa, function-calling, inference-serving, routerbench). 5/8 axes carry evidence; memory_hw, governance, reviewer_burden ⊥ everywhere (miss-rate 1.000).
+
+**Update (node `zdnpkh`): +MedHELM via the generalized `helm_suite` seam.** Now **6 sources / 4557 obs / 5 τ** (+`medical-qa`, 9 configs); +198 quality + 307 latency obs (quality kept strictly [0,1]; jury-rated 1–5 clinical scenarios skipped, logged). **§13 governance blind-spot test confirmed:** even MedHELM (clinical, Stanford Health Care) reports **0 governance / 0 reviewer_burden / 0 memory_hw** — the 3 hard-to-observe axes stay structurally ⊥ in the governance-heaviest domain, *strengthening* C1. More HELM suites (capabilities/classic/mmlu/safety/air-bench) plug in via one `SuiteSpec`+`SourceSpec` line each.
 **Axis split (§13):** decidability map (C1) uses all 8 axes; x>y validation (C2/C3) runs only the 4 measurable axes where GT exists.
 
 ---

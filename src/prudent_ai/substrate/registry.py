@@ -22,6 +22,7 @@ from typing import Any
 
 from prudent_ai.substrate.bfcl import seed as _seed_bfcl
 from prudent_ai.substrate.helm_lite import seed as _seed_helm
+from prudent_ai.substrate.helm_suite import seed as _seed_helm_suite
 from prudent_ai.substrate.mlenergy import seed as _seed_mlenergy
 from prudent_ai.substrate.mlperf import seed as _seed_mlperf
 from prudent_ai.substrate.routerbench import seed as _seed_routerbench
@@ -75,10 +76,18 @@ SOURCE_REGISTRY: list[SourceSpec] = [
         axes=("quality", "cost"), confidence="H",
         note="RouterBench (arXiv 2403.12031) — co-located measured quality+cost (GT slice).",
     ),
+    SourceSpec(
+        name="medhelm", seed_fn=_seed_helm_suite, tau="medical-qa",
+        axes=("quality", "latency_p95"), confidence="M",
+        note="MedHELM (arXiv 2505.23802) — Stanford clinical leaderboard, GCS stats.json. "
+             "Quality kept only on the [0,1] accuracy scale (jury 1-5 scenarios skipped). "
+             "Reports NO governance/reviewer_burden axis — the §13 blind-spot test.",
+        extra_kwargs={"suite": "medhelm"},
+    ),
     # --- To add a source: implement substrate/<name>/ then append a SourceSpec here. ---
-    # SourceSpec(name="hal", seed_fn=_seed_hal, tau="agent",
-    #            axes=("quality", "cost"), confidence="H",
-    #            note="HAL agent traces (2510.11977) — decrypt + aggregate."),
+    # More HELM suites (capabilities, classic, mmlu, safety, air-bench) plug in via the
+    # same helm_suite ingester: add a SuiteSpec to substrate/helm_suite/seeder.SUITES
+    # and a SourceSpec line here with extra_kwargs={"suite": "<name>"}.
 ]
 
 
