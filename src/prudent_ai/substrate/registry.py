@@ -91,5 +91,28 @@ SOURCE_REGISTRY: list[SourceSpec] = [
 ]
 
 
+# Auto-register every HELM-family suite declared in helm_suite.SUITES (one config
+# archetype each) — keeps the registry in sync with the ingester without 14 hand-written
+# lines. medhelm is already listed explicitly above (pinned version); the rest resolve
+# 'latest' on GCS.
+from prudent_ai.substrate.helm_suite import SUITES as _HELM_SUITES  # noqa: E402
+
+_registered = {s.name for s in SOURCE_REGISTRY}
+for _suite in _HELM_SUITES:
+    if _suite.name in _registered:
+        continue
+    SOURCE_REGISTRY.append(
+        SourceSpec(
+            name=_suite.name, seed_fn=_seed_helm_suite, tau=_suite.tau,
+            axes=("quality", "latency_p95"), confidence="M",
+            note=(
+                f"HELM '{_suite.name}' suite (crfm-helm-public GCS, stats.json); "
+                "quality kept strictly [0,1] (jury scenarios skipped)."
+            ),
+            extra_kwargs={"suite": _suite.name},
+        )
+    )
+
+
 def registry_by_name() -> dict[str, SourceSpec]:
     return {s.name: s for s in SOURCE_REGISTRY}

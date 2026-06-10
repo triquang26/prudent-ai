@@ -20,7 +20,10 @@ from prudent_ai.substrate.registry import SOURCE_REGISTRY, registry_by_name
 
 def test_registry_lists_all_sources():
     names = {s.name for s in SOURCE_REGISTRY}
-    assert names == {"helm_lite", "bfcl", "mlperf", "mlenergy", "routerbench", "medhelm"}
+    # the original structured sources + the HELM-family suites (auto-registered)
+    assert {"helm_lite", "bfcl", "mlperf", "mlenergy", "routerbench", "medhelm"} <= names
+    assert {"mmlu", "classic", "reasoning", "safety", "torr"} <= names  # helm suites
+    assert len(names) >= 18  # toward the master-plan §13 12–20 source target
     # every spec is self-describing and seedable
     for s in SOURCE_REGISTRY:
         assert s.tau and s.axes and s.confidence in {"H", "M", "L"}

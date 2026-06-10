@@ -52,19 +52,49 @@ class SuiteSpec:
 # MedHELM is the §13 governance blind-spot probe: a clinical/Stanford-Health-Care
 # benchmark that — being a leaderboard — still reports NO governance/reviewer_burden axis,
 # strengthening the structural-⊥ claim while broadening the quality corpus.
+def _helm_spec(name: str, tau: str, version: str = "latest") -> SuiteSpec:
+    """A HELM-family suite on crfm-helm-public with the standard run layout."""
+    return SuiteSpec(
+        name=name,
+        suite_prefix=f"{name}/benchmark_output/runs",
+        version=version,
+        tau=tau,
+        snapshot_date="2025",
+        citation=(
+            f"HELM '{name}' leaderboard, Stanford CRFM (Liang et al. 2022, "
+            f"arXiv 2211.09110). https://crfm.stanford.edu/helm/{name}/"
+        ),
+    )
+
+
+# Every auto-ingestible text/LLM HELM suite on crfm-helm-public (one config archetype
+# each). Quality kept strictly on the [0,1] accuracy scale; off-scale jury ratings
+# skipped. Multimodal (vhelm/heim/audio/image2struct) and non-LLM (robo-reward-bench)
+# suites are excluded (different schema). `version="latest"` auto-resolves on GCS.
 SUITES: list[SuiteSpec] = [
     SuiteSpec(
-        name="medhelm",
-        suite_prefix="medhelm/benchmark_output/runs",
-        version="v2.0.0",
-        tau="medical-qa",
-        snapshot_date="2025-05",
+        name="medhelm", suite_prefix="medhelm/benchmark_output/runs",
+        version="v2.0.0", tau="medical-qa", snapshot_date="2025-05",
         citation=(
             "Bedi et al. 2025, MedHELM, arXiv 2505.23802. "
             "HELM medical leaderboard v2.0.0, Stanford CRFM. "
             "https://crfm.stanford.edu/helm/medhelm/"
         ),
     ),
+    _helm_spec("classic", "general-qa-classic"),
+    _helm_spec("mmlu", "mmlu"),
+    _helm_spec("reasoning", "reasoning"),
+    _helm_spec("finance", "finance-qa"),
+    _helm_spec("long-context", "long-context"),
+    _helm_spec("thaiexam", "thai-exam"),
+    _helm_spec("cleva", "chinese-eval"),
+    _helm_spec("ewok", "world-knowledge"),
+    _helm_spec("mmlu-winogrande-afr", "african-lang"),
+    _helm_spec("capabilities", "capabilities"),
+    _helm_spec("safety", "safety"),
+    _helm_spec("air-bench", "air-safety"),
+    _helm_spec("arabic-enterprise", "arabic-enterprise"),
+    _helm_spec("torr", "torr"),
 ]
 
 
@@ -85,12 +115,26 @@ class HelmSuiteSeeder:
         self._client = HelmSuiteClient(spec.suite_prefix)
         self._parser = HelmSuiteParser()
 
+    def _resolve_version(self) -> str:
+        """Return the spec version, resolving 'latest' to the max version on GCS."""
+        if self.spec.version != "latest":
+            return self.spec.version
+        versions = self._client.list_versions()
+        if not versions:
+            raise ValueError(f"no versions found for suite {self.spec.name!r}")
+        return versions[-1]  # list_versions returns sorted ascending
+
     def seed(self) -> SeedReport:
-        report = SeedReport(version=f"{self.spec.name}-{self.spec.version}")
+        # Resolve 'latest' to a concrete version and reassign the spec so every
+        # downstream reference (fetch, evidence_id, snapshot) uses the same version.
+        version = self._resolve_version()
+        if version != self.spec.version:
+            self.spec = SuiteSpec(**{**self.spec.__dict__, "version": version})
+        report = SeedReport(version=f"{self.spec.name}-{version}")
         session = self.substrate._session
 
-        self._log(f"Fetching {self.spec.name} run list ({self.spec.version}) …")
-        run_names = self._client.list_run_names(self.spec.version)
+        self._log(f"Fetching {self.spec.name} run list ({version}) …")
+        run_names = self._client.list_run_names(version)
         if self.limit:
             run_names = run_names[: self.limit]
         self._log(f"  Found {len(run_names)} run directories")
