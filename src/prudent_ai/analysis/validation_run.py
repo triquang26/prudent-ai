@@ -162,33 +162,95 @@ class ValidationRunner:
     # The scaled biting battery. Each entry is a slice that should BITE under
     # mask=quality: a cost-comparable candidate set where the cheapest config is a
     # weak model, so a quality-blind cost-minimizer commits an infeasible config.
-    #   (key, tau, bind_axes, masked_axis, benchmark|None)
+    #   (key, tau, bind_axes, masked_axis, benchmark|None, confidence)
     # benchmark=None → use the substrate as-is (BFCL). benchmark set → wrap in
     # BenchmarkSubstrate to hold the RouterBench benchmark fixed (cost comparable).
-    _SCALE_BENCHMARKS: tuple[str, ...] = (
-        "mmlu", "hellaswag", "arc-challenge", "winogrande", "mbpp",
-        "grade-school-math",
-    )
+    #
+    # Confidence tier (W5): RouterBench slices carry REAL measured ground truth
+    # (the 11 models × benchmark accuracy is the published RouterBench GT) → "H".
+    # BFCL function-calling quality is M-confidence (semi-derived) → "M". The
+    # H-only pooled block is the flagship: it does not depend on any M data.
 
-    def _scale_slices(self) -> list[tuple[str, str, tuple[str, ...], str, str | None]]:
-        slices: list[tuple[str, str, tuple[str, ...], str, str | None]] = [
+    # RouterBench config_ids are ``rb-{model}-{benchmark}``; a benchmark is a
+    # candidate-set restriction with 11 models. We DISCOVER the benchmark groups
+    # from the substrate (C7: via candidates) so the battery scales to all ~30
+    # RouterBench groups instead of a hardcoded six.
+    _ROUTERBENCH_MODELS: tuple[str, ...] = (
+        "rb-claude-instant-v1", "rb-claude-v1", "rb-claude-v2",
+        "rb-gpt-3-5-turbo-1106", "rb-gpt-4-1106-preview",
+        "rb-meta-code-llama-instruct-34b-chat", "rb-meta-llama-2-70b-chat",
+        "rb-mistralai-mistral-7b-chat", "rb-mistralai-mixtral-8x7b-chat",
+        "rb-wizardlm-wizardlm-13b-v1-2", "rb-zero-one-ai-yi-34b-chat",
+    )
+    # Minimum cost-comparable configs for a slice to be non-degenerate.
+    _MIN_FEASIBLE_CONFIGS: int = 6
+
+    def discover_routerbench_benchmarks(self) -> list[str]:
+        """All RouterBench benchmark groups present in the substrate (C7).
+
+        Reads the ``routerbench`` candidate set via ``candidates`` (the C7 solver
+        interface) and parses ``rb-{model}-{benchmark}`` config_ids by stripping
+        the known model prefixes. Returns the benchmark suffixes sorted, so the
+        battery enumerates every ~30 RouterBench group automatically.
+        """
+        cands = self.sub.candidates("routerbench")
+        benches: set[str] = set()
+        models = sorted(self._ROUTERBENCH_MODELS, key=len, reverse=True)
+        for c in cands:
+            cid = c.id
+            for m in models:
+                if cid.startswith(m + "-"):
+                    benches.add(cid[len(m) + 1:])
+                    break
+        return sorted(benches)
+
+    def _scale_slices(
+        self, benchmarks: tuple[str, ...] | None,
+    ) -> list[tuple[str, str, tuple[str, ...], str, str | None, str]]:
+        """Build the (key, tau, bind, mask, benchmark, confidence) slice list.
+
+        ``benchmarks=None`` → discover ALL RouterBench groups from the substrate.
+        BFCL stays in the battery and is tagged M-confidence; every RouterBench
+        per-benchmark slice is tagged H-confidence.
+        """
+        if benchmarks is None:
+            benchmarks = tuple(self.discover_routerbench_benchmarks())
+        slices: list[tuple[str, str, tuple[str, ...], str, str | None, str]] = [
             (
                 "BFCL/bind=quality+latency/mask=quality",
                 "function-calling",
                 ("quality", "latency_p95"),
                 "quality",
                 None,
+                "M",   # function-calling quality is M-confidence
             ),
         ]
-        for bench in self._SCALE_BENCHMARKS:
+        for bench in benchmarks:
             slices.append((
                 f"routerbench[{bench}]/bind=quality/mask=quality",
                 "routerbench",
                 ("quality",),
                 "quality",
                 bench,
+                "H",   # RouterBench accuracy is real measured GT
             ))
         return slices
+
+    @staticmethod
+    def _pool(
+        base_pq: list[dict], sel_pq: list[dict], rng: random.Random,
+    ) -> dict:
+        """Pool per-query pairs into a baseline-vs-selective significance block."""
+        if not base_pq:
+            return {"n": 0}
+        base_hv = sum(int(x["hidden_violation"]) for x in base_pq) / len(base_pq)
+        sel_hv = sum(int(x["hidden_violation"]) for x in sel_pq) / len(sel_pq)
+        stats = ValidationRunner._paired_significance(base_pq, sel_pq, rng)
+        return {
+            "baseline_hidden_violation_rate": round(base_hv, 6),
+            "selective_hidden_violation_rate": round(sel_hv, 6),
+            **stats,
+        }
 
     @staticmethod
     def _paired_significance(
@@ -246,27 +308,69 @@ class ValidationRunner:
             "significant": bool(lo > 0.0 and p_value < 0.05),
         }
 
-    def scale_v1(self, seed: int = 12345) -> dict:
+    def scale_v1(
+        self,
+        seed: int = 12345,
+        benchmarks: tuple[str, ...] | None = None,
+        min_feasible_configs: int | None = None,
+    ) -> dict:
         """Scaled V1 battery with significance + multiple biting slices.
 
         Larger per-slice battery (pcts 10..90 step 5 ≈ 17 queries), over BFCL plus
-        the six per-benchmark RouterBench slices. For each slice we run ALL_RULES
-        (per-rule coverage + hidden_violation_rate + counts) and collect the
-        per-query baseline-vs-selective pairs for the must-beat baselines (B2, B3).
-        A slice is a "biting" slice iff some must-beat baseline actually
-        hidden-violates on it; significance and pooling are computed over biting
-        slices only, where there is something to beat.
+        per-benchmark RouterBench slices. ``benchmarks=None`` (default) DISCOVERS
+        every RouterBench benchmark group in the substrate (~30 groups) and
+        includes each one; degenerate slices with fewer than
+        ``min_feasible_configs`` cost-comparable candidates are skipped. A bigger
+        battery → bigger n. Pass an explicit ``benchmarks`` tuple to override.
+
+        For each slice we run ALL_RULES (per-rule coverage + hidden_violation_rate
+        + counts) and collect the per-query baseline-vs-selective pairs for the
+        must-beat baselines (B2, B3). A slice is "biting" iff some must-beat
+        baseline actually hidden-violates on it; significance and pooling are
+        computed over biting slices only, where there is something to beat.
+
+        Each slice is tagged with a confidence tier (W5): RouterBench slices are
+        H-confidence (real measured GT), BFCL is M-confidence. We pool TWICE:
+          * ``pooled`` — over ALL biting slices (H + M);
+          * ``pooled_h_only`` — over H-confidence biting slices only (the
+            RouterBench slices), the FLAGSHIP that does not depend on any
+            M-confidence data (closes W5).
         """
         pcts = tuple(range(10, 95, 5))
         rng = random.Random(seed)
+        min_cfg = (
+            self._MIN_FEASIBLE_CONFIGS if min_feasible_configs is None
+            else min_feasible_configs
+        )
 
         slices_out: dict[str, dict] = {}
         # Pooled per-query pairs across biting slices, per must-beat baseline.
+        # Tracked separately for ALL biting slices and H-confidence-only.
         pooled_base_pq: dict[str, list[dict]] = {b: [] for b in _MUST_BEAT_SCALE}
         pooled_sel_pq: dict[str, list[dict]] = {b: [] for b in _MUST_BEAT_SCALE}
+        pooled_h_base_pq: dict[str, list[dict]] = {b: [] for b in _MUST_BEAT_SCALE}
+        pooled_h_sel_pq: dict[str, list[dict]] = {b: [] for b in _MUST_BEAT_SCALE}
 
-        for key, tau, bind_axes, masked_axis, bench in self._scale_slices():
+        for key, tau, bind_axes, masked_axis, bench, conf in self._scale_slices(
+            benchmarks
+        ):
             sub = BenchmarkSubstrate(self.sub, bench) if bench else self.sub
+            n_candidates = len(sub.candidates(tau))
+            # Skip degenerate slices: too few cost-comparable configs to right-size.
+            if n_candidates < min_cfg:
+                slices_out[key] = {
+                    "meta": {
+                        "tau": tau, "benchmark": bench, "confidence": conf,
+                        "bind_axes": list(bind_axes), "masked_axis": masked_axis,
+                        "n_queries": 0, "n_candidates": n_candidates,
+                        "selective_hidden_violation_rate": 0.0,
+                        "must_beat_hidden_violation_rate": {},
+                        "baselines_bite": False, "c2_verdict": "degenerate",
+                        "skipped": True,
+                    },
+                    "rules": {}, "significance": {},
+                }
+                continue
             mp = MaskAndPredict(sub, kappa=self.kappa, phi=self.phi)
             queries = mp.generate_queries(tau, bind_axes, pcts=pcts)
             report = mp.run(ALL_RULES, tau, bind_axes, masked_axis, queries=queries)
@@ -294,15 +398,19 @@ class ValidationRunner:
                     sig[name] = self._paired_significance(base_pq, sel_pq, rng)
                     pooled_base_pq[name].extend(base_pq)
                     pooled_sel_pq[name].extend(sel_pq)
+                    if conf == "H":
+                        pooled_h_base_pq[name].extend(base_pq)
+                        pooled_h_sel_pq[name].extend(sel_pq)
 
             slices_out[key] = {
                 "meta": {
                     "tau": tau,
                     "benchmark": bench,
+                    "confidence": conf,
                     "bind_axes": list(bind_axes),
                     "masked_axis": masked_axis,
                     "n_queries": len(queries),
-                    "n_candidates": len(sub.candidates(tau)),
+                    "n_candidates": n_candidates,
                     "selective_hidden_violation_rate": sel_hv,
                     "must_beat_hidden_violation_rate": beat,
                     "baselines_bite": baselines_bite,
@@ -312,41 +420,51 @@ class ValidationRunner:
                 "significance": sig,
             }
 
-        # --- pooled across biting slices ---
+        # --- pooled across biting slices (ALL) and H-confidence-only ---
         pooled: dict[str, dict] = {}
+        pooled_h_only: dict[str, dict] = {}
         for name in _MUST_BEAT_SCALE:
-            base_pq = pooled_base_pq[name]
-            sel_pq = pooled_sel_pq[name]
-            if not base_pq:
-                pooled[name] = {"n": 0}
-                continue
-            base_hv = sum(int(x["hidden_violation"]) for x in base_pq) / len(base_pq)
-            sel_hv = sum(int(x["hidden_violation"]) for x in sel_pq) / len(sel_pq)
-            stats = self._paired_significance(base_pq, sel_pq, rng)
-            pooled[name] = {
-                "baseline_hidden_violation_rate": round(base_hv, 6),
-                "selective_hidden_violation_rate": round(sel_hv, 6),
-                **stats,
-            }
+            pooled[name] = self._pool(
+                pooled_base_pq[name], pooled_sel_pq[name], rng
+            )
+            pooled_h_only[name] = self._pool(
+                pooled_h_base_pq[name], pooled_h_sel_pq[name], rng
+            )
 
-        biting = [k for k, v in slices_out.items() if v["meta"]["baselines_bite"]]
-        total_q = sum(
-            slices_out[k]["meta"]["n_queries"] for k in slices_out
-        )
+        biting = [
+            k for k, v in slices_out.items() if v["meta"]["baselines_bite"]
+        ]
+        biting_h = [
+            k for k in biting if slices_out[k]["meta"]["confidence"] == "H"
+        ]
+        skipped = [
+            k for k, v in slices_out.items()
+            if v["meta"].get("skipped", False)
+        ]
+        total_q = sum(slices_out[k]["meta"]["n_queries"] for k in slices_out)
         biting_q = sum(slices_out[k]["meta"]["n_queries"] for k in biting)
+        biting_h_q = sum(slices_out[k]["meta"]["n_queries"] for k in biting_h)
         return {
             "meta": {
                 "seed": seed,
                 "pcts": list(pcts),
                 "n_slices": len(slices_out),
+                "n_benchmarks_discovered": len(
+                    [s for s in slices_out if slices_out[s]["meta"]["benchmark"]]
+                ),
                 "biting_slices": biting,
                 "n_biting_slices": len(biting),
+                "biting_slices_h": biting_h,
+                "n_biting_slices_h": len(biting_h),
+                "skipped_slices": skipped,
                 "total_queries": total_q,
                 "biting_queries": biting_q,
+                "biting_queries_h": biting_h_q,
                 "must_beat": list(_MUST_BEAT_SCALE),
             },
             "slices": slices_out,
             "pooled": pooled,
+            "pooled_h_only": pooled_h_only,
         }
 
     # ------------------------------------------------------------------ V2 ----

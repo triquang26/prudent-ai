@@ -70,10 +70,16 @@ def _render_md(res: dict) -> str:
         f"({len(meta['pcts'])} queries / slice)"
     )
     lines.append(
-        f"- slices: {meta['n_slices']} total, {meta['n_biting_slices']} biting; "
+        f"- slices: {meta['n_slices']} total, {meta['n_biting_slices']} biting "
+        f"({meta['n_biting_slices_h']} H-confidence); "
         f"total queries {meta['total_queries']} ({meta['biting_queries']} on biting "
-        "slices)"
+        f"slices, {meta['biting_queries_h']} on H-confidence biting slices)"
     )
+    if meta.get("skipped_slices"):
+        lines.append(
+            f"- skipped (degenerate, too few cost-comparable configs): "
+            f"{', '.join(meta['skipped_slices'])}"
+        )
     lines.append("")
 
     # ---- per-slice lattice ----
@@ -144,35 +150,51 @@ def _render_md(res: dict) -> str:
             lines.append("")
 
     # ---- pooled significance ----
-    lines.append("## Pooled significance (across biting slices)")
+    def _pooled_table(pooled: dict) -> None:
+        lines.append(
+            "| baseline | n | HV(baseline) | HV(selective) | difference | 95% CI | "
+            "CI excl. 0 | binom p | significant |"
+        )
+        lines.append("|---|---|---|---|---|---|---|---|---|")
+        for name in meta["must_beat"]:
+            p = pooled.get(name, {})
+            if p.get("n", 0) == 0:
+                lines.append(f"| {name} | 0 | — | — | — | — | — | — | — |")
+                continue
+            lines.append(
+                f"| {name} | {p['n']} | {_fmt(p['baseline_hidden_violation_rate'])} | "
+                f"{_fmt(p['selective_hidden_violation_rate'])} | "
+                f"{_fmt(p['mean_diff'])} | "
+                f"[{_fmt(p['ci95_lo'])}, {_fmt(p['ci95_hi'])}] | "
+                f"{'yes' if p['ci_excludes_zero'] else 'no'} | "
+                f"{p['binom_p_one_sided']:.2e} | "
+                f"{'YES' if p['significant'] else 'no'} |"
+            )
+        lines.append("")
+
+    lines.append("## Pooled significance (ALL biting slices)")
     lines.append("")
     lines.append(
-        "Per-query paired comparison pooled across the biting slices: for each query "
-        "does the baseline hidden-violate while selective does not? Difference = "
-        "baseline − selective hidden-violation-rate; bootstrap 95% CI seeded "
+        "Per-query paired comparison pooled across ALL biting slices (H + M "
+        "confidence): for each query does the baseline hidden-violate while "
+        "selective does not? Difference = baseline − selective "
+        "hidden-violation-rate; bootstrap 95% CI seeded "
         f"(random.Random({meta['seed']})); McNemar one-sided exact binomial on the "
         "discordant pairs."
     )
     lines.append("")
-    lines.append(
-        "| baseline | n | HV(baseline) | HV(selective) | difference | 95% CI | "
-        "CI excl. 0 | binom p | significant |"
-    )
-    lines.append("|---|---|---|---|---|---|---|---|---|")
-    for name in meta["must_beat"]:
-        p = res["pooled"].get(name, {})
-        if p.get("n", 0) == 0:
-            lines.append(f"| {name} | 0 | — | — | — | — | — | — | — |")
-            continue
-        lines.append(
-            f"| {name} | {p['n']} | {_fmt(p['baseline_hidden_violation_rate'])} | "
-            f"{_fmt(p['selective_hidden_violation_rate'])} | {_fmt(p['mean_diff'])} | "
-            f"[{_fmt(p['ci95_lo'])}, {_fmt(p['ci95_hi'])}] | "
-            f"{'yes' if p['ci_excludes_zero'] else 'no'} | "
-            f"{p['binom_p_one_sided']:.2e} | "
-            f"{'YES' if p['significant'] else 'no'} |"
-        )
+    _pooled_table(res["pooled"])
+
+    lines.append("## Pooled significance — H-CONFIDENCE ONLY (FLAGSHIP)")
     lines.append("")
+    lines.append(
+        "The same pooled test restricted to H-confidence biting slices (the "
+        "RouterBench per-benchmark slices with real measured ground truth), "
+        "EXCLUDING the M-confidence BFCL slice. This is the flagship result: it "
+        "does not depend on any M-confidence data, closing mock-review W5."
+    )
+    lines.append("")
+    _pooled_table(res["pooled_h_only"])
     return "\n".join(lines)
 
 
@@ -185,9 +207,13 @@ def _print_summary(res: dict) -> None:
     )
     print("=" * 76)
     print(
-        f"slices={meta['n_slices']} ({meta['n_biting_slices']} biting), "
-        f"total_queries={meta['total_queries']} (biting={meta['biting_queries']})"
+        f"slices={meta['n_slices']} ({meta['n_biting_slices']} biting, "
+        f"{meta['n_biting_slices_h']} H-confidence), "
+        f"total_queries={meta['total_queries']} "
+        f"(biting={meta['biting_queries']}, H-biting={meta['biting_queries_h']})"
     )
+    if meta.get("skipped_slices"):
+        print(f"skipped (degenerate): {', '.join(meta['skipped_slices'])}")
     print("\nPer-slice C2 verdicts (hidden_violation_rate):")
     print(f"  {'slice':<48} {'B2':>5} {'B3':>5} {'sel':>5}  verdict")
     for key, block in res["slices"].items():
@@ -201,22 +227,32 @@ def _print_summary(res: dict) -> None:
             f"{m['c2_verdict'].upper()}"
         )
 
-    print("\n" + "-" * 76)
-    print("POOLED significance across biting slices (baseline vs selective):")
-    for name in meta["must_beat"]:
-        p = res["pooled"].get(name, {})
-        if p.get("n", 0) == 0:
-            print(f"  {name}: no biting data")
-            continue
-        print(
-            f"  {name}:  n={p['n']}  "
-            f"HV(base)={p['baseline_hidden_violation_rate']:.3f}  "
-            f"HV(sel)={p['selective_hidden_violation_rate']:.3f}  "
-            f"diff={p['mean_diff']:.3f}  "
-            f"95%CI=[{p['ci95_lo']:.3f}, {p['ci95_hi']:.3f}]  "
-            f"p={p['binom_p_one_sided']:.2e}  "
-            f"significant={'YES' if p['significant'] else 'no'}"
-        )
+    def _print_pooled(title: str, pooled: dict) -> None:
+        print("\n" + "-" * 76)
+        print(title)
+        for name in meta["must_beat"]:
+            p = pooled.get(name, {})
+            if p.get("n", 0) == 0:
+                print(f"  {name}: no biting data")
+                continue
+            print(
+                f"  {name}:  n={p['n']}  "
+                f"HV(base)={p['baseline_hidden_violation_rate']:.3f}  "
+                f"HV(sel)={p['selective_hidden_violation_rate']:.3f}  "
+                f"diff={p['mean_diff']:.3f}  "
+                f"95%CI=[{p['ci95_lo']:.3f}, {p['ci95_hi']:.3f}]  "
+                f"p={p['binom_p_one_sided']:.2e}  "
+                f"significant={'YES' if p['significant'] else 'no'}"
+            )
+
+    _print_pooled(
+        "POOLED significance across ALL biting slices (baseline vs selective):",
+        res["pooled"],
+    )
+    _print_pooled(
+        "POOLED significance — H-CONFIDENCE ONLY [FLAGSHIP] (baseline vs selective):",
+        res["pooled_h_only"],
+    )
     print("=" * 76)
 
 
