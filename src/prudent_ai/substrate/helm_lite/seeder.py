@@ -19,10 +19,21 @@ Confidence policy (from data_dictionary.md):
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.orm import Session
+
 from prudent_ai.substrate import Substrate
+from prudent_ai.substrate.orm import (
+    Component,
+    Config,
+    ConfigComponent,
+    Source,
+)
+from prudent_ai.substrate.orm import (
+    Observation as ObsORM,
+)
 
 from .client import HelmLiteClient
 from .models import ModelRuns, ParsedRun, SeedReport
@@ -80,8 +91,7 @@ class HelmLiteSeeder:
     def seed(self) -> SeedReport:
         """Run the full pipeline. Idempotent (INSERT OR IGNORE throughout)."""
         report = SeedReport(version=self.version)
-        conn = self.substrate._conn
-        conn.execute("PRAGMA foreign_keys = ON")
+        session = self.substrate._session
 
         self._log("Fetching run list from GCS …")
         run_names = self._client.list_run_names(self.version)
@@ -90,7 +100,7 @@ class HelmLiteSeeder:
         self._log(f"  Found {len(run_names)} run directories")
 
         # Insert source provenance row before any observations
-        self._insert_source(conn)
+        self._insert_source(session)
 
         # Fetch + parse all runs
         parsed_runs = self._fetch_and_parse(run_names, report)
@@ -100,13 +110,13 @@ class HelmLiteSeeder:
         model_groups = self._parser.group_by_model(parsed_runs)
         self._log(f"\nInserting {len(model_groups)} models …")
         for model_id, model_runs in sorted(model_groups.items()):
-            inserted = self._seed_model(conn, model_id, model_runs, report)
+            inserted = self._seed_model(session, model_id, model_runs, report)
             report.observations_inserted += inserted
             if self.verbose:
                 print(f"  {model_id:<45} +{inserted} obs")
             report.models_seeded += 1
 
-        conn.commit()
+        session.commit()
         return report
 
     # ------------------------------------------------------------------
@@ -138,21 +148,21 @@ class HelmLiteSeeder:
     # DB insertion
     # ------------------------------------------------------------------
 
-    def _insert_source(self, conn: sqlite3.Connection) -> None:
-        conn.execute(
-            "INSERT OR IGNORE INTO source (evidence_id, source_type, citation, snapshot_version) "
-            "VALUES (?, ?, ?, ?)",
-            (
-                SOURCE_ROW["evidence_id"],
-                SOURCE_ROW["source_type"],
-                SOURCE_ROW["citation"],
-                SOURCE_ROW["snapshot_version"],
-            ),
+    def _insert_source(self, session: Session) -> None:
+        session.execute(
+            sqlite_insert(Source)
+            .values(
+                evidence_id=SOURCE_ROW["evidence_id"],
+                source_type=SOURCE_ROW["source_type"],
+                citation=SOURCE_ROW["citation"],
+                snapshot_version=SOURCE_ROW["snapshot_version"],
+            )
+            .on_conflict_do_nothing()
         )
 
     def _seed_model(
         self,
-        conn: sqlite3.Connection,
+        session: Session,
         model_id: str,
         model_runs: ModelRuns,
         report: SeedReport,
@@ -162,38 +172,43 @@ class HelmLiteSeeder:
         provider, model_name = canonical.split("/", 1)
 
         # Component rows
-        conn.execute(
-            "INSERT OR IGNORE INTO component (id, kind, name) VALUES (?, ?, ?)",
-            (f"provider-{provider}", "provider", provider),
+        session.execute(
+            sqlite_insert(Component)
+            .values(id=f"provider-{provider}", kind="provider", name=provider)
+            .on_conflict_do_nothing()
         )
-        conn.execute(
-            "INSERT OR IGNORE INTO component (id, kind, name) VALUES (?, ?, ?)",
-            (f"model-{model_id}", "model", model_name),
+        session.execute(
+            sqlite_insert(Component)
+            .values(id=f"model-{model_id}", kind="model", name=model_name)
+            .on_conflict_do_nothing()
         )
 
         # Config row (one per model — tau = general-qa for P1)
         config_id = model_id
-        conn.execute(
-            "INSERT OR IGNORE INTO config (id, tau) VALUES (?, ?)",
-            (config_id, TAU),
+        session.execute(
+            sqlite_insert(Config)
+            .values(id=config_id, tau=TAU)
+            .on_conflict_do_nothing()
         )
-        conn.execute(
-            "INSERT OR IGNORE INTO config_component (config_id, component_id) VALUES (?, ?)",
-            (config_id, f"provider-{provider}"),
+        session.execute(
+            sqlite_insert(ConfigComponent)
+            .values(config_id=config_id, component_id=f"provider-{provider}")
+            .on_conflict_do_nothing()
         )
-        conn.execute(
-            "INSERT OR IGNORE INTO config_component (config_id, component_id) VALUES (?, ?)",
-            (config_id, f"model-{model_id}"),
+        session.execute(
+            sqlite_insert(ConfigComponent)
+            .values(config_id=config_id, component_id=f"model-{model_id}")
+            .on_conflict_do_nothing()
         )
 
         inserted = 0
-        inserted += self._insert_quality_obs(conn, config_id, model_runs, report)
-        inserted += self._insert_latency_obs(conn, config_id, model_runs, report)
+        inserted += self._insert_quality_obs(session, config_id, model_runs, report)
+        inserted += self._insert_latency_obs(session, config_id, model_runs, report)
         return inserted
 
     def _insert_quality_obs(
         self,
-        conn: sqlite3.Connection,
+        session: Session,
         config_id: str,
         model_runs: ModelRuns,
         report: SeedReport,
@@ -216,28 +231,23 @@ class HelmLiteSeeder:
                 continue
 
             obs_id = f"obs-{config_id}-quality-{scenario_type}-{evidence_id}"
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO observation
-                    (obs_id, config_id, axis, value_num, value_cat,
-                     confidence, evidence_id,
-                     hardware_tier, dataset, split, decoding_cfg, obs_date)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    obs_id,
-                    config_id,
-                    "quality",
-                    round(score, 6),
-                    None,
-                    "M",             # leaderboard → M
-                    evidence_id,
-                    "vendor-api",    # HELM Lite calls go through vendor APIs
-                    scenario_type,   # e.g. "mmlu", "gsm", "math"
-                    "test",
-                    "greedy",        # HELM Lite default: temperature=0
-                    SNAPSHOT_DATE,
-                ),
+            session.execute(
+                sqlite_insert(ObsORM)
+                .values(
+                    obs_id=obs_id,
+                    config_id=config_id,
+                    axis="quality",
+                    value_num=round(score, 6),
+                    value_cat=None,
+                    confidence="M",          # leaderboard → M
+                    evidence_id=evidence_id,
+                    hardware_tier="vendor-api",  # HELM Lite calls go through vendor APIs
+                    dataset=scenario_type,       # e.g. "mmlu", "gsm", "math"
+                    split="test",
+                    decoding_cfg="greedy",       # HELM Lite default: temperature=0
+                    obs_date=SNAPSHOT_DATE,
+                )
+                .on_conflict_do_nothing()
             )
             report.axes_coverage["quality"] = report.axes_coverage.get("quality", 0) + 1
             inserted += 1
@@ -246,7 +256,7 @@ class HelmLiteSeeder:
 
     def _insert_latency_obs(
         self,
-        conn: sqlite3.Connection,
+        session: Session,
         config_id: str,
         model_runs: ModelRuns,
         report: SeedReport,
@@ -263,28 +273,23 @@ class HelmLiteSeeder:
             # Convert seconds → milliseconds; store as latency_p95 with a note in decoding_cfg
             latency_ms = round(latency * 1000, 3)
             obs_id = f"obs-{config_id}-latency_p95-{scenario_type}-{evidence_id}"
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO observation
-                    (obs_id, config_id, axis, value_num, value_cat,
-                     confidence, evidence_id,
-                     hardware_tier, dataset, split, decoding_cfg, obs_date)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    obs_id,
-                    config_id,
-                    "latency_p95",
-                    latency_ms,
-                    None,
-                    "L",             # inference_runtime is mean not p95; L confidence
-                    evidence_id,
-                    "vendor-api",
-                    scenario_type,
-                    "test",
-                    "mean-not-p95",  # note: HELM reports mean inference time, not p95
-                    SNAPSHOT_DATE,
-                ),
+            session.execute(
+                sqlite_insert(ObsORM)
+                .values(
+                    obs_id=obs_id,
+                    config_id=config_id,
+                    axis="latency_p95",
+                    value_num=latency_ms,
+                    value_cat=None,
+                    confidence="L",           # inference_runtime is mean not p95; L confidence
+                    evidence_id=evidence_id,
+                    hardware_tier="vendor-api",
+                    dataset=scenario_type,
+                    split="test",
+                    decoding_cfg="mean-not-p95",  # note: HELM reports mean inference time, not p95
+                    obs_date=SNAPSHOT_DATE,
+                )
+                .on_conflict_do_nothing()
             )
             report.axes_coverage["latency_p95"] = (
                 report.axes_coverage.get("latency_p95", 0) + 1
