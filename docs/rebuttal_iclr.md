@@ -233,3 +233,82 @@ source). We now state (c) as **the key external-validity limitation**, noting th
 likely bias direction favors the finding (published deployers are plausibly *more*
 governance-aware). New robustness item §5(viii); detail in Appendix G; limitation
 in §8.
+
+---
+
+# Author response — round 4 (rating 6, lean accept; Soundness 3/4, Presentation 2/4)
+
+We thank the reviewer for the sharpest review in the cycle. It asked for real
+experiments, not only framing; we ran four. **No published number changed; the
+frozen substrate was never mutated.**
+
+## W3 / Q1 — separate cheaply-fixable cost from structurally-unmeasured (recommendation a)
+
+We decompose the 1,563 underdetermined decisions by their complete blocking set and
+ask what survives **granting cost as determined** (E6, new script). On the published
+headline, only **8.9%** are cost-only (resolved by granting cost); **82.2%** remain
+underdetermined with a non-cost blocker — **72.4%** on a never-measured axis (the
+structural core), 9.8% on another co-located measurable axis. So the headline is
+overwhelmingly structural, **not** a cost-co-location artifact. The reviewer's
+intuition is correct only for the **skeptical floor**: on the joint-drop prior,
+granting cost resolves **38.2%** and the residual structural share is just 1.2%. We
+now (i) state this decomposition in the §5 accounting, (ii) treat 75.1% explicitly
+as a maximally-skeptical bound and the structural 91.1%/72.4% as load-bearing, and
+(iii) answer Q3: the floor is **bit-identical at 75.1%** across cost-grounding
+percentiles p25–p75 (E8), so it is not a cost-threshold artifact either.
+
+## W7 / Q4 — add a Bayesian / expected-regret baseline (recommendation c)
+
+We added B7 (E7, new script): a per-model Normal posterior over the masked axis,
+committing the config that minimizes expected feasibility-weighted regret (closed-form
+Normal CDF, λ-swept). On the masked-quality battery it drives the hidden-violation
+rate to **4.7%** — but **only by over-provisioning**: minimum-sufficient on **0%** of
+decisions, mean **70× the cheapest-sufficient cost** (identical at λ=1 and λ=4). A
+Bayesian prior converts feasibility violations into gross cost overshoot; it does not
+recover the cheapest-sufficient configuration (the right-sizing target), and on the
+never-measured axes the posterior collapses to the prior because no cross-context
+signal exists. Added to §7.2 and Appendix G. This strengthens, not weakens, the
+never-impute claim: even the strongest probabilistic competitor cannot right-size.
+
+## W1 / Q2 — definition vs. measurement (the headline as near-tautology)
+
+Agreed and stated explicitly (§5): the decidability definition supplies the rigor
+(every rate a certified lower bound), but the empirical content is the measured
+*mismatch* — 44–56% requirement rates on axes reported by zero sources — not the
+definition, which would be vacuous absent that gap. The contribution is the
+measurement, not the formalism.
+
+## W5 — theory is decorative relative to its prominence (recommendation b)
+
+Done. Figure 5 is retitled "**Correctness anchors (implementation checks, not
+results)**"; §3 now calls the machine-precision VoI match "a correctness check on the
+implementation, not a finding about the query distribution." (Round 3 already
+softened "provable value"; this finishes it.)
+
+## W6 — the validation comparison is favorable by construction
+
+Stated plainly (§7.2): the equal-coverage win is *measure-versus-guess* by
+construction — the pipeline acquires the hidden truth the baselines are denied, so
+the McNemar 272/0 is near-definitional; the non-trivial claim is that the procedure
+**knows when** it must measure and prices it.
+
+## Q5 — the plan ordering depends on the assumed acquisition-cost table
+
+Empirically it does not (E9, new script). Across perturbations — cost×5, cost×20
+(dearer than quality), quality cheap, all-equal, per-axis random ×[0.5,2] — the plan
+resolves in **2.0** measurements vs 6.0 random, names cost first on **100%**, and
+stays feasible + minimum-sufficient on **100%**. Both genuine blockers must be
+revealed to commit, so the count is structural; cost is named first because its VoI
+dominates, surviving a 40× swing in the table. Appendix G.
+
+## W2 — two halves connect by mechanism, not empirically (re-affirmed)
+
+Unchanged from round 3 and we keep it honest: the link is Proposition 1, not a shared
+number; we explicitly disclaim that 57.1% transfers to governance.
+
+## W4 / W8 — presentation (Presentation 2/4 → aimed at 3/4, recommendation d)
+
+The abstract is rewritten into shorter sentences with far fewer inline parentheticals
+(same length, one paragraph), and the headline **scoping** is now legible in the
+abstract and §5 without reconstruction from the appendix. Main text held at exactly
+9 pages, 0 overfull.
