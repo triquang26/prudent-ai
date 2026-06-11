@@ -1,0 +1,298 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2026_conference,times}
+
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{multirow}
+\usepackage{subcaption}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+
+\newcommand{\bind}{\mathrm{bind}}
+\newcommand{\cl}{\mathrm{cl}}
+\newcommand{\VoI}{\mathrm{VoI}}
+\newcommand{\feasible}{\mathrm{feasible}}
+\newcommand{\Comp}{\mathrm{Comp}}
+\newcommand{\bbot}{\bot}
+
+\title{When the Evidence Cannot Decide: Measuring\\ and Acting on the Underdetermination\\ of AI Deployment Right-Sizing}
+
+% Anonymous submission: do not set \iclrfinalcopy
+\author{Anonymous authors}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Practitioners size AI deployments against public evaluation evidence, on the tacit assumption that the open problem is \emph{estimate quality}. We ask a prior question: given the evidence that exists, is the decision \emph{identified at all}? We formalize \emph{evidence-decidability}: a decision is decidable iff some configuration is provably feasible and provably cheapest in every world consistent with the evidence. Measured over queries derived from 1{,}716 documented production LLM deployments, read against a provenance-tracked corpus of public evaluation results, the answer is stark: \textbf{91.1\%} of deployment right-sizing decisions are underdetermined even when a rule sees every axis the corpus measures. The cause is structural: governance and reviewer burden are declared constraints in roughly half of documented deployments yet are reported by \emph{zero} public sources, a blind spot that persists across a 20-source corpus including safety and clinical leaderboards. Deciding anyway is costly: on 476 ground-truth decisions with one binding axis hidden, ranking on the visible axes silently violates the hidden constraint \textbf{57.1\%} of the time, and imputing the missing value commits the identical violations. Our selective procedure instead abstains and names the single measurement that resolves the decision; making that measurement converts the abstention into a provably correct commitment in \textbf{527 of 527} cases, versus 12.9\% for a random measurement, and we prove the named measurement's value equals the irreducible regret of deciding without it. When commitment at tolerated risk is preferred, a margin calibrated on held-out measured ground truth retains 89\% coverage at $\le 5\%$ feasibility risk. Evidence sufficiency, not estimate quality, is the binding constraint on deployment decisions---and it can be measured, certified, and purchased rationally.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Every tool that helps a practitioner choose how to deploy a language model answers the same underlying question: \emph{given this task and its constraints, what is the smallest configuration that suffices?} The evaluation community has invested enormously in making the inputs to that question more precise: holistic benchmarks widen the metrics reported per model \citep{liang2022helm}, cost-aware agent evaluations add real dollars to accuracy \citep{kapoor2024agents,stroebl2025hal}, and routing systems drive cost down under an objective the operator already observes \citep{chen2023frugalgpt,hu2024routerbench,ong2024routellm}. All of this shares a tacit premise: the frontier is \emph{estimate quality}, so a sharper belief about each property of each model yields a better deployment decision.
+
+This paper flips that premise into a measurable question. Before asking how precise the evidence is, we ask whether the deployment decision is \emph{identified at all} by the evidence that exists. We call a decision \emph{evidence-decidable} when the evidence pins down the optimum, and \emph{underdetermined} when two states of the world, both consistent with everything measured, disagree about which configuration to deploy. Underdetermination is not imprecision: no amount of re-running the present benchmarks shrinks it, because its source is which properties are measured, not how well.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_teaser.pdf}
+\caption{\textbf{The evidence and the decisions it must support are misaligned, and deciding anyway silently fails.}
+\textbf{Left:} for each of the eight deployment-relevant properties (``axes''), the fraction of 1{,}716 documented LLM deployments that declare it a constraint (blue) versus the fraction of configurations for which public evaluation evidence is silent on it (red): governance and reviewer burden are constraints in roughly half of deployments and are unmeasured for \emph{every} configuration.
+\textbf{Right:} on 476 ground-truth decisions with one binding axis hidden, ranking on the visible axes silently violates the hidden constraint on 57.1\% of decisions, imputing the missing value gives the \emph{same} 57.1\%, and our selective procedure abstains and names the resolving measurement instead---zero hidden violations (gap 57.1\%, slice-clustered 95\% CI [46.8, 67.6], exact $p < 10^{-81}$).}
+\label{fig:teaser}
+\end{figure}
+
+Making this question empirical requires two artifacts that prior evaluation work does not provide. The first is an \emph{evidential substrate}: a relational store of provenance-tracked observations from public evaluation sources, in which missingness is derived from the absence of evidence and never imputed. The second is a \emph{grounded query distribution}: rather than inventing queries, we derive one right-sizing query from each of 1{,}716 documented production LLM deployments, so the headline is a property of real deployment demand rather than of a grid we chose (Section~\ref{sec:substrate}).
+
+The measurement yields a result we did not expect to be so extreme (Section~\ref{sec:map}). Even when a decision rule is handed \emph{every} axis the corpus measures, \textbf{91.1\%} of the derived right-sizing decisions remain underdetermined (95\% CI [89.7, 92.4]); under the accuracy-only reading that leaderboards support, the figure is 100\%. The cause is structural, and Figure~\ref{fig:teaser} (left) shows it in one view: the properties that gate real deployments are exactly the ones no source measures. Governance (regulatory admissibility) is a declared constraint in 55.6\% of the documented deployments and reviewer burden (the human-review budget) in 43.8\%---yet both axes are unreported for every configuration in every source. The blind spot survives every confidence-filter setting, every single deletion in the derivation taxonomy, adversarial re-weightings of the query distribution itself (headline $\ge 95.7\%$), and scaling the corpus from 6 to 20 sources including safety and clinical leaderboards.
+
+A measurement of underdetermination would be a curiosity if deciding anyway were harmless. Our second result shows it is not (Section~\ref{sec:validation}). On 28 slices of the corpus where ground truth for a binding axis exists, we hide that axis, let each decision rule commit from what remains, and score the commitment against the hidden truth. The community's honest default---rank configurations on the visible axes and pick the cheapest acceptable one---silently \emph{violates the hidden constraint} on 57.1\% of decisions (slice-clustered 95\% CI [46.8, 67.6]). The standard defense, ``just impute the missing value,'' changes nothing here: median imputation commits the identical violations, and on the never-measured axes a learned imputer has nothing to train on anywhere in the corpus. Our end-to-end procedure---abstain when the decision is not identified, measure the named axis, then commit---reaches the same full coverage with \emph{zero} violations on the same decisions (paired exact $p < 10^{-81}$).
+
+Refusal alone would be cheap. The procedure's abstention is \emph{informative}: it returns the blocking axes and a value-of-information (VoI) ranking of which single measurement would resolve the decision, normalized by acquisition cost. This ranking is not a heuristic: the VoI of the omitted binding axis provably equals the minimax regret any rule must pay for deciding without it, $\VoI = \Delta = \delta\lambda/(\delta+\lambda)$, where $\delta$ is the cost spread and $\lambda$ the violation penalty (Section~\ref{sec:theory}); our implementation matches the identity to $10^{-16}$. Empirically, performing the named measurement converts the abstention into a commitment that is feasible and cheapest in \textbf{527/527} cases, against 12.9\% for measuring a random axis. When commitment is allowed at a tolerated risk, a margin calibrated on held-out measured ground truth keeps feasibility risk below $\alpha = 5\%$ at 89\% coverage.
+
+\textbf{Contributions.}
+\begin{enumerate}
+\item \textbf{A reframing with an operational measure}: right-sizing as an identifiability question, with a three-valued verdict (decidable / underdetermined / infeasible) computable from any evidence corpus, conservative so that every reported underdetermination rate is a lower bound (Section~\ref{sec:setup}).
+\item \textbf{The first decidability map over realistically distributed deployment queries}: 91.1\% of 1{,}716 decisions derived from documented deployments are underdetermined at full evidence; 72.4\% (95\% CI [70.3, 74.5]) are blocked by an axis no source measures at all; the blind spot is structural and robust to the confidence policy, the derivation taxonomy, the query distribution, and corpus scale (Section~\ref{sec:map}).
+\item \textbf{Evidence that deciding anyway fails, measurably}: visible-axis ranking and imputation silently violate hidden binding constraints on 57.1\% of ground-truth-scored decisions, versus 0\% for the selective procedure at equal final coverage ($n{=}476$, slice-clustered CI [46.8, 67.6], exact $p < 10^{-81}$), with the violated constraints certified as binding from Pareto structure rather than assumed (Section~\ref{sec:validation}).
+\item \textbf{A selective procedure whose refusal has provable value}: commit / abstain-and-name-the-measurement / infeasible, with (i) an exact identity tying the named measurement's VoI to the irreducible regret of deciding without it, (ii) a 527/527 vs.\ 12.9\% acquisition win over random measurement, and (iii) a feasibility guarantee that transfers to held-out measured ground truth (Sections~\ref{sec:method}, \ref{sec:validation}).
+\end{enumerate}
+
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Better estimates, same identifiability assumption.}
+HELM \citep{liang2022helm} broadens the metrics reported per model and is precisely the kind of evidence our substrate ingests, but it produces a richer estimate, not a statement of when that estimate suffices to identify a deployment choice. \citet{kapoor2024agents} show that accuracy-only agent evaluation misleads and argue for joint accuracy--cost Pareto analysis; the Holistic Agent Leaderboard \citep{stroebl2025hal} makes the estimate far more reliable with 21{,}730 instrumented rollouts. Our result is one step before theirs: even a joint accuracy--cost rule still answers decisions it cannot identify, because real deployments also bind latency, energy, governance, and reviewer burden---axes a Pareto front over reported metrics never sees. FrugalGPT \citep{chen2023frugalgpt}, RouterBench \citep{hu2024routerbench}, RouteLLM \citep{ong2024routellm}, and LLMSelector \citep{chen2025llmselector} optimize selection \emph{under an observed objective}; in our setting the objective or a binding constraint is frequently unobserved (cost evidence is absent from the candidate pools of 75.1\% of the derived queries), so there is nothing to frugally minimize until the axis is measured. The lines are complementary: on the decidable slice, frugal optimization is exactly what should run. Runtime planners and cascade serving systems \citep{circinus2025,cascadia2025} likewise choose among systems whose properties are taken as known; our decidable slice is the set of decisions they can safely treat as resolved.
+
+\textbf{Selective prediction and conformal guarantees.}
+Abstention under uncertainty goes back to \citet{chow1970optimum} and was formalized by \citet{elyaniv2010foundations,geifman2017selective}, with distribution-free risk control via conformal methods \citep{angelopoulos2023conformal}. Trust-or-Escalate \citep{jung2025trust} applies the selective shape to LLM judging with a coverage-at-agreement guarantee. We adapt the selective-commit skeleton and differ in three ways that matter formally: the committed object is a multi-constraint feasibility-\emph{and}-minimality decision rather than a binary label; the trigger is non-identifiability from missing evidence, not low model confidence; and the abstention is informative---it returns the measurement that resolves the decision, with a proved link between that measurement's value and the regret floor. \citet{dorner2025limits} prove that a judge no better than the evaluated model cannot substitute for more labels; our limit result is structurally parallel in a different currency---evidence on the wrong axes cannot substitute for measuring the binding one, no matter how abundant.
+
+\textbf{Missing data and partial identification.}
+Our never-impute stance follows the partial-identification tradition \citep{manski2003partial}: when data cannot identify a quantity, report the identified set rather than a point. The missingness we measure is non-ignorable in the strongest classical sense \citep{rubin1976inference,little2019statistical}---entire axes are absent because nobody measures them---which is why imputation fails empirically in Section~\ref{sec:validation}. Value-of-information is classical \citep{howard1966voi}; our contribution is the identity tying an implementable VoI to a regret floor indexed by which axes carry evidence.
+
+\section{Problem Setup: Right-Sizing under Partial Evidence}
+\label{sec:setup}
+
+\subsection{Queries, configurations, axes}
+
+A \textbf{configuration} $x \in \mathcal{X}$ is a fully specified deployable assembly: model, context length, retrieval, decoding, orchestration. A \textbf{task archetype} $\tau$ names a workload (general QA, function calling, inference serving), and $\mathcal{X}(\tau)$ is the admissible set. Right-sizing is judged on eight \textbf{axes} $A = \{$quality, latency, throughput, cost, energy, memory/hw, governance, reviewer burden$\}$: the first five are familiar benchmark quantities; \emph{governance} is regulatory admissibility (a compliance regime the deployment must satisfy), \emph{reviewer burden} is the human-review budget it consumes, and \emph{memory/hw} is the on-device envelope. Each axis has a true value $\theta_a(x)$, never observed directly. A \textbf{query} $q = (\tau, c)$ carries a constraint bundle $c$ of (axis, relation, threshold) triples, e.g.\ quality $\ge 0.8$ and latency $\le$ 2s. The oracle target is the \textbf{cheapest sufficient configuration}
+$x^*(q) = \arg\min_{x \in \mathcal{X}(\tau):\,\feasible(x,c)} \mathrm{cost}(x)$,
+a textbook constrained optimum on purpose: everything novel happens when $\theta$ is replaced by partial evidence about $\theta$. We write $\bind(q) \subseteq A$ for the axes whose constraints are \emph{active} at the optimum---those whose relaxation would change $x^*(q)$.
+
+\subsection{Observations, confidence, and derived missingness}
+
+The evidence base $E$ is a set of \textbf{observations}. An observation for a cell $(x,a)$ is a tuple $\langle \text{value},\ \text{confidence} \in \{H,M,L\},\ \text{source},\ \text{context} \rangle$: $H$ for direct measurement, $M$ for leaderboard or paper-reported numbers, $L$ for vendor claims and estimates; context records dataset, split, hardware, and date so commensurability is checkable. A solver chooses a confidence policy $\kappa$ (default $\{H,M\}$) and an aggregation $\varphi$, and the \textbf{belief} about a cell is derived at query time from the $\kappa$-filtered observations. In this paper $\varphi$ maps those observations to an \emph{interval}: the min--max of commensurable observed values, collapsing to a point when they agree. A belief \emph{straddles} a threshold when its interval contains it. The central definition is that \emph{missingness is derived, not stored}:
+\begin{equation}
+B_E(x,a) = \bbot \iff \text{the $\kappa$-filtered observation set for $(x,a)$ is empty.}
+\end{equation}
+A missing cell stays missing: we never fill $\bbot$ with a prior, a median, or a model---Section~\ref{sec:validation} shows imputation reproduces exactly the failures it is meant to avoid.
+
+\subsection{Three verdicts, and decidability via possible worlds}
+\label{sec:decidability}
+
+Fix a query and a policy. Each candidate is certified per constraint against its belief: \emph{satisfied}, \emph{violated}, or \emph{undetermined} (the constraint's axis is $\bbot$ or the belief straddles the threshold). Let $\Comp(E)$ be the set of \textbf{completions} of $E$: a completion assigns each $\bbot$ cell any value in its axis domain and each straddling cell any value in its observed interval---the possible worlds the evidence cannot rule out.
+
+\begin{definition}[Evidence-decidability]
+A query $q$ is \textbf{decidable} under $E$ iff some candidate is provably feasible and its $\arg\min$-cost status is invariant across all completions in $\Comp(E)$. It is \textbf{underdetermined} iff two completions disagree about $x^*(q)$---equivalently, some missing or straddling cell could flip the optimum. It is \textbf{infeasible} iff no candidate is feasible in any completion.
+\end{definition}
+
+Decidability is the property that better point estimates cannot deliver: tighter intervals prune completions, but whether $E$ \emph{suffices} to identify the decision depends on which axes carry evidence at all. Our implementation resolves completions conservatively (a pending candidate is presumed feasible and maximally cheap), so every underdetermination rate we report is a floor.
+
+\subsection{When is a decision decidable? A characterization and a price}
+\label{sec:theory}
+
+An \textbf{evidence regime} $R \subseteq A$ is the set of axes a rule is permitted to read (off-regime cells are treated as $\bbot$). Let $\cl(R)$ denote $R$ closed under known deterministic relationships between axes in the query's fixed context (e.g.\ cost derivable from token counts and a price sheet). Under the semantics of Section~\ref{sec:decidability} (proofs in Appendix~\ref{app:proofs}):
+
+\begin{proposition}[Decidability bracket]
+\label{prop:char}
+(i) \emph{Necessity:} if some binding axis $a^* \in \bind(q)$ lies outside $\cl(R)$, then $q$ is underdetermined under $R$.
+(ii) \emph{Sufficiency:} if every axis constrained by $q$ and the cost of every candidate are determined under $\cl(R)$, then $q$ is decidable. The conditions coincide under the conservative reading our implementation certifies.
+\end{proposition}
+
+The price of violating the necessary condition is not merely qualitative. Consider the canonical two-candidate instance: $x_{\mathrm{cheap}}$ at cost $1$, $x_{\mathrm{safe}}$ at cost $1+\delta$, both certifiably satisfying every in-regime constraint, while one binding axis $a^* \notin \cl(R)$ is unmeasured for $x_{\mathrm{cheap}}$ and satisfied by $x_{\mathrm{safe}}$. Score a decision by $L(\hat{x}) = \max(0, \mathrm{cost}(\hat{x}) - \mathrm{cost}(x^*)) + \lambda \cdot \mathbf{1}[\hat{x}\text{ violates}]$, cost overshoot plus a violation penalty $\lambda$.
+
+\begin{theorem}[Regret floor]
+\label{thm:floor}
+Any rule restricted to $R$ that must commit one of the candidates (deterministic or randomized) has worst-case expected regret at least
+$\Delta = \delta\lambda/(\delta+\lambda)$
+on this family, and the bound is attained. Abstention escapes the floor only by paying for a measurement; the corollary prices that trade.
+\end{theorem}
+
+\begin{corollary}[Value of the missing measurement]
+\label{cor:voi}
+The value of information of measuring $a^*$---the reduction in minimax committed regret from observing it---equals $\Delta$ exactly. The measurement the procedure recommends is worth precisely the regret that deciding without it must incur.
+\end{corollary}
+
+Theorem~\ref{thm:floor} is deliberately minimal: it formalizes that evidence on the wrong axes cannot be traded for evidence on the binding one at any exchange rate---the analogue for evidence regimes of the label-substitution ceiling of \citet{dorner2025limits}. We claim no general-instance bound beyond this family; what we verify is that our \emph{implemented} VoI coincides with $\Delta$ on it to machine precision (Figure~\ref{fig:anchors}, left), so the quantity the procedure reports when it abstains is the theorem's floor, not a proxy score. Proposition~\ref{prop:char}(i) then makes two testable predictions: decidability can rise only when a previously blocked axis enters the regime, plateauing once the remaining blockers are out of reach at every rung (Figure~\ref{fig:map}), and hidden-constraint failures track certified binding exactly (Section~\ref{sec:validation}).
+
+\section{An Evidential Substrate and a Real Query Distribution}
+\label{sec:substrate}
+
+\textbf{Substrate.}
+Measuring decidability requires storage that preserves exactly what Section~\ref{sec:setup} needs: observations as atomic rows with provenance and context, referential integrity to sources, and $\bbot$ derived from filtered absence. We implement this as a relational store and freeze a snapshot. The solver reads it through exactly three functions---\texttt{candidates}$(\tau)$, \texttt{cell}$(x,a)$, \texttt{required\_fields}$(c)$---and nothing else; an interface-invariance test asserts that two different solvers issue byte-identical call multisets on the same query, so no verdict can depend on a privileged read path. All aggregation, certification, and VoI live solver-side.
+
+\textbf{Corpora.}
+The decidability measurement reads a frozen snapshot spanning four public evaluation families plus a measured ground-truth slice: HELM~Lite (general QA; quality, latency) \citep{liang2022helm}, the Berkeley function-calling leaderboard (quality, cost, latency) \citep{patil2023gorilla}, MLPerf~Inference and the ML.ENERGY leaderboard (latency, throughput, energy) \citep{reddi2020mlperf,chung2025mlenergy}, and RouterBench (the only quality-and-cost ground-truth slice at measured confidence) \citep{hu2024routerbench}---together 512 configurations and 4{,}052 observations. Three coverage facts drive everything downstream. First, \emph{three axes have no evidence anywhere}: memory/hw, governance, and reviewer burden are unreported for 100\% of configurations in every source. Second, the measurable axes are \emph{fragmented}: no configuration carries quality, cost, and energy simultaneously, so even queries over nominally measured axes can be underdetermined for lack of co-location. Third, the blind spot is not an artifact of ingesting too few sources: scaling the same pipeline to \textbf{20 sources / 5{,}164 observations / 655 configurations}---adding safety, clinical, finance, and multilingual leaderboards---contributes \emph{zero} observations on the three blind-spot axes (Appendix~\ref{app:corpus}). Safety leaderboards measure model safety, not deployment governance; what gates deployment is simply not what evaluation measures.
+
+\textbf{A query prior from real deployments.}
+A decidability rate is meaningful only relative to a query distribution, and a hand-built one would beg the question. We derive one query per case study from 1{,}716 documented production LLM deployments \citep{zenml2024llmops}, via a conservative, documented tag-to-axis taxonomy (\emph{cost\_optimization} binds cost; \emph{regulatory\_compliance} and regulated industries bind governance; \emph{human\_in\_the\_loop} binds reviewer burden; every deployment carries a quality floor). Throughput and energy are never bound from tags because no tag signals them unambiguously---a choice that can only \emph{understate} underdetermination. The resulting binding profile is the left panel of Figure~\ref{fig:teaser}: under this taxonomy, governance is a declared constraint in 55.6\% of deployments and reviewer burden in 43.8\%---the two axes with zero evidence anywhere. Because a tag declares a requirement rather than proving it binds, we also certify binding from Pareto structure where ground truth exists (Section~\ref{sec:validation}); for the corpus-wide-$\bbot$ axes the distinction is immaterial---they are unmeasured in every archetype regardless.
+
+\section{Finding 1: Most Real Right-Sizing Decisions Are Underdetermined}
+\label{sec:map}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.58\linewidth]{figures/fig_decidability_map.pdf}
+\caption{\textbf{The decidability map over 1{,}716 real deployment queries.} Each bar fixes an evidence regime (the axes a rule may read) and shows the fraction of queries underdetermined (red) versus decidable (green). Decidability improves only when an axis that actually binds enters the regime (cost, then latency) and \emph{plateaus at 8.9\%} from the third rung onward: adding throughput, energy, or anything else buys nothing, because the remaining queries bind axes the corpus does not measure at any rung. The plateau is the empirical signature of Proposition~\ref{prop:char}.}
+\label{fig:map}
+\end{figure}
+
+For each of the 1{,}716 queries and each regime in an inclusion ladder (accuracy only $\to$ +cost $\to$ +latency $\to$ +throughput $\to$ +energy $\to$ full), we compute the three-valued verdict of Section~\ref{sec:decidability} with $\kappa = \{H,M\}$, thresholds grounded at observed percentiles, and bootstrap CIs ($n{=}1000$, fixed seed). Figure~\ref{fig:map} is the result.
+
+\textbf{The headline.} Under the accuracy-only reading---what a leaderboard supports---\textbf{100\%} of real right-sizing queries are underdetermined. Granting the rule every axis the corpus measures lowers that only to \textbf{91.1\%} (1{,}563/1{,}716; 95\% CI [89.7, 92.4]). Decidability saturates at 8.9\% as soon as cost and latency are visible; the four remaining rungs are flat. The ceiling is attribution, not noise: \textbf{72.4\%} of \emph{all} queries (95\% CI [70.3, 74.5]) are blocked by at least one axis that is unmeasured corpus-wide, and 16.0\% [14.3, 17.8] are blocked \emph{only} by such axes---no enrichment of the present sources could ever decide them. The most frequent blockers are cost (1{,}289 queries---the objective itself is unknown for most candidate pools), governance (954), and reviewer burden (751). Concretely: for nine of ten decisions, the honest output of the entire public evidence base is not a ranking but an identified \emph{set} of configurations, any of which could be optimal depending on values nobody has measured. A tool that nonetheless emits a single recommendation is choosing arbitrarily among worlds the evidence cannot distinguish; Section~\ref{sec:validation} measures what that costs.
+
+\textbf{Robustness} (full ablations in Appendix~\ref{app:ablations}).
+The result is not a knob artifact. (i) \emph{Confidence policy:} on the structured grid battery, underdetermination stays $\ge 89.3\%$ across every filter setting; admitting measured evidence only drives it to 100\%. (ii) \emph{Taxonomy:} deleting any single tag-to-axis mapping leaves the headline at $\ge 83.2\%$. (iii) \emph{Query distribution:} a uniform prior yields \textbf{98.5\%} underdetermined; an adversarial prior built to nearly never bind governance or reviewer burden still yields \textbf{95.7\%}; a negative-control prior that demands only what the corpus measures collapses to 12.4\%---underdetermination is caused by deployments demanding unmeasured axes, not by the particular corpus. (iv) \emph{Grounding sharpens, not flatters:} a hand-built uniform grid gives 85.7\% versus 91.1\% on the deployment-derived prior. (v) \emph{Scale:} the 20-source corpus leaves the blind spot exactly intact (Section~\ref{sec:substrate}).
+
+\section{The Selective Right-Sizing Procedure}
+\label{sec:method}
+
+The map diagnoses; the procedure acts on the diagnosis. For each query it returns exactly one of:
+\begin{itemize}
+\item \textbf{Commit} the identified cheapest-sufficient configuration, when the query is decidable;
+\item \textbf{Abstain}, when underdetermined---returning the blocking axes \emph{and} an acquisition plan: the blocking axes ranked by $\VoI(a)/\mathrm{acqcost}(a)$, regret reduction per unit measurement cost;
+\item \textbf{Infeasible}, when no candidate is feasible in any completion.
+\end{itemize}
+$\VoI(a)$ is computed by the two-world construction of Section~\ref{sec:theory}: resolve axis $a$ favorably and unfavorably while holding every other pending axis optimistic, and take the minimax committed regret. By Corollary~\ref{cor:voi} this equals the irreducible regret of the regime that omits $a$; the implementation matches the closed form to $1.1 \times 10^{-16}$ (Figure~\ref{fig:anchors}, left). Acquisition costs (cheap: a price-sheet lookup; expensive: a compliance audit) are a documented assumption that affects only the \emph{ordering} of the plan, never the commit/abstain split (Appendix~\ref{app:acq}). Run blind over the 1{,}716-query prior, the procedure commits on the 8.9\% decidable slice, abstains on the rest, and concentrates its named measurements entirely on the axes the map found blocking (cost 82.5\%, reviewer burden 12.9\%, governance 4.7\%)---rediscovering the blind spot from the query side without being told.
+
+\textbf{Risk-tolerant commitment.}
+Strict decidability is the $\alpha{=}0$ extreme; for operation at a tolerated risk, a margin $m$ selected on a calibration split enforces $P(\text{committed config truly infeasible} \mid \text{commit}) \le \alpha$, validated on held-out measured ground truth in Section~\ref{sec:validation}. The shape mirrors selective classification \citep{geifman2017selective,jung2025trust}, with two differences: the guarantee is indexed by \emph{which axes carry evidence} rather than by sample size (Theorem~\ref{thm:floor}), and the abstention is informative rather than mute.
+
+\section{Finding 2: Deciding Blind Fails Measurably; Informed Refusal Pays}
+\label{sec:validation}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\linewidth]{figures/fig_hidden_violation.pdf}
+\caption{\textbf{Hiding one binding axis: violation rates per slice} (six of the 28 ground-truth slices shown, plus the medium-confidence function-calling slice; full table in Appendix~\ref{app:slices}). Visible-axis ranking (red) and imputation (orange) are \emph{identical} on every slice---filling in the missing value commits the same blind configuration---while the selective procedure (green) abstains and never violates. Pooled over all 28 high-confidence slices ($n{=}476$): 57.1\% vs.\ 0\%, slice-clustered 95\% CI of the gap [46.8, 67.6], McNemar 272/0, exact $p < 10^{-81}$; 23 of 28 slices are individually significant uncorrected, 15 of 28 after Holm correction.}
+\label{fig:hv}
+\end{figure}
+
+\subsection{Setup: mask a binding axis, score against the hidden truth}
+
+The map cannot by itself show that answering an underdetermined query is harmful---perhaps the arbitrary pick usually works out. We test this where ground truth exists. RouterBench supplies per-prompt measured quality and cost for 11 models on each of its benchmarks; restricting to one benchmark at a time makes costs comparable across candidates. The slice algebra, fixed once: \textbf{31 slices $\times$ 17 queries = 527 masked decisions}; 30 slices carry measured (high-confidence) ground truth (510); a hidden axis \emph{bites} on a slice when at least one blind-committing baseline actually violates the hidden truth, which happens on \textbf{28 of the 30} (476---the pooled validation set); the 2 non-biting slices are controls, and 1 medium-confidence function-calling slice (17) is corroboration only. On each slice we bind the query on axes with ground truth, \emph{hide one binding axis at the read level} (every rule receives an empty observation set for it, simulating exactly the structural missingness of Section~\ref{sec:map}), let each rule commit from the visible evidence, and score the commitment against the hidden measured truth. A commitment that violates the hidden constraint is a \emph{hidden violation}: the deployment ships and fails on an axis its decision rule never saw. Slice values are used only for scoring, never for tuning. Baselines span practice: \textbf{B1} accuracy-only ranking; \textbf{B2} \emph{observed-Pareto} (rank on visible axes, treat the missing one as satisfied)---the community's honest default; \textbf{B3} \emph{imputation} (fill the missing axis with the pool median, decide as B2); \textbf{B4} missing-as-fail (abstain whenever a bound axis is missing); \textbf{B5} an oracle seeing the hidden axis (the floor); \textbf{B6} a cost--quality frontier rule in the style of \citet{chen2023frugalgpt}.
+
+\subsection{Hidden violations: 57.1\% for deciding blind, zero for abstaining}
+
+Figure~\ref{fig:hv} and Table~\ref{tab:flagship} give the result. On every one of the 28 slices, B2, B3, and B6 commit on 100\% of queries and violate the hidden constraint on 5.9--100\% of them; pooled, \textbf{57.1\%} of their commitments are hidden violations (slice-clustered 95\% CI [46.8, 67.6]; we cluster because the 17 thresholds within a slice score the same model pool and are correlated). The strict selective rule abstains on every masked query and so cannot violate; the fair comparison is therefore at \emph{equal final coverage}: the end-to-end pipeline---abstain, measure the one axis the procedure names, commit---decides all 476 queries with \textbf{zero} violations (Section~\ref{sec:acq}), and the paired exact test against observed-Pareto gives 272 disagreements, all favoring the pipeline ($p = 2^{-272} < 10^{-81}$). Per slice, 23 of 28 are individually significant uncorrected and 15 of 28 survive Holm correction (Appendix~\ref{app:slices}); the pooled, clustered result carries the claim. Including the medium-confidence slice moves the gap to 0.582---corroborating, not load-bearing.
+
+Three readings of Table~\ref{tab:flagship} matter beyond the headline. First, \emph{median imputation is a no-op}: B3's violations are identical to B2's on every slice, because a constant fill says nothing about which configuration violates---``just fill it in'' merely hides the violation behind a number, as the partial-identification view predicts \citep{manski2003partial}. A \emph{learned} imputer is structurally blocked here too: on the never-measured axes there is no training signal anywhere in the corpus, and the fragmentation of Section~\ref{sec:substrate} removes the co-located cells a cross-axis regressor would train on (Section~\ref{sec:limitations}). Second, \emph{feasible configurations exist}: the oracle B5 commits everywhere with zero violations, so the baselines fail for lack of evidence, not for lack of options. Third, \emph{the bite is causal, not declared}: certifying binding from Pareto structure (an axis binds iff dropping its constraint changes the constrained minimum), violations track certified binding exactly---287 bind-and-bite, 257 non-binding-and-no-bite, zero off-diagonal---and on a control slice where cheap configurations happen to satisfy the hidden axis, no rule violates. Deciding blind fails precisely where the hidden axis truly binds, as Proposition~\ref{prop:char} says it should. One caveat the table makes visible: with only quality and cost carrying ground truth and one hidden, the three blind rules coincide by construction; their agreement is a property of this setting, not evidence of baseline diversity.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Pooled validation on the 28 high-confidence ground-truth slices} ($n{=}476$ masked decisions). HVR = fraction of a rule's commitments violating the hidden binding constraint. Gap CI: slice-clustered bootstrap (28 clusters); test: one-sided exact McNemar at equal final coverage. B2/B3/B6 coincide per-slice in this two-axis setting and share one row; B1 abstains here (the masked axis is the one it ranks on); B4 abstains by definition.}
+\label{tab:flagship}
+\footnotesize
+\begin{tabular}{lcccc}
+\toprule
+Rule & Cov. & HVR & Gap [95\% CI] & McNemar; $p$ \\
+\midrule
+B1 accuracy-only & 0.00 & 0.000 & --- & --- \\
+B2 Pareto $=$ B3 impute $=$ B6 frontier & 1.00 & 0.571 & 0.571 [0.468, 0.676] & 272/0; $< 10^{-81}$ \\
+B4 missing-as-fail & 0.00 & 0.000 & --- & --- \\
+B5 oracle (sees hidden axis) & 1.00 & 0.000 & --- & --- \\
+Selective, strict (ours) & 0.00 & \textbf{0.000} & --- & --- \\
+Selective + named measurement (ours) & 1.00 & \textbf{0.000} & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The refusal is informative: 527/527 versus 12.9\%}
+\label{sec:acq}
+
+Zero violations at zero coverage would be trivial (B4 achieves it mutely); the procedure's value is what its refusal \emph{returns}. For every abstention we simulate acting on it: measure the single axis the VoI ranking names, un-hide it, and re-run. Across all 527 masked decisions on the 31 slices (including the two controls), this converts the abstention into a commitment that is truly feasible \emph{and} truly cheapest in \textbf{527/527} cases (510/510 on the high-confidence slices). A uniformly random measurement succeeds 12.9\% of the time (95\% CI [10.3, 16.0])---almost exactly the $1/8$ chance of drawing the blocking axis---and never beats the VoI pick (McNemar 459/0). This is Corollary~\ref{cor:voi} at scale: the axis with maximal VoI is the one whose measurement resolves the decision. The positive branch is validated symmetrically: re-run \emph{unmasked}, the procedure commits 527 configurations, every one feasible and cheapest against ground truth; each abstains again when re-hidden.
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[t]{0.42\linewidth}
+\includegraphics[width=\linewidth]{figures/fig_voi_identity.pdf}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.42\linewidth}
+\includegraphics[width=\linewidth]{figures/fig_coverage_risk_gt.pdf}
+\end{minipage}
+\caption{\textbf{The two quantitative anchors.} \textbf{Left:} the implemented VoI coincides with the regret floor $\Delta = \delta\lambda/(\delta+\lambda)$ of Theorem~\ref{thm:floor} to machine precision ($1.1 \times 10^{-16}$). \textbf{Right:} coverage and feasibility risk vs.\ margin $m$ on held-out measured ground truth ($n{=}960$); the calibration transfers (4.7\% risk at 89.0\% coverage, $\alpha{=}0.05$).}
+\label{fig:anchors}
+\end{figure}
+
+\subsection{Risk-tolerant operation: the guarantee transfers to held-out truth}
+
+Strict decidability buys zero violations at zero coverage on masked slices; operations may prefer a tolerated risk. We evaluate the calibrated-margin variant against \emph{measured} ground truth: full-sample per-model quality and cost are the truth; the rule operates on a noisy 64-prompt subsample; the margin is chosen on a calibration half and applied to a disjoint test half (480/480). The calibration transfers (Figure~\ref{fig:anchors}, right): test feasibility risk \textbf{4.7\%} at \textbf{89.0\%} coverage for $\alpha{=}0.05$; 8.1\% at 92.7\% for $\alpha{=}0.10$. Two honest boundaries: a one-sided margin controls \emph{feasibility} risk only (a larger margin over-provisions, so strict-minimality violations \emph{rise} with it; a two-sided band controls the joint criterion only at 12.7\% coverage), and on a held-out prompt split the margin cuts realized violations from 36.6\% to 3.8\% (Appendix~\ref{app:prospective}).
+
+\section{Limitations}
+\label{sec:limitations}
+
+\textbf{Masking simulates missingness}: the validation hides axes we actually measured; a live study with naturally missing axes is the next step, and on the two never-measured axes our claims are about decidability only, since no ground truth exists to validate against---itself the finding. \textbf{Scope of the bite}: blind commitment fails where the hidden axis truly binds and cheap configurations trade it off; the no-bite control keeps the claim falsifiable. \textbf{Theory is anchored small}: Theorem~\ref{thm:floor} is a two-world family, not a general-instance bound; the empirical map computes verdicts directly from completions, independent of it. \textbf{The query prior is one corpus of written case studies}, and a declared constraint is not always binding: the 55.6\%/43.8\% figures are taxonomy outputs bounded by the deletion ablation and prior reconstructions; human-validated labels would tighten them. \textbf{Learned imputers} are structurally blocked on the never-measured axes but could in principle help on measured-but-masked ones---benchmarking them there is future work. \textbf{Acquisition costs} are assumptions ordering the plan; they never affect verdicts.
+
+\section{Conclusion}
+
+We measured whether \emph{the evidence determines the deployment decision}. For nine of ten decisions it does not; the determining axes are systematically unmeasured; deciding anyway ships hidden violations at scale while imputing changes nothing; and measuring the named axis turns refusal into a correct decision. Evidence sufficiency, not estimate quality, is the binding constraint.
+
+\subsubsection*{Reproducibility statement}
+All numbers in this paper are regenerated from frozen, versioned artifacts by seeded scripts: the substrate snapshot, the query prior, the decidability map, the masked-validation battery, the VoI identity check, and the guarantee calibration each write a JSON artifact from which the figures and tables are produced verbatim. The code (substrate, solver, validation harness), the frozen snapshot, and the full per-slice tables will be released; determinism is enforced by fixed seeds and tested in CI (79/79 tests at submission).
+
+\bibliography{references}
+\bibliographystyle{iclr2026_conference}
+
+\appendix
+\section{Proofs}
+\label{app:proofs}
+
+\subsection{Setting for Proposition~\ref{prop:char}}
+Fix a query $q=(\tau, c)$, a regime $R$, and the value-reading semantics: each axis of each candidate has a single true value; an in-regime cell reveals its value exactly; an off-regime or unmeasured cell is $\bbot$ and ranges over its admissible domain in a completion. $\cl(R)$ adds to $R$ every axis that is a fixed deterministic function of $R$-axes in the query's context. Assume (i) costs are non-negative with a unique constrained minimizer $x^*(q)$ in the true world, and (ii) every axis domain contains both a value satisfying and a value violating any threshold appearing in $c$ (non-degenerate domains).
+
+\paragraph{Proof of Proposition~\ref{prop:char}.}
+\emph{(i) Necessity.} Suppose some $a^* \in \bind(q)$ with $a^* \notin \cl(R)$. Since $a^*$ binds, relaxing its constraint changes the optimum: there exists $x' \neq x^*(q)$ with $\mathrm{cost}(x') < \mathrm{cost}(x^*(q))$ that satisfies every constraint of $c$ except possibly the one on $a^*$. Because $a^* \notin \cl(R)$, the cell $(x', a^*)$ is undetermined. Construct two completions that agree everywhere except on $(x', a^*)$: fix every other undetermined cell of every candidate cheaper than $x^*(q)$ at a constraint-violating value (possible by non-degeneracy), fix the remaining undetermined cells arbitrarily but identically, and set $(x', a^*)$ to a satisfying value in $e_1$ and a violating value in $e_2$. In $e_1$ the optimum is $x'$ (feasible and cheaper than $x^*(q)$; every cheaper rival is infeasible by construction); in $e_2$ it is $x^*(q)$. Two completions disagree, so $q$ is underdetermined.
+\emph{(ii) Sufficiency.} If every axis constrained by $c$ and the cost of every candidate are determined under $\cl(R)$, then no cell that enters any feasibility predicate or the objective is $\bbot$ or straddling; every completion assigns these cells the same (revealed) values, so the feasible set and the $\arg\min$ are identical across $\Comp(E)$, and by uniqueness of the minimizer $q$ is decidable.
+The bracket is tight in the stated sense: when the non-binding constrained cells and all costs are determined, the only undetermined cells that can flip the optimum are those on binding axes, so (i) and (ii) coincide. The conservative implementation certifies exactly the sufficient condition (a candidate is provably feasible only when none of its required fields is $\bbot$), which is why every reported underdetermination rate is a lower bound on the (i)-side and an exact count on the (ii)-side. \hfill$\square$
+
+\subsection{Proof of Theorem~\ref{thm:floor} and Corollary~\ref{cor:voi}}
+The family has two candidates and two worlds. In $W_{\mathrm{fav}}$, $x_{\mathrm{cheap}}$ satisfies the unmeasured binding constraint, so $x^* = x_{\mathrm{cheap}}$: committing $x_{\mathrm{safe}}$ pays cost overshoot $\delta$, committing $x_{\mathrm{cheap}}$ pays $0$. In $W_{\mathrm{unfav}}$, $x_{\mathrm{cheap}}$ violates, so $x^* = x_{\mathrm{safe}}$: committing $x_{\mathrm{cheap}}$ pays $\lambda$, committing $x_{\mathrm{safe}}$ pays $0$. A rule restricted to $R$ observes identical evidence in both worlds (the only differing cell is off-regime), so its (possibly randomized) action is the same: commit $x_{\mathrm{cheap}}$ with probability $p$. Worst-case expected regret is $\max\{p\lambda,\ (1-p)\delta\}$, minimized where the arms are equal: $p^* = \delta/(\delta+\lambda)$, giving value $\delta\lambda/(\delta+\lambda) = \Delta > 0$, attained by $p^*$. For the corollary: a rule that first measures $a^*$ learns the world and commits its optimum, paying $0$ in each; the reduction in minimax regret from the measurement is therefore exactly $\Delta(R)$. \hfill$\square$
+
+The implemented VoI computes precisely this minimax committed regret by resolving the queried axis both ways while holding other pending axes optimistic; Figure~\ref{fig:anchors} (left) verifies the match at $1.1 \times 10^{-16}$ over $\delta \in [0.05, 1.0]$, $\lambda = 1$, and the released test asserts it at relative tolerance $10^{-9}$ over four $(\delta,\lambda)$ pairs.
+
+\section{Acquisition-cost table}
+\label{app:acq}
+The plan ranks blocking axes by $\VoI(a)/\mathrm{acqcost}(a)$ with documented relative costs: cost $0.05$ (price-sheet arithmetic), latency/throughput $0.10$ (micro-benchmark), memory/hw $0.20$ (profiling), quality $0.30$ (run an eval suite), energy $0.40$ (instrumented power), reviewer burden $0.80$ (human study), governance $1.00$ (compliance audit). The table affects only the ordering of the returned plan; the commit/abstain verdict, the VoI values, and every result in Sections~\ref{sec:map}--\ref{sec:validation} are computed without it.
+
+\section{Per-slice validation detail}
+\label{app:slices}
+The battery auto-discovers every per-benchmark RouterBench slice from the substrate (11 models each; 17 queries per slice at constraint percentiles 10--90), yielding 31 slices of which 29 bite (a slice \emph{bites} when at least one blind-committing baseline violates the hidden truth). The two no-bite slices are reported as controls and excluded from pooling by construction. Per-slice hidden-violation rates for B2/B3/B6 range 0.059--1.000 and are identical across the three rules on every slice; selective is 0.000 on every slice; B5 (oracle) is 0.000 everywhere, confirming feasible configurations exist on every slice. \textbf{Per-slice significance, stated fully:} one-sided exact McNemar per slice gives $p \in [7.6 \times 10^{-6},\ 0.5]$; 23 of the 28 high-confidence biting slices are individually significant at $0.05$ uncorrected (median per-slice $p = 2.0 \times 10^{-3}$), and 15 of 28 survive Holm correction; the five non-significant slices are small Chinese-language benchmarks where only one or two of the 17 commitments violate. The pooled inference therefore uses the slice-clustered bootstrap (resampling the 28 slices; gap CI [0.468, 0.676]) rather than treating the 476 within-slice decisions as independent, since the 17 thresholds of a slice score the same 11-model pool and are mechanically correlated. The medium-confidence function-calling slice (binding quality and latency, hiding quality, 109 candidates, 17 queries) shows the same pattern (B2=B3=B6 HVR 0.882; selective 0). The latency-masking control on the same family does not bite: cheap function-calling configurations happen to be fast, so the hidden latency floor is co-satisfied and blind commitment is harmless there---the failure mode is specific to hidden axes that cheap configurations trade off, as the binding certification predicts.
+
+\paragraph{Binding certification.}
+For every masked query we certify whether the masked axis binds by the active-constraint test (an axis binds iff removing its constraint changes the constrained minimum cost over the ground-truth values). Across all slices plus the control: 287 queries where the axis binds and blind baselines violate, 257 where it does not bind and they do not, and zero off-diagonal cases. The mis-sizing of Table~\ref{tab:flagship} is therefore attributable to certified binding constraints, not to declared-but-slack ones.
+
+\section{Held-out-sample evaluation}
+\label{app:prospective}
+To test whether margin-based commitment generalizes beyond the sample it decides on, each slice's prompts are split into a decision sample and a disjoint held-out sample of the same workload (960 scored decisions; this is a prompt split, not a temporal split). Committing by blind cost-minimization violates the constraint on 36.6\% of held-out evaluations; the calibrated-margin selective rule reduces this to 14.4\% at $m{=}0.05$ and 3.8\% at $m{=}0.10$, monotonically in the margin. The min-sufficiency caveat of Section~\ref{sec:validation} applies here equally: the margin buys safety, not minimality.
+
+\section{Confidence-policy and taxonomy ablations}
+\label{app:ablations}
+\textbf{Confidence policy.} The $\kappa$ sweep is run on the structured grid battery (18 archetype-by-regime cells, thresholds re-grounded per policy). Under $\kappa = \{H\}$ (measured evidence only) underdetermination reaches 100\%: the decidable cases rest on leaderboard-tier (M) cost and latency values. Admitting low-confidence evidence ($\kappa = \{H,M,L\}$) adds no decidability: the additional observations land on axes already populated or already blocked. Underdetermination is never below 89.3\% across the sweep.
+\textbf{Taxonomy.} Dropping any single tag-to-axis mapping from the query derivation leaves the headline between 83.2\% and 91.1\%; the single largest influence is the human-review mapping ($-7.9$ points), consistent with reviewer burden being a declared constraint in 43.8\% of the documented deployments while unmeasured everywhere.
+\textbf{Prior reconstruction.} Uniform prior over constraint patterns: 98.5\% underdetermined (94.2\% attributable to a blind-spot axis). Adversarial governance-light prior (governance and reviewer burden each bound with probability 0.05): 95.7\% (84.5\% attributable). Benchmark-derived prior (constraints proportional to what the corpus measures): 12.4\% (0\% attributable)---the negative control that confirms the mechanism.
+
+\section{Corpus scale-out}
+\label{app:corpus}
+Scaling the ingestion pipeline from the 4-family measurement snapshot to 20 sources (adding safety, clinical, finance, multilingual, instruction-following, and long-context leaderboards) yields 5{,}164 observations over 655 configurations and 19 archetypes. The three blind-spot axes gain zero observations (per-axis miss rate 1.000 across all 20 sources); the corpus-wide cell miss rate is 0.728, and the measurable axes remain fragmented across sources. Safety and risk leaderboards measure model behavior (e.g., refusal robustness), not deployment governance (e.g., regulatory admissibility of a configuration in a jurisdiction); the gap between those two is exactly the blind spot. The substrate also ships an extraction layer for auto-ingesting paper-reported tables at low confidence with consensus-based promotion; by the confidence-policy ablation above, such evidence cannot alter any hard claim unless explicitly opted into, and no auto-extracted rows are present in the frozen snapshot used here.
+
+\end{document}

@@ -1,0 +1,9 @@
+# LaTeX build artifacts — regenerate with: pdflatex + bibtex + pdflatex x2
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.toc
+# The compiled PDF lives on the HF bucket (PrudentAI/Paper/), not in git
+paper.pdf
