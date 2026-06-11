@@ -194,8 +194,8 @@ The result is not a knob artifact. (i) \emph{Confidence policy:} on the structur
 \node[mid] (bel) at (3.1, 0) {\textbf{Beliefs}\\[-1pt] {\scriptsize $(\kappa,\ \varphi)$}};
 \node[mid] (ver) at (6.55, 0) {\textbf{Verdict}\\[-1pt] {\scriptsize over completions}};
 \node[good] (com) at (10.45, 1.55) {\textbf{Commit} $\hat{x}$ \ {\scriptsize provably cheapest}};
-\node[warn] (abs) at (10.45, 0)    {\textbf{Abstain} \ {\scriptsize plan: $\max \VoI(a)/\mathrm{acqcost}(a)$}};
-\node[bad]  (inf) at (10.45, -1.55) {\textbf{Infeasible}};
+\node[warn] (abs) at (10.45, -1.55)    {\textbf{Abstain} \ {\scriptsize plan: $\max \VoI(a)/\mathrm{acqcost}(a)$}};
+\node[bad]  (inf) at (10.45, 0) {\textbf{Infeasible}};
 
 \draw[arr] (q.east)   -- (bel.north west);
 \draw[arr] (sub.east) -- (bel.south west);
@@ -203,9 +203,9 @@ The result is not a knob artifact. (i) \emph{Confidence policy:} on the structur
 \draw[arr] (ver.east) -- (com.west);
 \draw[arr] (ver.east) -- (abs.west);
 \draw[arr] (ver.east) -- (inf.west);
-\draw[arr, dashed] (abs.south) -- (10.45, -2.6) -- node[lab, below=1pt]
+\draw[arr, dashed] (abs.south) -- (10.45, -2.45) -- node[lab, below=1pt]
   {measure the named axis $\rightarrow$ new observation $\rightarrow$ re-run}
-  (0, -2.6) -- (sub.south);
+  (0, -2.45) -- (sub.south);
 \end{tikzpicture}
 \caption{\textbf{The selective right-sizing procedure.} Beliefs are derived from the substrate at query time; the verdict quantifies over completions. Commitment requires a configuration provably feasible and cheapest in every completion; otherwise the abstention returns the blocking axes with a VoI-per-cost measurement plan, and the named measurement re-enters the substrate as a new observation---the loop that converts refusal into a correct decision (Section~\ref{sec:validation}).}
 \label{fig:method}
