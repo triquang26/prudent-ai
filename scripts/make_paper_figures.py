@@ -124,17 +124,25 @@ def fig_teaser() -> Path:
             label="constrained by real deployments (%)")
     ax1.bar([x + w / 2 for x in xs], miss, w, color="#c0392b",
             label="missing from the evidence (%)")
-    # highlight the needed-but-invisible axes
-    for i, a in enumerate(axes_order):
-        if MISS_RATE[a] == 1.0 and bind_freq.get(a, 0) / n > 0.05:
-            ax1.annotate("needed,\nnever\nmeasured", (i, 102),
-                         ha="center", va="bottom", fontsize=8.5,
-                         color="#7b241c", fontweight="bold")
+    # one bracket over the needed-but-invisible pair (governance, reviewer burden)
+    hi = [i for i, a in enumerate(axes_order)
+          if MISS_RATE[a] == 1.0 and bind_freq.get(a, 0) / n > 0.05]
+    if hi:
+        lo_x, hi_x = min(hi) - 0.25, max(hi) + 0.25
+        ax1.plot([lo_x, lo_x, hi_x, hi_x], [104, 107, 107, 104],
+                 lw=1.2, color="#7b241c")
+        # label to the LEFT of the bracket (clear of the legend box)
+        ax1.annotate("needed,\nnever measured",
+                     xy=(lo_x, 106), xytext=(lo_x - 1.55, 98),
+                     ha="center", va="center", fontsize=9,
+                     color="#7b241c", fontweight="bold",
+                     arrowprops={"arrowstyle": "-", "color": "#7b241c",
+                                 "lw": 1.0})
     ax1.set_xticks(xs)
-    ax1.set_xticklabels(labels, fontsize=9)
+    ax1.set_xticklabels(labels, fontsize=8.5, rotation=12)
     ax1.set_ylabel("% ")
-    ax1.set_ylim(0, 128)
-    ax1.legend(loc="upper right", framealpha=0.95, fontsize=8.6)
+    ax1.set_ylim(0, 132)
+    ax1.legend(loc="upper right", framealpha=0.95, fontsize=8.2)
     ax1.grid(axis="y", ls=":", color="0.88")
     ax1.set_axisbelow(True)
 
@@ -243,8 +251,10 @@ def fig_hidden_violation() -> Path:
     ax.set_xticklabels(labels, rotation=18, ha="right", fontsize=9)
     ax.set_ylabel("hidden violation rate (%)")
     ax.set_ylim(0, 112)
-    ax.legend(loc="upper left", framealpha=0.95, fontsize=8.6, ncol=3,
-              columnspacing=1.0, handlelength=1.4)
+    # legend above the axes so it never overlaps the tall bars
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncol=3,
+              framealpha=0.95, fontsize=8.6, columnspacing=1.0,
+              handlelength=1.4, borderaxespad=0.0)
     ax.grid(axis="y", ls=":", color="0.88")
     ax.set_axisbelow(True)
     fig.tight_layout()

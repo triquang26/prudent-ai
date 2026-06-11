@@ -147,7 +147,7 @@ The decidability measurement reads a frozen snapshot spanning four public evalua
 \textbf{A query prior from real deployments.}
 A decidability rate is meaningful only relative to a query distribution, and a hand-built one would beg the question. We derive one query per case study from 1{,}716 documented production LLM deployments \citep{zenml2024llmops}, via a conservative, documented tag-to-axis taxonomy (\emph{cost\_optimization} binds cost; \emph{regulatory\_compliance} and regulated industries bind governance; \emph{human\_in\_the\_loop} binds reviewer burden; every deployment carries a quality floor). Throughput and energy are never bound from tags because no tag signals them unambiguously---a choice that can only \emph{understate} underdetermination. The resulting binding profile is the left panel of Figure~\ref{fig:teaser}: under this taxonomy, governance is a declared constraint in 55.6\% of deployments and reviewer burden in 43.8\%---the two axes with zero evidence anywhere. Because a tag declares a requirement rather than proving it binds, we also certify binding from Pareto structure where ground truth exists (Section~\ref{sec:validation}); for the corpus-wide-$\bbot$ axes the distinction is immaterial---they are unmeasured in every archetype regardless.
 
-\section{Finding 1: Most Real Right-Sizing Decisions Are Underdetermined}
+\section{The Decidability Map: Most Deployment Decisions Are Underdetermined}
 \label{sec:map}
 
 \begin{figure}[t]
@@ -178,7 +178,7 @@ $\VoI(a)$ is computed by the two-world construction of Section~\ref{sec:theory}:
 \textbf{Risk-tolerant commitment.}
 Strict decidability is the $\alpha{=}0$ extreme; for operation at a tolerated risk, a margin $m$ selected on a calibration split enforces $P(\text{committed config truly infeasible} \mid \text{commit}) \le \alpha$, validated on held-out measured ground truth in Section~\ref{sec:validation}. The shape mirrors selective classification \citep{geifman2017selective,jung2025trust}, with two differences: the guarantee is indexed by \emph{which axes carry evidence} rather than by sample size (Theorem~\ref{thm:floor}), and the abstention is informative rather than mute.
 
-\section{Finding 2: Deciding Blind Fails Measurably; Informed Refusal Pays}
+\section{Validation: Deciding Blind Fails; Informed Refusal Pays}
 \label{sec:validation}
 
 \begin{figure}[t]
@@ -192,7 +192,7 @@ Strict decidability is the $\alpha{=}0$ extreme; for operation at a tolerated ri
 
 The map cannot by itself show that answering an underdetermined query is harmful---perhaps the arbitrary pick usually works out. We test this where ground truth exists. RouterBench supplies per-prompt measured quality and cost for 11 models on each of its benchmarks; restricting to one benchmark at a time makes costs comparable across candidates. The slice algebra, fixed once: \textbf{31 slices $\times$ 17 queries = 527 masked decisions}; 30 slices carry measured (high-confidence) ground truth (510); a hidden axis \emph{bites} on a slice when at least one blind-committing baseline actually violates the hidden truth, which happens on \textbf{28 of the 30} (476---the pooled validation set); the 2 non-biting slices are controls, and 1 medium-confidence function-calling slice (17) is corroboration only. On each slice we bind the query on axes with ground truth, \emph{hide one binding axis at the read level} (every rule receives an empty observation set for it, simulating exactly the structural missingness of Section~\ref{sec:map}), let each rule commit from the visible evidence, and score the commitment against the hidden measured truth. A commitment that violates the hidden constraint is a \emph{hidden violation}: the deployment ships and fails on an axis its decision rule never saw. Slice values are used only for scoring, never for tuning. Baselines span practice: \textbf{B1} accuracy-only ranking; \textbf{B2} \emph{observed-Pareto} (rank on visible axes, treat the missing one as satisfied)---the community's honest default; \textbf{B3} \emph{imputation} (fill the missing axis with the pool median, decide as B2); \textbf{B4} missing-as-fail (abstain whenever a bound axis is missing); \textbf{B5} an oracle seeing the hidden axis (the floor); \textbf{B6} a cost--quality frontier rule in the style of \citet{chen2023frugalgpt}.
 
-\subsection{Hidden violations: 57.1\% for deciding blind, zero for abstaining}
+\subsection{Hidden violations: deciding blind versus abstaining}
 
 Figure~\ref{fig:hv} and Table~\ref{tab:flagship} give the result. On every one of the 28 slices, B2, B3, and B6 commit on 100\% of queries and violate the hidden constraint on 5.9--100\% of them; pooled, \textbf{57.1\%} of their commitments are hidden violations (slice-clustered 95\% CI [46.8, 67.6]; we cluster because the 17 thresholds within a slice score the same model pool and are correlated). The strict selective rule abstains on every masked query and so cannot violate; the fair comparison is therefore at \emph{equal final coverage}: the end-to-end pipeline---abstain, measure the one axis the procedure names, commit---decides all 476 queries with \textbf{zero} violations (Section~\ref{sec:acq}), and the paired exact test against observed-Pareto gives 272 disagreements, all favoring the pipeline ($p = 2^{-272} < 10^{-81}$). Per slice, 23 of 28 are individually significant uncorrected and 15 of 28 survive Holm correction (Appendix~\ref{app:slices}); the pooled, clustered result carries the claim. Including the medium-confidence slice moves the gap to 0.582---corroborating, not load-bearing.
 
@@ -217,7 +217,7 @@ Selective + named measurement (ours) & 1.00 & \textbf{0.000} & --- & --- \\
 \end{tabular}
 \end{table}
 
-\subsection{The refusal is informative: 527/527 versus 12.9\%}
+\subsection{The refusal is informative: the named measurement resolves the decision}
 \label{sec:acq}
 
 Zero violations at zero coverage would be trivial (B4 achieves it mutely); the procedure's value is what its refusal \emph{returns}. For every abstention we simulate acting on it: measure the single axis the VoI ranking names, un-hide it, and re-run. Across all 527 masked decisions on the 31 slices (including the two controls), this converts the abstention into a commitment that is truly feasible \emph{and} truly cheapest in \textbf{527/527} cases (510/510 on the high-confidence slices). A uniformly random measurement succeeds 12.9\% of the time (95\% CI [10.3, 16.0])---almost exactly the $1/8$ chance of drawing the blocking axis---and never beats the VoI pick (McNemar 459/0). This is Corollary~\ref{cor:voi} at scale: the axis with maximal VoI is the one whose measurement resolves the decision. The positive branch is validated symmetrically: re-run \emph{unmasked}, the procedure commits 527 configurations, every one feasible and cheapest against ground truth; each abstains again when re-hidden.
