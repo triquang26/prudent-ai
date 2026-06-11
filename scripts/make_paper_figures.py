@@ -131,18 +131,17 @@ def fig_teaser() -> Path:
         lo_x, hi_x = min(hi) - 0.25, max(hi) + 0.25
         ax1.plot([lo_x, lo_x, hi_x, hi_x], [104, 107, 107, 104],
                  lw=1.2, color="#7b241c")
-        # label to the LEFT of the bracket (clear of the legend box)
-        ax1.annotate("needed,\nnever measured",
-                     xy=(lo_x, 106), xytext=(lo_x - 1.55, 98),
-                     ha="center", va="center", fontsize=9,
-                     color="#7b241c", fontweight="bold",
-                     arrowprops={"arrowstyle": "-", "color": "#7b241c",
-                                 "lw": 1.0})
+        # label directly above the bracket (legend now sits outside the axes)
+        ax1.text((lo_x + hi_x) / 2, 110, "needed, never measured",
+                 ha="center", va="bottom", fontsize=9,
+                 color="#7b241c", fontweight="bold")
     ax1.set_xticks(xs)
     ax1.set_xticklabels(labels, fontsize=8.5, rotation=12)
     ax1.set_ylabel("% ")
-    ax1.set_ylim(0, 132)
-    ax1.legend(loc="upper right", framealpha=0.95, fontsize=8.2)
+    ax1.set_ylim(0, 124)
+    # legend ABOVE the axes so nothing inside the plot can collide with it
+    ax1.legend(loc="lower left", bbox_to_anchor=(0.0, 1.02), ncol=2,
+               framealpha=0.95, fontsize=8.2, borderaxespad=0.0)
     ax1.grid(axis="y", ls=":", color="0.88")
     ax1.set_axisbelow(True)
 
@@ -154,7 +153,7 @@ def fig_teaser() -> Path:
         ax2.text(b.get_x() + b.get_width() / 2, v + 1.6, f"{v:.1f}%",
                  ha="center", fontsize=10.5, fontweight="bold",
                  color=b.get_facecolor())
-    ax2.set_ylabel("hidden constraint violations (%)")
+    ax2.set_ylabel("hidden violations (%)")
     ax2.set_ylim(0, 75)
     ax2.tick_params(axis="x", labelsize=9)
     ax2.grid(axis="y", ls=":", color="0.88")
