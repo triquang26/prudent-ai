@@ -92,3 +92,72 @@ descriptively at equal final coverage.
 Acknowledged as a limitation; the adversarial governance-light prior (95.7%)
 and uniform prior (98.5%) bound the re-weighting risk, and a second
 independent deployment corpus is the natural next step.
+
+---
+
+# Author response — round 2 (rating 6, confidence 4)
+
+## W1 / Q3 — declared vs binding, correlated overcounting
+
+We ran both variants the review implies, through the identical classification
+path. Deleting the governance AND reviewer-burden mappings **simultaneously**
+(tags and the industry rule — the correlated-overcounting test single deletions
+cannot perform) leaves **75.1%** of the 1,716 decisions underdetermined.
+Restricting governance to bind only on the 73 case studies whose text contains
+explicit candidate-excluding language (the keyword floor) leaves **87.3%**;
+both restrictions together leave **75.9%**. Under the most skeptical reading
+the taxonomy admits, three quarters of decisions remain underdetermined, and
+the modal blocker is **cost — a measurable axis** whose evidence is absent
+from most candidate pools. The 91.1% headline is an upper reading of a
+quantity whose skeptical floor is ~75%; both numbers are now in the paper
+(Section 5 robustness (vii); Appendix G).
+
+## W4 / Q2 — learned imputation
+
+We ran the strongest learned imputer the setting supports: leave-one-benchmark-
+out per-model mean quality, under a per-slice mask that keeps cross-benchmark
+cells visible to the imputer (the realistic reading). It cuts the pooled
+hidden-violation rate roughly in half — 53.3% to **30.6%** (clustered CI
+[12.9, 30.4]; paired McNemar 171/8 vs. the median fill) — while its coverage
+drops to 0.70. Learning helps but does not repair blind commitment: a third of
+its commitments still silently violate, **with no signal distinguishing
+which**, and on the never-measured axes there is no cross-context signal to
+learn from. The claim in the paper is now stated exactly this way.
+
+## W3 — wins by construction
+
+Agreed, and restructured: the two-blocker plan scoring (2.0 measurements /
+0.35 acquisition cost vs. 6.0 / 2.06 unplanned, necessity-ablated) is now the
+primary acquisition result in Section 7.3; the single-blocker 527/527 is
+explicitly labeled a near-tautological end-to-end sanity check; the identity
+figure is described as an implementation check, not evidence.
+
+## W5 — p-values and "prove"
+
+Done: the abstract states the theorem scope ("on a minimal two-world family");
+p-values are removed from the abstract, Figure 1, and Table 1; the slice-
+clustered CI is the primary inference throughout, with the McNemar count kept
+as a descriptive quantity.
+
+## W2 — framing discipline
+
+The abstract now scopes the harm sentence ("costly on the axes where ground
+truth lets us measure it"), and the introduction states explicitly that on the
+blind-spot axes this validation is impossible — which is the finding.
+
+## W6 / Q4 — prescription
+
+Appendix G now specifies units and publishers: a governance observation as an
+audit outcome per (configuration, jurisdiction); reviewer burden as
+human-minutes per output from a pilot; published to compliance registries
+(model-card / conformity-documentation style) rather than leaderboards. We
+agree this shifts part of the prescription deployer-side; the decision-layer
+contribution (rules that know what has not been measured and price the next
+measurement) is unchanged.
+
+## Q1 — thresholds
+
+Constraint values are grounded at corpus percentiles because deployment texts
+rarely state numeric targets; the verdict is bit-identical from p25 to p75 and
+under cost-tie tolerances to 20% (Appendix G), so no threshold choice carries
+the headline.
