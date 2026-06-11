@@ -116,7 +116,7 @@ def fig_teaser() -> Path:
     hv_selective = 100.0 * ph["selective_hidden_violation_rate"]
 
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(10.6, 3.15), gridspec_kw={"width_ratios": [1.85, 1.0]})
+        1, 2, figsize=(10.6, 2.8), gridspec_kw={"width_ratios": [1.85, 1.0]})
 
     xs = list(range(len(axes_order)))
     w = 0.38
