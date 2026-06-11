@@ -161,3 +161,75 @@ Constraint values are grounded at corpus percentiles because deployment texts
 rarely state numeric targets; the verdict is bit-identical from p25 to p75 and
 under cost-tie tolerances to 20% (Appendix G), so no threshold choice carries
 the headline.
+
+---
+
+# Author response — round 3 (rating 6, confidence 4)
+
+This round was almost entirely framing, and the reviewer was right: the paper
+claimed more, and more loudly, than its honest core supports. We have rebalanced
+rather than added apparatus. No published number changed; one new robustness
+experiment (whole-industry deletion) was run for W7.
+
+## W1 / W3 / W8 — headline reads like a constant; lead with the floor; statistics-saturated
+
+We agree and have rewritten the abstract, the introduction, and the §5 headline
+to **lead with scope** ("given this corpus and this requirement taxonomy") and to
+present the result as a **range whose load-bearing end is the ~75% floor** resting
+on cost — a measurable axis — rather than 91.1% as a number of record. The abstract
+now carries ~4 statistics (1,716; 91.1%; 75.1%; and the calibrated-margin pair),
+with secondary numbers moved to the body. The §5 headline opens "The number below
+is a property of *this* corpus read under *this* taxonomy, not a constant of
+deployment in general."
+
+## W4 — "provable value of refusal" oversells the theory
+
+Agreed. The theorem and the VoI identity are now described throughout as an
+**anchoring identity on a minimal two-world family, verified to machine precision,
+not a general guarantee**. Contribution 4 is retitled "a selective procedure whose
+refusal is *informative*," and foregrounds the two-blocker acquisition result (2.0
+vs 6.0 measurements) ahead of the identity.
+
+## W5 — some results near-tautological; foreground the two-blocker setting
+
+Already promoted in round 2 and now leads §7.3; the single-blocker 527/527 is
+labeled a near-tautological sanity check and its redundant re-statement was cut.
+
+## W6 — practical payoff modest; this is a diagnosis, not a deployed tool
+
+Agreed, and this is the round's most consequential change. The paper now positions
+the contribution explicitly as **"a diagnosis of the evaluation ecosystem and a
+decision discipline that prices the next measurement, rather than a deployed
+right-sizing tool"** (end of the contributions list, and the conclusion). The
+formal machinery is correspondingly de-emphasized relative to the empirical
+diagnosis.
+
+## W2 — the two empirical halves describe different axes (central evidentiary gap)
+
+We cannot close this with data — there is no governance ground truth, which is the
+finding — so we close it by **discipline**. A new paragraph in §7.2 ("What links
+the two halves") states that the connective tissue is the binding mechanism
+(Proposition 1), **not a shared number**: an unmeasured binding axis both renders a
+query underdetermined (the map, over all axes) and, where measurable, makes blind
+commitment violate (the validation). We therefore **explicitly disclaim** that the
+57.1% transfers to governance; it is the measurable-axis instantiation of a
+corpus-wide failure mode, and the governance claim stays one of decidability.
+
+## W7 — external validity of the prior; corpus selection bias not addressed
+
+We separate the concern into three layers and address what is addressable. (a)
+*Query re-weighting* — bounded by the uniform (98.5%) and adversarial (95.7%)
+priors. (b) *Composition* — a **new experiment** (E5) deletes whole industries
+from the corpus and re-runs the identical classifier: removing all five regulated
+industries (the governance drivers) leaves **88.8%** underdetermined; removing the
+dominant Tech majority leaves **96.8%**; the per-industry headline ranges 86–100%
+and every leave-one-industry-out complement stays ≥90%, with **cost the modal
+blocker in every partition**. So the headline is not an artifact of which
+deployments are indexed. (c) *Publication self-selection* — only companies that
+publish a case study appear — is addressed by neither (a) nor (b) and **cannot be**
+without a second independently-collected deployment corpus, which does not exist on
+hand (MedHELM, the one candidate, was access-gated and entered only as an evidence
+source). We now state (c) as **the key external-validity limitation**, noting the
+likely bias direction favors the finding (published deployers are plausibly *more*
+governance-aware). New robustness item §5(viii); detail in Appendix G; limitation
+in §8.
