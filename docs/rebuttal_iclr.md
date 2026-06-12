@@ -528,3 +528,85 @@ Two mappings do not carry the headline. (Appendix G, "Per-query blocker distribu
 
 No published number changed. Main text holds at exactly 9 pages (0 overfull, 0 undefined refs);
 all new content is appendix-only. 79/79 tests pass.
+
+---
+
+# Round 8 — author response (referee: borderline accept ≈6; soundness good, presentation fair, contribution good)
+
+We thank the reviewer for the sharpest read of the cycle — and for stating an explicit path to
+clear accept: (a) reframe the headline around the measured mismatch, (b) a proxy harm validation
+on a categorical/governance-like axis, (c) sharpen the declared-vs-binding sensitivity. We have
+done all three; (b) and (c) are new experiments.
+
+## (a) Headline reframed around the measured mismatch (W1 / Q1)
+
+We agree the 91.1% is partly the bookkeeping of a requirement-rate × zero-coverage product, and
+should not be presented as a standalone surprise. The abstract and intro now **lead with the
+mismatch as the mechanism** — "governance is a declared constraint in 55.6% of deployments,
+reviewer burden in 43.8%, and *no* public source measures either" — and present the 56.9–91.1%
+decidability range as **its consequence** ("the decidability rate is the bookkeeping of that
+mismatch"), not an independent finding. We keep the range (round-7 reviewers credited it as the
+honest move) but subordinate it to the mismatch, exactly the causal ordering requested.
+
+## (b) Proxy harm validation on a CATEGORICAL governance-like axis (W3 / Q2) — NEW (E11)
+
+The deepest reservation: the harm (57.1%) is validated only on continuous quality, while the
+headline is driven by governance, so the bridge was theory (Prop 1), not evidence. We now build a
+**hard categorical admissibility gate** over the 11 RouterBench models — open-weights/self-hostable
+= admissible under a data-sovereignty constraint, proprietary-API = inadmissible — mask it, and
+score blind commitment against the hidden gate (the admissibility truth is public model metadata, a
+clearly-labelled validation truth, never injected into the substrate).
+
+Blind commitment violates the categorical gate on **16.7%** of decisions, and — crucially — the
+bite is **graded by the quality floor**, mirroring the continuous result:
+
+| quality floor | p10–p30 | p60 | p70 | p80 | p90 |
+|---|---|---|---|---|---|
+| categorical HVR | 0% | 20.0% | 26.7% | 43.3% | **53.3%** |
+
+At lenient floors the cheapest model already self-hosts (0% violation); at a high floor the cheapest
+quality-feasible model is proprietary, so the self-hosting requirement is silently broken up to
+**53.3%** — in line with the 57.1% on quality. The oracle and selective+measurement pipeline commit
+with **zero** violations where an admissible config exists (229/270; McNemar 45/0). This is the
+**first harm validation on a hard categorical, governance-shaped constraint**. It remains a
+constructed proxy — real governance ground truth is precisely what no source provides — but it
+demonstrates the mechanism on a categorical axis, not merely asserts it.
+
+## (c) Declared-vs-binding sensitivity (W2 / Q1) — NEW (E12)
+
+We replace the binary declared⇒binding assumption with a sweep: keep each declared
+governance/reviewer-burden binding with probability p, reclassify all 1,716 queries, sweep p.
+
+| p | 0 | 0.25 | 0.5 | 0.75 | 1 |
+|---|---|---|---|---|---|
+| underdetermined | 75.1% | 80.4% | **84.3%** | 88.2% | 91.1% |
+| blind-spot share | 1.2% | 30.5% | 50.3% | 63.3% | 72.4% |
+
+The headline is monotone and anchors exactly (p=1 → 91.1%, p=0 → 75.1% joint-drop). The key point:
+**even if only half of declared constraints actually bind (p=0.5), 84.3% of decisions remain
+underdetermined** — the finding does not rest on the strong declared⇒binding assumption.
+
+## Remaining questions
+
+- **Q4 (why 56.9% is flat across bound widths):** made explicit in the main text (§5) — the surviving
+  core is dominated by the never-measured axes, which admit no bounded range at all, so tightening
+  the bound on the measurable axes cannot touch it.
+- **Q5 (what determines the operative percentile):** the operative quality percentile is not our free
+  parameter but the *deployment's declared floor*; the graded-bite sweep (10% at p10 to 93% at p90)
+  brackets every choice a deployment could make (Appendix G).
+- **W6 (defend minimum-sufficiency):** added (Appendix G) — cheapest-sufficient is the target *relative
+  to the stated requirement*; deliberate headroom is a separate, explicit requirement (raise the
+  constraint, then right-size to it). The 70×/127× overshoots are failures relative to the stated
+  constraint, not penalties on a deployer who chose headroom.
+- **W7 (fit / thin theory):** we keep the positioning explicit — a diagnosis of the evaluation
+  ecosystem, not a deployed tool; the two-world identity is a numerically verified anchor, not a
+  general guarantee.
+
+## Honest statement on the ceiling
+
+We do not claim these dissolve W1: where governance is declared and unmeasured, the decision is
+underdetermined nearly by construction, and the reframe makes the paper *honest* about that rather
+than hiding it. But the harm now bridges to a categorical axis (b), the headline degrades gracefully
+under declared⇒binding skepticism (c), and the framing leads with the mismatch (a) — the three moves
+the reviewer named. No published number changed; main text holds at exactly 9 pages (0 overfull, 0
+undefined refs); all new content is appendix-only. 79/79 tests pass.
