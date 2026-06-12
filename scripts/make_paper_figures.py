@@ -358,10 +358,64 @@ def fig_coverage_risk_gt() -> Path:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Figure (appendix) -- cost-versus-structural decomposition: what survives
+# granting cost as determined, on the published headline vs the skeptical floor.
+# Source: outputs/p3/blocker_decomposition.json (E6).
+# ---------------------------------------------------------------------------
+def fig_cost_decomposition() -> Path:
+    data = _load("outputs/p3/blocker_decomposition.json")
+
+    def segs(block: dict) -> tuple[float, float, float]:
+        n = block["n"]
+        cost_res = 100.0 * block["cost_only_resolved_by_granting_cost"] / n
+        struct = 100.0 * block["cost_determined_residual"]["structural_frac_of_all"]
+        other = 100.0 * block["cost_determined_residual"]["other_measurable_frac_of_all"]
+        return cost_res, struct, other
+
+    rows = [
+        ("Published\nheadline", segs(data["published_prior"])),
+        ("Skeptical\nfloor", segs(data["joint_drop_prior"])),
+    ]
+    # left-to-right: resolved by granting cost | structural residual | other residual
+    c_cost, c_struct, c_other = "#95a5a6", "#c0392b", "#e67e22"
+    labels = ["resolved by granting cost",
+              "residual: never-measured axis",
+              "residual: other measurable axis"]
+
+    fig, ax = plt.subplots(figsize=(7.0, 1.95))
+    ys = [1, 0]
+    for y, (_, (cr, st, ot)) in zip(ys, rows, strict=True):
+        left = 0.0
+        for val, col in ((cr, c_cost), (st, c_struct), (ot, c_other)):
+            ax.barh(y, val, left=left, height=0.55, color=col,
+                    edgecolor="white", linewidth=0.7)
+            if val >= 4.0:
+                ax.text(left + val / 2, y, f"{val:.1f}", ha="center", va="center",
+                        color="white", fontsize=9.5, fontweight="bold")
+            left += val
+        ax.text(left + 1.5, y, f"{left:.1f}% underdet.", ha="left", va="center",
+                fontsize=9.5)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([r[0] for r in rows], fontsize=10)
+    ax.set_xlim(0, 104)
+    ax.set_xlabel("% of 1716 real queries")
+    handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in (c_cost, c_struct, c_other)]
+    ax.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.32),
+              ncol=3, fontsize=8.6, framealpha=0.95, handlelength=1.2,
+              columnspacing=1.0)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    out = FIGDIR / "fig_cost_decomposition.pdf"
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
     outs = [fig_teaser(), fig_decidability_map(), fig_hidden_violation()]
     voi_path, voi_err = fig_voi_identity()
-    outs += [voi_path, fig_coverage_risk_gt()]
+    outs += [voi_path, fig_coverage_risk_gt(), fig_cost_decomposition()]
     print("Generated:")
     for p in outs:
         print(f"  {p.relative_to(ROOT)}  ({p.stat().st_size} bytes)")
