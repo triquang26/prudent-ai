@@ -145,7 +145,7 @@ def fig_teaser() -> Path:
     ax1.grid(axis="y", ls=":", color="0.88")
     ax1.set_axisbelow(True)
 
-    rules = ["leaderboard\n(observed-Pareto)", "impute the\nmissing axis", "selective\n(ours)"]
+    rules = ["leaderboard", "impute", "selective\n(ours)"]
     hv = [hv_baseline, hv_baseline, hv_selective]
     colors = ["#c0392b", "#e67e22", "#27ae60"]
     bars = ax2.bar(rules, hv, 0.62, color=colors)
@@ -155,7 +155,7 @@ def fig_teaser() -> Path:
                  color=b.get_facecolor())
     ax2.set_ylabel("hidden violations (%)")
     ax2.set_ylim(0, 75)
-    ax2.tick_params(axis="x", labelsize=9)
+    ax2.tick_params(axis="x", labelsize=9.5)
     ax2.grid(axis="y", ls=":", color="0.88")
     ax2.set_axisbelow(True)
 
@@ -379,9 +379,9 @@ def fig_cost_decomposition() -> Path:
     ]
     # left-to-right: resolved by granting cost | structural residual | other residual
     c_cost, c_struct, c_other = "#95a5a6", "#c0392b", "#e67e22"
-    labels = ["resolved by granting cost",
-              "residual: never-measured axis",
-              "residual: other measurable axis"]
+    labels = ["cost-resolvable",
+              "never-measured (structural)",
+              "other measurable"]
 
     fig, ax = plt.subplots(figsize=(7.0, 1.95))
     ys = [1, 0]
@@ -402,8 +402,8 @@ def fig_cost_decomposition() -> Path:
     ax.set_xlabel("% of 1716 real queries")
     handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in (c_cost, c_struct, c_other)]
     ax.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.32),
-              ncol=3, fontsize=8.6, framealpha=0.95, handlelength=1.2,
-              columnspacing=1.0)
+              ncol=3, fontsize=9.5, framealpha=0.95, handlelength=1.2,
+              columnspacing=1.2)
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     out = FIGDIR / "fig_cost_decomposition.pdf"
