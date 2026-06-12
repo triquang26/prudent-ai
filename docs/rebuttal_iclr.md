@@ -432,3 +432,99 @@ in tension — they are the same quantity read at different acquisition budgets.
   contribution is the reframing and the evidence, not a new method or theorem.
 - **W6 (prose density, Figure 1 legibility):** the main text is at exactly 9 pages; round-6
   additions are appendix-only, and we trimmed §5/§8 rather than add density.
+
+---
+
+# Round 7 — author response (referee: weak accept ≈6; Soundness Good, Contribution Good, Presentation Fair)
+
+We thank the reviewer for the most precise read of the cycle — including the round-6 appendix
+(the 56.9% bounded-completion figure). We agree with the assessment that the paper is strongest
+as a *diagnosis of the evaluation ecosystem*, and that its ceiling is the unfalsifiability of the
+governance axis (W1) and the harm being validated on a different axis than the headline (W2).
+Those are structural and we disclose them. The actionable asks we address below; two we close
+with new experiments, the rest with framing the reviewer is right to demand.
+
+## The one change that most affects how the paper reads (W2 / Q1): headline as a range, two conservatisms disentangled
+
+The reviewer is correct that a reader stopping at the abstract takes 91.1% as "at least this bad"
+when, across completion semantics, the any-reasonable-belief floor is **56.9%**. We have:
+
+- **Led the abstract, contributions, and conclusion with the range [56.9%, 91.1%]** — "from 56.9%
+  under any bounded belief about the unmeasured axes to 91.1% under the conservative full-domain
+  reading" — rather than the bare 91.1%.
+- **Disentangled the two senses of "conservative"** in a dedicated appendix paragraph: (i)
+  *witness-based flagging* (within a fixed completion semantics, we flag only when we can exhibit
+  a flipping completion → every rate a lower bound on flagging), and (ii) *choice of completion
+  semantics* (full-domain is the most adversarial; bounded-prior floors at 56.9%). 91.1% is the
+  witness-based bound *under* the full-domain semantics; 56.9% is the bound that survives *any*
+  bounded belief. We cite the pair, not one number.
+
+**Which single number?** We recommend the **range**, with 56.9% as the criterion-robust core
+(dominated by never-measured axes, which admit no bounded range) and 91.1% as the conservative
+certified headline. We resisted collapsing to one number precisely because the reviewer's point is
+that the spread *is* the content.
+
+## Q2 (chance-constrained Bayesian): the wall is the posterior, not the objective — NEW experiment (B8)
+
+The reviewer asks whether the Bayesian rule's 70× over-provisioning is the *expected-regret
+objective* or the *wide posterior*, and whether a chance constraint `P(violate) ≤ α` recovers
+min-sufficiency. We ran it (`run_chance_constrained.py`, identical posterior/mask/slices as B7):
+
+| α | coverage | HVR | min-suff | mean overshoot |
+|---|---|---|---|---|
+| 0.01 | 0% (abstains) | — | — | — |
+| 0.05 | 29% | 0% | **0%** | **127×** |
+| 0.10 | 42% | 0% | **0%** | 15× |
+| 0.20 | 52% | 16.5% | 63.5% | 9.4× |
+
+**No α achieves both low violations and min-sufficiency.** At tight α the constraint over-provisions
+even *more* than B7 (127× at α=0.05); the only α that recovers min-sufficiency (0.20) re-admits
+violations. The wall is the width of the posterior over the unmeasured axis — a partial-identification
+wall — not the objective. This is exactly what a *missing* (vs. imprecise) axis predicts, and it
+strengthens the never-impute argument. (Appendix G, "Chance-constrained variant.")
+
+## Q4 / W5 (do two coarse mappings dominate 72.4%?): no — NEW analysis (per-query blocker distribution)
+
+We report the per-query distribution of blocking axes over the 1,563 underdetermined queries
+(`run_blocker_distribution.py`). Mean blocker-set size **2.3** (multiplicity is the norm). Governance
+is present in 61.0% but the **sole** blocker in only **4.7%**; reviewer burden present 48.0%, sole
+**8.6%**. Cost is the modal blocker (present 82.5%). Only **17.5%** of underdetermined queries have a
+blocking set inside {governance, reviewer_burden} — i.e. would be resolved by deleting both mappings —
+and the other **75.1% of all queries** survive on a different blocker, reconciling exactly with the
+joint-drop floor; the never-measured-axis cross-check independently recovers the published **72.4%**.
+Two mappings do not carry the headline. (Appendix G, "Per-query blocker distribution.")
+
+## Closed in prose (the reviewer is right; arguments, not assertions)
+
+- **Q3 (direction of publication-self-selection bias):** we now give a *mechanism*. Teams that
+  publish case studies are disproportionately the better-instrumented ones (they ran the evals that
+  make a case study worth writing), so the published corpus *over*-represents well-measured
+  deployments; the unpublished tail is plausibly *less* measured → *more* underdetermined, not fewer.
+  Blind-spot axes are unmeasured regardless of publication. So the bias plausibly favors the finding.
+- **W3 (de-emphasize the near-definitional 57.1% vs 0%):** done. §7 now foregrounds the load-bearing
+  results — acquisition efficiency (2.0 vs 6.0 probes) and held-out risk control (4.7% at 89%
+  coverage) — and explicitly labels the McNemar 272/0 gap as near-definitional, not the contribution.
+- **W6 (contribution item-4 oversells the theory):** tightened to "a numerically verified two-world
+  identity … (a solver-precision check, not a general guarantee)," matching the in-text scoping.
+- **W8 (n-cascade hard to track):** added an experiment→n map table (Appendix G, Table 8).
+- **Q5 (noisy measurement):** acknowledged as a scope boundary — the possible-worlds machinery
+  extends (a noisy measurement *narrows*, not collapses, the completion set), but calibrating the
+  residual and a value-of-noisy-information is future work.
+- **Q6 (cheap configs that co-satisfy a hidden axis):** the ≈42.9% co-satisfaction (= 1 − 0.571)
+  shrinks realized harm, but it is luck the decider cannot see ex ante — the same blind rule loses
+  on the complementary 57.1% with no signal to tell them apart.
+- **W7 (operational value when the top blocker is one expensive governance measurement):** the
+  contribution there is decision discipline — certifying the decision is genuinely unidentified,
+  naming the audit, pricing it, and declining the confident-looking blind commitment imputation
+  would produce.
+
+## Acknowledged, not closable here
+
+- **W1 (governance unfalsifiable) / W2 (harm on a measurable axis):** structural and disclosed; the
+  proof is on cost/quality, the claim on governance is one of decidability via Proposition 1, not a
+  harm demonstration — we state this explicitly and do not claim the 57.1% transfers to governance.
+- **Fit / no new learned component:** accepted — a measurement-and-diagnosis paper for ICLR's
+  broadened scope; the imputer and Bayesian/chance-constrained rules are baselines, not contributions.
+
+No published number changed. Main text holds at exactly 9 pages (0 overfull, 0 undefined refs);
+all new content is appendix-only. 79/79 tests pass.
