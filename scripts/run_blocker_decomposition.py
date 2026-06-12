@@ -41,6 +41,7 @@ from prudent_ai.analysis.empirical_prior_map import (
 from prudent_ai.queries.query_prior import (
     ARCHETYPE_MAP,
     DEFAULT_TAU,
+    REGULATED_INDUSTRIES,
     TAG_TO_AXIS,
     UNIVERSAL_AXES,
     DerivedQuery,
@@ -64,6 +65,10 @@ AXES = ["quality", "latency_p95", "throughput", "cost",
 
 # axes dropped for the joint-drop (skeptical floor) prior
 _DROP_AXES = {"governance", "reviewer_burden"}
+# Q1: the fully governance-agnostic reading binds ONLY measurable axes -- drop
+# every never-measured axis (governance, reviewer_burden, memory_hw, energy,
+# throughput); whatever underdetermination remains is pure cost + co-location.
+E4_HITS = "outputs/p3/governance_bindingness.json"
 
 
 def _tags(row, field):
@@ -88,6 +93,59 @@ def derive_joint_drop(row: dict) -> DerivedQuery:
     return DerivedQuery(tau=tau, binding_axes=frozenset(axes),
                         title=(row.get("title") or "")[:80],
                         industry=(row.get("industry") or "").strip())
+
+
+def derive_measurable_only(row: dict, unmeasurable: frozenset[str]) -> DerivedQuery:
+    """Q1: bind ONLY measurable axes -- drop every never-measured axis from binding.
+
+    The fully governance-agnostic reading: underdetermination here is purely cost
+    absence + measurable co-location, with no never-measured axis able to bind.
+    """
+    app = _tags(row, "application_tags")
+    tech = _tags(row, "techniques_tags")
+    all_tags = set(app) | set(tech)
+    tau = DEFAULT_TAU
+    for t in app:
+        if t in ARCHETYPE_MAP:
+            tau = ARCHETYPE_MAP[t]
+            break
+    axes = set(UNIVERSAL_AXES)
+    for t in all_tags:
+        if t in TAG_TO_AXIS and TAG_TO_AXIS[t] not in unmeasurable:
+            axes.add(TAG_TO_AXIS[t])
+    # industry governance rule never fires (governance is unmeasurable)
+    return DerivedQuery(tau=tau, binding_axes=frozenset(axes),
+                        title=(row.get("title") or "")[:80],
+                        industry=(row.get("industry") or "").strip())
+
+
+def derive_strict_joint(row: dict, strict_keys: set[tuple[str, str]]) -> DerivedQuery:
+    """Q2: governance binds ONLY on the keyword-explicit cases AND reviewer_burden
+    dropped (the strict_joint variant of run_strict_binding.py)."""
+    app = _tags(row, "application_tags")
+    tech = _tags(row, "techniques_tags")
+    all_tags = set(app) | set(tech)
+    tau = DEFAULT_TAU
+    for t in app:
+        if t in ARCHETYPE_MAP:
+            tau = ARCHETYPE_MAP[t]
+            break
+    axes = set(UNIVERSAL_AXES)
+    industry = (row.get("industry") or "").strip()
+    key = ((row.get("company") or "").strip(), (row.get("title") or "").strip())
+    for t in all_tags:
+        if t not in TAG_TO_AXIS:
+            continue
+        ax = TAG_TO_AXIS[t]
+        if ax == "reviewer_burden":
+            continue
+        if ax == "governance" and key not in strict_keys:
+            continue
+        axes.add(ax)
+    if industry in REGULATED_INDUSTRIES and key in strict_keys:
+        axes.add("governance")
+    return DerivedQuery(tau=tau, binding_axes=frozenset(axes),
+                        title=(row.get("title") or "")[:80], industry=industry)
 
 
 def decompose(sub, prior: QueryPrior, th) -> dict:
@@ -162,19 +220,40 @@ def main() -> None:
     taus = sorted({d.tau for d in base_prior.derived})
     th = grounded_thresholds(sub, taus, AXES, KAPPA)
 
+    strict_keys: set[tuple[str, str]] = set()
+    try:
+        hits = json.load(open(E4_HITS, encoding="utf-8"))["hits"]
+        strict_keys = {((h.get("company") or "").strip(),
+                        (h.get("title") or "").strip()) for h in hits}
+    except FileNotFoundError:
+        pass
+
     published = decompose(sub, base_prior, th)
     joint = decompose(sub, QueryPrior(derived=[derive_joint_drop(r) for r in rows]), th)
+    # Q1: fully governance-agnostic (bind only measurable axes)
+    meas_only = decompose(
+        sub, QueryPrior(derived=[derive_measurable_only(r, UNMEASURABLE_AXES)
+                                 for r in rows]), th)
+    # Q2: strict_joint decomposition (governance keyword-restricted + reviewer dropped)
+    strict_joint = decompose(
+        sub, QueryPrior(derived=[derive_strict_joint(r, strict_keys)
+                                 for r in rows]), th)
 
     res = {
         "metadata": {"provenance": PROVENANCE, "db_path": DB_PATH,
                      "phi": PHI.value, "kappa": list(KAPPA), "regime": "full",
-                     "n_rows": len(rows),
+                     "n_rows": len(rows), "n_strict_keys": len(strict_keys),
                      "unmeasurable_axes": sorted(UNMEASURABLE_AXES),
                      "note": "cost is NOT in unmeasurable_axes; it is acquirable "
                              "(acq cost 0.05). cost-determined residual = fraction "
-                             "still underdetermined if cost were granted as known."},
+                             "still underdetermined if cost were granted as known. "
+                             "measurable_only_prior (Q1) binds NO never-measured axis; "
+                             "strict_joint_prior (Q2) restricts governance to keyword-"
+                             "explicit cases and drops reviewer_burden."},
         "published_prior": published,
         "joint_drop_prior": joint,
+        "measurable_only_prior": meas_only,
+        "strict_joint_prior": strict_joint,
     }
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / "blocker_decomposition.json").write_text(
@@ -216,6 +295,10 @@ def main() -> None:
           "blind-spot axis.", ""]
     md += block("Published (91.1% headline)", published)
     md += block("Joint-drop (75.1% skeptical floor)", joint)
+    md += block("Measurable-only [Q1: governance-agnostic, binds no never-measured axis]",
+                meas_only)
+    md += block("Strict-joint [Q2: governance keyword-restricted + reviewer dropped]",
+                strict_joint)
     (OUT_DIR / "blocker_decomposition.md").write_text("\n".join(md), encoding="utf-8")
     print("\n".join(md))
     print(f"\nWrote {OUT_DIR / 'blocker_decomposition.json'} and .md")

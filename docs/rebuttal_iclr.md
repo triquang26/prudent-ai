@@ -312,3 +312,59 @@ The abstract is rewritten into shorter sentences with far fewer inline parenthet
 (same length, one paragraph), and the headline **scoping** is now legible in the
 abstract and §5 without reconstruction from the appendix. Main text held at exactly
 9 pages, 0 overfull.
+
+---
+
+# Author response — round 5 (Weak Accept / Accept, lean accept)
+
+We thank the reviewer; the Strengths section already credits the round-4 work
+(Bayesian 70× over-provisioning, the ~75% floor cleanly separated from the headline,
+whole-industry deletion, the two-world VoI anchor). The residual weaknesses are
+honest limitations we disclose (proxy-axis harm validation; single corpus) or items
+already addressed (VoI = implementation check → "Correctness anchors"). We answer the
+three concrete questions with new analysis, all in appendices; **no published number
+changed, frozen substrate never mutated.**
+
+## Q1 — a fully governance-agnostic headline (cost + co-location only)
+
+Reported (new). A prior that binds **only measurable axes** — no governance, reviewer
+burden, memory/hw, energy, or throughput able to bind at all — still leaves **75.1%**
+of decisions underdetermined, by construction entirely cost and measurable
+co-location; granting cost on top still leaves **36.5%** from co-location alone. So
+even the most skeptical, fully-governance-agnostic reading keeps three quarters of
+decisions underdetermined. Stated in §5 and Appendix G (cost-vs-structural
+decomposition).
+
+## Q2 — structural decomposition × strict-binding (jointly)
+
+Reported (new). Running the cost-vs-structural decomposition on the **strict_joint**
+variant (governance restricted to the 73 keyword-explicit cases **and** reviewer
+burden dropped): 75.9% underdetermined, of which only **5.3%** is structural (that
+keyword-explicit governance) and the remainder is cost + co-location — consistent with
+Q1 and with the 87.3%/75.9% strict-binding figures. Appendix G.
+
+## Q3 — graded bite (beyond the binary no-bite control)
+
+New experiment (`run_graded_bite.py`, Appendix G + Figure 7). Per slice we score a
+continuous **trade-off strength** = Spearman correlation between a config's true cost
+and quality (positive ⇒ cheaper configs are lower-quality ⇒ committing the cheapest
+tends to violate). The blind-commit violation rate rises smoothly with it
+(across-slice Spearman **0.63**): weak tercile **29.4%** → mid 48.2% → strong
+**82.3%**. Complementarily, violation rate vs the quality-constraint percentile is
+monotone from **10%** (p10) to **93%** (p90). The pooled 57.1% is therefore a
+slice-average over a graded spectrum, with the no-bite control at the weak-trade-off
+end — not a binary cliff.
+
+## On the remaining weaknesses (we agree, and they are disclosed)
+
+- **Harm validated on a measurable proxy axis only** — true and necessary (no
+  governance ground truth exists; that is the finding). A live deployment study is
+  flagged as the natural next step. Q3 at least shows the proxy result is a graded,
+  mechanism-consistent phenomenon, not a cliff.
+- **Single corpus / publication self-selection** — the key external-validity
+  limitation, stated in §8; composition is stress-tested (whole-industry deletion) but
+  selection-into-corpus needs a second independently-collected corpus, which does not
+  exist on hand.
+- **Dense prose** — taken seriously, but the main text is at exactly 9 pages; the
+  round-5 additions are appendix-only, so main-text density is unchanged, and we did
+  not cut claims to loosen prose.

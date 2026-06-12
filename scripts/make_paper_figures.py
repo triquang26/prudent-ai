@@ -412,10 +412,58 @@ def fig_cost_decomposition() -> Path:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Figure (appendix) -- graded bite: the blind-commit violation rate is a smooth
+# function of how strongly cheap configs trade off the hidden axis (left) and of
+# the constraint tightness (right), not a binary bite / no-bite cliff.
+# Source: outputs/p5/graded_bite.json (Q3).
+# ---------------------------------------------------------------------------
+def fig_graded_bite() -> Path:
+    data = _load("outputs/p5/graded_bite.json")
+    sl = data["per_slice"]
+    xs = [s["tradeoff_strength"] for s in sl]
+    ys = [100.0 * s["hvr"] for s in sl]
+    corr = data["across_slice_spearman_tradeoff_vs_hvr"]
+    curve = data["violation_rate_by_constraint_percentile"]
+    pcts = sorted(int(p) for p in curve)
+    vr = [100.0 * curve[str(p)]["coverage_weighted_violation_rate"] for p in pcts]
+
+    fig, (axl, axr) = plt.subplots(1, 2, figsize=(7.2, 2.5))
+    axl.scatter(xs, ys, s=26, color="#c0392b", alpha=0.8, edgecolor="white",
+                linewidth=0.5)
+    # least-squares trend line
+    n = len(xs)
+    mx, my = sum(xs) / n, sum(ys) / n
+    b = (sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True))
+         / sum((x - mx) ** 2 for x in xs))
+    xline = [min(xs), max(xs)]
+    axl.plot(xline, [my + b * (x - mx) for x in xline], color="#2c3e50", lw=1.3, ls="--")
+    axl.text(0.04, 0.92, f"Spearman $={corr:.2f}$", transform=axl.transAxes,
+             fontsize=9, va="top")
+    axl.set_xlabel("trade-off strength  (cheap $\\rightarrow$ low quality)")
+    axl.set_ylabel("blind-commit violation %")
+    axl.set_ylim(-4, 104)
+    axl.grid(ls=":", color="0.88")
+    axl.set_axisbelow(True)
+
+    axr.plot(pcts, vr, marker="o", ms=4, lw=1.8, color="#c0392b")
+    axr.set_xlabel("quality-constraint percentile (tighter $\\rightarrow$)")
+    axr.set_ylabel("violation %")
+    axr.set_ylim(-4, 104)
+    axr.grid(ls=":", color="0.88")
+    axr.set_axisbelow(True)
+    fig.tight_layout()
+    out = FIGDIR / "fig_graded_bite.pdf"
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
     outs = [fig_teaser(), fig_decidability_map(), fig_hidden_violation()]
     voi_path, voi_err = fig_voi_identity()
-    outs += [voi_path, fig_coverage_risk_gt(), fig_cost_decomposition()]
+    outs += [voi_path, fig_coverage_risk_gt(), fig_cost_decomposition(),
+             fig_graded_bite()]
     print("Generated:")
     for p in outs:
         print(f"  {p.relative_to(ROOT)}  ({p.stat().st_size} bytes)")
