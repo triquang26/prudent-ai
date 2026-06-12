@@ -526,11 +526,160 @@ def fig_external_validity() -> Path:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Figure (appendix) -- fragmentation / co-location heatmap.
+# Axes x archetypes: fraction of candidates that have ANY measurement for each axis.
+# Source: outputs/p3/circularity_decomposition.json (fragmentation_colocation_matrix).
+# ---------------------------------------------------------------------------
+def fig_fragmentation_colocation() -> Path:
+    import numpy as np
+
+    data = _load("outputs/p3/circularity_decomposition.json")
+    coloc = data["fragmentation_colocation_matrix"]
+    taus = coloc["taus"]
+    axes = coloc["axes"]
+    matrix = coloc["matrix"]
+
+    # Build the 2-D array: rows = archetypes, cols = axes.
+    arr = np.array([[matrix[tau][ax] for ax in axes] for tau in taus], dtype=float)
+
+    # Human-readable labels.
+    ax_labels = [AXIS_LABEL.get(a, a) for a in axes]
+    tau_labels = [t.replace("-", "\n") for t in taus]
+
+    fig, ax = plt.subplots(figsize=(8.0, 2.4))
+    im = ax.imshow(arr, aspect="auto", cmap="Blues", vmin=0.0, vmax=1.0,
+                   interpolation="nearest")
+
+    # Annotate each cell.
+    for r in range(arr.shape[0]):
+        for c in range(arr.shape[1]):
+            val = arr[r, c]
+            text_col = "white" if val > 0.55 else "black"
+            ax.text(c, r, f"{val:.0%}", ha="center", va="center",
+                    fontsize=8.5, color=text_col, fontweight="bold")
+
+    ax.set_xticks(range(len(axes)))
+    ax.set_xticklabels(ax_labels, fontsize=9, rotation=15, ha="right")
+    ax.set_yticks(range(len(taus)))
+    ax.set_yticklabels(tau_labels, fontsize=9)
+    cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
+    cbar.set_label("fraction of candidates\nwith any measurement", fontsize=8)
+    cbar.ax.tick_params(labelsize=8)
+    fig.tight_layout()
+
+    # Save to both paper/figures and outputs/figures.
+    OUTDIR2 = ROOT / "outputs" / "figures"
+    OUTDIR2.mkdir(parents=True, exist_ok=True)
+    for stem in (FIGDIR, OUTDIR2):
+        for suffix in (".pdf", ".png"):
+            stem.mkdir(parents=True, exist_ok=True)
+            fig.savefig(stem / f"fig_fragmentation_colocation{suffix}",
+                        bbox_inches="tight", dpi=150)
+    plt.close(fig)
+    out = FIGDIR / "fig_fragmentation_colocation.pdf"
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Figure (appendix) -- (a)/(b)/(c) stacked bar of underdetermined decisions.
+# Source: outputs/p3/circularity_decomposition.json (decomposition.cause_summary).
+# ---------------------------------------------------------------------------
+def fig_circularity_decomposition() -> Path:
+    data = _load("outputs/p3/circularity_decomposition.json")
+    cs = data["decomposition"]["cause_summary"]
+    n_und = data["decomposition"]["n_underdetermined"]
+    n_all = data["decomposition"]["n"]
+
+    # Segments as % of all queries (same denominator as other figures).
+    # (a)-only: queries where ALL blocking axes are never-measured.
+    # (b)-present: queries with at least one measurable fragmented ⊥ axis.
+    #              These may overlap (a): we report non-overlapping stacks as:
+    #   bar 1: (a)-only  |  (b)-only-or-mixed  |  (c)-present
+    # We partition: a_only | b_present (exclusive of a_only) | c_present.
+    # (b) and (c) can overlap; keep it simple: a_only, b_no_a, c_no_a_no_b.
+    # From the data: a_only + b_present should sum to n_und (since (c)=0 here
+    # but we handle the general case).
+    a_pct = 100.0 * cs["a_only_frac_of_all"]
+    # Queries with (b) or (c) but NOT (a)-only.
+    b_pct = 100.0 * cs["b_present_frac_of_all"]
+    c_pct = 100.0 * cs["c_present_frac_of_all"]
+    # For a non-overlapping stack: a_only | b_present∩NOT a_only | c_present∩NOT b∩NOT a.
+    # Simple partition: (a)-only + (b)-present + (c not already counted) + determined.
+    # Decided = 1 - underdetermined.
+    und_pct = 100.0 * data["decomposition"]["frac_underdetermined"]
+    decided_pct = 100.0 - und_pct
+
+    # Build non-overlapping stacks within the underdetermined segment:
+    # a_only | b_but_not_a | c_but_not_b_not_a | (remaining underdetermined if any)
+    n_b_only = cs["b_present_n"]           # (b)-present count
+    n_c_only = cs["c_present_n"]           # (c)-present count
+    n_bc_any = cs["bc_any_n"]              # (b)+(c)-any count
+    n_a_only = cs["a_only_n"]
+
+    # Non-overlapping split (mutually exclusive, exhaustive within underdetermined):
+    #   a_only, b_no_a (b present, not a-only), c_no_a_no_b, other_underdetermined
+    # Since a_only + bc_any = n_und:
+    n_b_no_a = n_b_only  # b and c can overlap; approximate b as dominant
+    n_c_no_b_no_a = max(0, n_c_only - n_b_only)
+    n_other_und = max(0, n_und - n_a_only - n_bc_any)
+
+    segs_n = [n_a_only, n_b_no_a, n_c_no_b_no_a, n_other_und]
+    segs_pct = [100.0 * s / n_all for s in segs_n]
+    colors = ["#e74c3c", "#f39c12", "#27ae60", "#95a5a6"]
+    seg_labels = [
+        "(a) never-measured ⊥",
+        "(b) co-location gap",
+        "(c) interval straddle",
+        "other underdetermined",
+    ]
+
+    fig, ax = plt.subplots(figsize=(5.8, 2.0))
+    left = 0.0
+    for val, col, lbl in zip(segs_pct, colors, seg_labels, strict=True):
+        if val < 0.01:
+            left += val
+            continue
+        ax.barh(0, val, left=left, height=0.55, color=col,
+                edgecolor="white", linewidth=0.7, label=lbl)
+        if val >= 3.5:
+            ax.text(left + val / 2, 0, f"{val:.1f}%", ha="center", va="center",
+                    color="white", fontsize=9, fontweight="bold")
+        left += val
+    # Decided bar on top (y=1).
+    ax.barh(1, decided_pct, height=0.55, color="#2ecc71",
+            edgecolor="white", linewidth=0.7, label="decided")
+    ax.text(decided_pct / 2, 1, f"{decided_pct:.1f}%", ha="center", va="center",
+            color="white", fontsize=9, fontweight="bold")
+
+    ax.set_xlim(0, 106)
+    ax.set_xlabel("% of 1716 real queries")
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(["underdetermined\n(by cause)", "decidable"], fontsize=9)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.04), ncol=3,
+              fontsize=8.0, framealpha=0.95, handlelength=1.2,
+              columnspacing=1.0, borderaxespad=0.0)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+
+    OUTDIR2 = ROOT / "outputs" / "figures"
+    OUTDIR2.mkdir(parents=True, exist_ok=True)
+    for stem in (FIGDIR, OUTDIR2):
+        for suffix in (".pdf", ".png"):
+            stem.mkdir(parents=True, exist_ok=True)
+            fig.savefig(stem / f"fig_circularity_decomposition{suffix}",
+                        bbox_inches="tight", dpi=150)
+    plt.close(fig)
+    out = FIGDIR / "fig_circularity_decomposition.pdf"
+    return out
+
+
 def main() -> None:
     outs = [fig_teaser(), fig_decidability_map(), fig_hidden_violation()]
     voi_path, voi_err = fig_voi_identity()
     outs += [voi_path, fig_coverage_risk_gt(), fig_cost_decomposition(),
              fig_graded_bite(), fig_external_validity()]
+    outs += [fig_fragmentation_colocation(), fig_circularity_decomposition()]
     print("Generated:")
     for p in outs:
         print(f"  {p.relative_to(ROOT)}  ({p.stat().st_size} bytes)")

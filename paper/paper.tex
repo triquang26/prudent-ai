@@ -340,7 +340,14 @@ To test whether margin-based commitment generalizes beyond the sample it decides
 \label{app:ablations}
 \textbf{Confidence policy.} The $\kappa$ sweep is run on the structured grid battery (18 archetype-by-regime cells, thresholds re-grounded per policy). Under $\kappa = \{H\}$ (measured evidence only) underdetermination reaches 100\%: the decidable cases rest on leaderboard-tier (M) cost and latency values. Admitting low-confidence evidence ($\kappa = \{H,M,L\}$) adds no decidability: the additional observations land on axes already populated or already blocked. Underdetermination is never below 89.3\% across the sweep.
 \textbf{Taxonomy.} Dropping any single tag-to-axis mapping from the query derivation leaves the headline between 83.2\% and 91.1\%; the single largest influence is the human-review mapping ($-7.9$ points), consistent with reviewer burden being a declared constraint in 43.8\% of the documented deployments while unmeasured everywhere.
-\textbf{Prior reconstruction.} Uniform prior over constraint patterns: 98.5\% underdetermined (94.2\% attributable to a blind-spot axis). Adversarial governance-light prior (governance and reviewer burden each bound with probability 0.05): 95.7\% (84.5\% attributable). Benchmark-derived prior (constraints proportional to what the corpus measures): 12.4\% (0\% attributable)---the negative control that confirms the mechanism.
+\textbf{Prior reconstruction.} Uniform prior over constraint patterns: 98.5\% underdetermined (94.2\% attributable to a blind-spot axis). Adversarial governance-light prior (governance and reviewer burden each bound with probability 0.05): 95.7\% (84.5\% attributable). Benchmark-derived prior (constraints proportional to what the corpus measures): 12.4\% (0\% attributable)---the negative control that confirms the mechanism. \textbf{Anti-circularity.} One might worry that underdetermination is tautological: a system that demands axes nobody measures will trivially be underdetermined. The (a)/(b)/(c) decomposition of the 1{,}563 underdetermined decisions refutes this. Type-(a) failures---axes structurally absent from every source (governance, reviewer burden, memory/hw)---account for only \textbf{17.5\%} of underdetermined decisions. The remaining \textbf{82.5\%} are type-(b) \emph{co-location failures}: a measurable axis (cost, latency, quality) has evidence somewhere in the corpus but not for the specific configuration that blocks the query. These are not structural absences; measuring the blocking configuration would resolve them. The system is not simply demanding axes that nobody measures; it is exposing where the evidence that \emph{does} exist fails to co-locate with the configurations that matter.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig_circularity_decomposition.pdf}
+\caption{\textbf{Anti-circularity: 82.5\% of underdetermined decisions are co-location failures, not structural absences.} Each underdetermined decision is attributed to its primary cause: type-(a) a never-measured axis (structural absence, 17.5\%), type-(b) a measurable axis with no evidence for the blocking configuration (co-location failure, 82.5\%), type-(c) an interval straddling the threshold (epistemic uncertainty, 0\%). The finding refutes the circularity concern: the negative-control prior (12.4\% underdetermined) shows the system resolves easily when only measured axes bind; underdetermination arises from measurement gaps, not from demanding the unmeasurable.}
+\label{fig:circularity}
+\end{figure}
 
 \section{Corpus scale-out}
 \label{app:corpus}
@@ -380,10 +387,14 @@ One might suspect the $70\times$ overshoot is an artifact of the expected-regret
 The 72.4\% blind-spot share could in principle be concentrated in the two coarsest taxonomy mappings (governance, reviewer burden). It is not. Reading the complete blocking set of each of the 1{,}563 underdetermined queries, the mean blocker-set size is \textbf{2.3} (multiplicity is the norm: 360 queries blocked by one axis, 519 by two, 495 by three, 189 by four or five). Cost is the modal blocker---present in \textbf{82.5\%} of underdetermined queries and the \emph{sole} blocker in 9.7\%---while governance is present in 61.0\% but sole in only \textbf{4.7\%}, and reviewer burden present in 48.0\% but sole in \textbf{8.6\%}. Only \textbf{17.5\%} of underdetermined queries have a blocking set contained in $\{$governance, reviewer burden$\}$ (the queries that deleting both mappings could resolve); the other \textbf{75.1\% of all queries} survive on a different blocker---reconciling exactly with the joint-drop floor---and the independent never-measured-axis cross-check recovers the published \textbf{72.4\%}. Two coarse mappings therefore do not carry the headline; the blind spot is distributed across axes, with cost the most frequent contributor.
 
 \paragraph{Proxy harm validation on a categorical governance-like axis.}
-The pooled 57.1\% harm is on the \emph{continuous} quality axis, whereas the headline is driven by governance---a \emph{categorical} admissibility gate. To bridge the gap we construct such a gate over the eleven RouterBench models: open-weights / self-hostable models (the six \texttt{meta-*}, \texttt{mistralai-*}, \texttt{wizardlm-*}, \texttt{zero-one-ai-*}) are \emph{admissible} under a data-sovereignty governance constraint (``data may not leave a self-hosted boundary''); the five proprietary-API models (\texttt{claude-*}, \texttt{gpt-*}) are not. Admissibility here is a \emph{verifiable licensing fact}, not an invention: Mistral/Mixtral ship under Apache-2.0, Llama-2/Code-Llama/WizardLM under the Llama 2 Community License, Yi-34B under Apache-2.0---all self-hostable; Claude and GPT release no weights and run only on the provider's servers. It is a clearly-labelled \emph{validation} ground truth---never written to the substrate---exactly as RouterBench quality is the hidden truth in the masked-quality battery. We bind \emph{quality $\ge$ percentile} \emph{and} \emph{self-hostable}, mask the gate at the read level, let each blind rule commit on visible quality and cost, and score against the hidden gate (a hidden violation $=$ committing a proprietary model under a self-hosting requirement). Over 270 query instances (30 slices $\times$ 9 quality floors) blind commitment (B2/B3/B6, identical) violates the categorical gate on \textbf{16.7\%} of decisions, and the bite is \emph{graded by the quality floor} exactly as for the continuous axis: $0\%$ at the p10--p30 floors (the cheapest quality-feasible model already self-hosts), rising through $20.0\%$ (p60), $26.7\%$ (p70), $43.3\%$ (p80) to \textbf{53.3\%} at p90---where a high quality floor forces a proprietary model and the self-hosting requirement is silently broken, in line with the 57.1\% on quality. An admissible config exists on $229/270$ instances, where the oracle and the selective+measurement pipeline commit with \emph{zero} violations (McNemar $45/0$); the remaining $41$ are genuinely infeasible (no self-hostable model clears the floor), where even the oracle abstains. This is the first harm validation on a hard categorical, governance-shaped constraint. The constraint and its admissibility set are real (data sovereignty is a documented enterprise requirement, and self-hostability is fixed by each model's license); what we supply is the decision to test \emph{this} governance constraint, since no source pairs configurations with audited governance outcomes.
+The pooled 57.1\% harm is on the \emph{continuous} quality axis, whereas the headline is driven by governance---a \emph{categorical} admissibility gate. To bridge the gap we construct such a gate over the eleven RouterBench models: open-weights / self-hostable models (the six \texttt{meta-*}, \texttt{mistralai-*}, \texttt{wizardlm-*}, \texttt{zero-one-ai-*}) are \emph{admissible} under a data-sovereignty governance constraint (``data may not leave a self-hosted boundary''); the five proprietary-API models (\texttt{claude-*}, \texttt{gpt-*}) are not. Admissibility here is a \emph{verifiable licensing fact}, not an invention: Mistral/Mixtral ship under Apache-2.0, Llama-2/Code-Llama/WizardLM under the Llama 2 Community License, Yi-34B under Apache-2.0---all self-hostable; Claude and GPT release no weights and run only on the provider's servers. It is a clearly-labelled \emph{validation} ground truth---never written to the substrate---exactly as RouterBench quality is the hidden truth in the masked-quality battery. We bind \emph{quality $\ge$ percentile} \emph{and} \emph{self-hostable}, mask the gate at the read level, let each blind rule commit on visible quality and cost, and score against the hidden gate (a hidden violation $=$ committing a proprietary model under a self-hosting requirement). Over 270 query instances (30 slices $\times$ 9 quality floors) blind commitment (B2/B3/B6, identical) violates the categorical gate on \textbf{16.7\%} of decisions (G1, self-hostability / data-sovereignty), and the bite is \emph{graded by the quality floor} exactly as for the continuous axis: $0\%$ at the p10--p30 floors (the cheapest quality-feasible model already self-hosts), rising through $20.0\%$ (p60), $26.7\%$ (p70), $43.3\%$ (p80) to \textbf{53.3\%} at p90---where a high quality floor forces a proprietary model and the self-hosting requirement is silently broken, in line with the 57.1\% on quality. An admissible config exists on $229/270$ instances, where the oracle and the selective+measurement pipeline commit with \emph{zero} violations (McNemar $45/0$); the remaining $41$ are genuinely infeasible (no self-hostable model clears the floor), where even the oracle abstains.
 
-\paragraph{Declared-versus-binding sensitivity (binding probability $p$).}
+\emph{Multi-gate robustness.} To rule out a single-gate artifact, we repeat the battery under two further independently-defined categorical gates over the same 150-instance pool: G2 (EU data-residency / GDPR: open-weights and GPT qualify; Claude models do not, lacking a documented Anthropic EU data centre as of the corpus date) yields HVR $= \mathbf{8.0\%}$; G3 (commercial fine-tuning rights: Apache-2.0 models only, i.e.\ Mistral-7B and Mixtral-8x7B) yields HVR $= \mathbf{45.3\%}$, the higher rate reflecting only two admissible models. Blind-commit harm holds across all three gates (min HVR $= 8.0\%$), ruling out the single-gate artifact concern. This is the first harm validation on hard categorical, governance-shaped constraints. The constraint and its admissibility set are real (data sovereignty is a documented enterprise requirement, and self-hostability is fixed by each model's license); what we supply is the decision to test \emph{this} governance constraint, since no source pairs configurations with audited governance outcomes.
+
+\paragraph{Declared-versus-binding sensitivity (binding probability $p$) and measured anchors.}
 On the axes that drive the headline we assume a declared constraint binds at the optimum, which is unverifiable where the axis is unmeasured. We replace the binary assumption with a sensitivity: keep each declared governance / reviewer-burden binding (tag-derived and the regulated-industry rule) with probability $p$, reclassify all 1{,}716 queries, and sweep $p$. The headline is monotone in $p$: \textbf{75.1\%} ($p{=}0$, reproducing the joint-drop floor), $80.4\%$ ($p{=}0.25$), \textbf{84.3\%} ($p{=}0.5$), $88.2\%$ ($p{=}0.75$), \textbf{91.1\%} ($p{=}1$, reproducing the published headline); the blind-spot-attributable share moves $1.2\% \to 30.5\% \to 50.3\% \to 63.3\% \to 72.4\%$ in step. The finding therefore does not rest on the strong declared-implies-binding assumption: even if only half of declared governance/reviewer constraints actually bind, five-sixths of decisions remain underdetermined.
+
+Two external anchors bracket the plausible $p$ range. From \emph{LLM-ensemble annotation} (Qwen3-VL-8B-Instruct $\times$ 3 prompt variants, majority vote) over the 954 governance-tagged ZenML case studies, we estimate the declared$\to$binding rate at $\hat{p} = 7.97\%$ (95\% CI: 6.3\%--9.6\%; Fleiss $\kappa = 0.23$, fair agreement). From the \emph{US Federal AI Inventory} (OMB 2025, $n{=}1{,}290$ GenAI use cases), the fraction carrying at least one governance-binding indicator (high-impact rights/safety system, authority-to-operate required, or personal data involved) is $\hat{p}_{\text{OMB}} = 34.5\%$ (445/1{,}290). Together these yield a data-grounded range: at $p = 0.08$ the headline is $75.5\%$; at $p = 0.35$ it is $\approx82\%$---both within the published $75.1\%$--$91.1\%$ sensitivity envelope, and both well above the three-quarters floor. The $p$-sweep is retained as a sensitivity analysis; the measured anchors provide grounded reference points within it.
 
 \paragraph{On minimum-sufficiency as the target.}
 We score against the \emph{cheapest sufficient} configuration, and the Bayesian and chance-constrained rules' $70\times$/$127\times$ overshoots are failures \emph{relative to the stated constraint}. A risk-averse deployer who deliberately over-provisions (headroom, future load, vendor consolidation) is not in conflict with this: deliberate headroom is a \emph{different, explicit} requirement, expressed by raising the stated constraint (a higher quality floor, a latency margin), after which right-sizing targets the cheapest configuration sufficient \emph{for that} requirement. What the framework flags as a failure is over-provisioning that is \emph{not} a stated requirement but an artifact of being unable to identify the sufficient configuration---paying $70\times$ because the evidence cannot tell you which cheaper option suffices, not because you chose headroom. Minimum-sufficiency relative to the true requirement is thus the right target by construction; the over-provisioning we penalize is the one no deployer asked for. (Relatedly, the operative quality percentile in the masked-quality battery is not our free parameter but the \emph{deployment's declared floor}; the graded-bite sweep, $10\%$ at p10 to $93\%$ at p90, brackets every choice a deployment could make.)
@@ -482,5 +493,129 @@ Calibrated-margin guarantee (Sec.~\ref{sec:validation}) & 480/480 split & held-o
 \bottomrule
 \end{tabular}
 \end{table}
+
+
+\section{Measured Declared$\to$Binding Rate (Experiments A1--A3)}
+\label{app:binding_rate}
+
+These three experiments provide external anchors for the declared$\to$binding probability $p$ used in the sensitivity sweep of Appendix~\ref{app:reviewer}.
+
+\subsection*{A1 — LLM-Ensemble Annotation}
+We ran LLM annotation over $n{=}954$ governance-tagged ZenML case studies using Qwen3-VL-8B-Instruct $\times$ 3 prompt variants (majority vote); the smaller Qwen2.5-0.5B model was also evaluated but proved degenerate (all 954 cases labelled UNDETERMINED) and is excluded from the primary estimate.
+Labels are BINDING / NON\_BINDING / UNDETERMINED.
+The primary 8B-model estimate: $\hat{p} = 7.97\%$ (76/954 BINDING; 95\% CI: 6.3\%--9.6\%; Fleiss $\kappa = 0.226$ across the 3 prompt variants, fair agreement).
+Labels are LLM-derived, not human gold; as a floor check, the recall against 73 keyword-explicit anchor cases with confirmed candidate-excluding language is 17.8\% (13/73)---consistent with the keyword screen being a conservative lower bound on true BINDING cases.
+The measured $\hat{p} = 7.97\%$ maps to the sensitivity sweep at $p \approx 0.08$, giving a headline of $75.5\%$ (Appendix~\ref{app:reviewer}), well within the $[75.1\%, 91.1\%]$ envelope.
+
+\subsection*{A2 — OMB Anchor (US Federal AI Inventory 2025)}
+The US Federal AI Use Case Inventory 2025 (OMB, public domain) contains 3{,}611 total rows, of which 1{,}290 are GenAI/LLM use cases.
+We define a use case as governance-binding if it carries at least one of three self-reported governance-binding indicators: high-impact rights/safety designation (\texttt{is\_high\_impact}), authority-to-operate required (\texttt{have\_ato}), or personal data involved (\texttt{has\_pii}).
+Under this definition, $\hat{p}_{\text{OMB}} = 34.5\%$ (445/1{,}290).
+By field: ATO required 25.4\% (328/1{,}290), PII involved 9.2\% (118/1{,}290), high-impact 8.8\% (114/1{,}290); fields overlap.
+The dominant driver is authority-to-operate.
+This anchor maps to $p \approx 0.35$, giving a headline of $\approx 82\%$ (Appendix~\ref{app:reviewer}).
+
+\subsection*{A3 — Measured-Label Headline Variants}
+Using the per-case LLM annotations from A1 to replace the tag-based declared$\to$binding assumption: governance and reviewer-burden axes bind only when the annotation is BINDING (strict reading) or BINDING/UNDETERMINED (conservative reading), with unmatched titles treated as UNDETERMINED.
+Strict reading: $75.2\%$ underdetermined (1{,}291/1{,}716), blind-spot-attributable 2.9\%.
+Conservative reading: $89.2\%$ underdetermined (1{,}530/1{,}716), blind-spot-attributable 60.8\%.
+Both land within the existing $p$-sweep envelope $[75.1\%, 91.1\%]$, confirming that the sensitivity analysis captures the empirically-measured range.
+The strict reading is close to the $p{=}0$ (joint-drop) floor, as expected---only the cases with explicit BINDING labels fire---while the conservative reading, which retains UNDETERMINED cases, approaches the $p{=}1$ headline.
+
+\section{Multi-Gate Governance Harm (Experiment B)}
+\label{app:multigate}
+
+\emph{This section provides the gate-by-gate breakdown supporting the multi-gate summary in Appendix~\ref{app:reviewer}.}
+
+We evaluate blind-commit harm under three independent categorical governance gates over 30 RouterBench benchmark slices (150 query instances each, 5 quality-floor percentiles $\times$ 30 benchmarks).
+All three gates are grounded in verifiable licensing and regulatory facts, not invented requirements.
+
+\subsection*{Gate definitions and admissible sets}
+\textbf{G1 — self-hostable / data-sovereignty.}
+Open-weights models admissible (6/11): Code-Llama-34B, Llama-2-70B, Mistral-7B, Mixtral-8x7B, WizardLM-13B, Yi-34B (Apache-2.0 or Llama~2 Community License, all self-hostable).
+Proprietary-API models inadmissible (5/11): Claude Instant v1, Claude v1, Claude v2, GPT-3.5-Turbo, GPT-4 (no weights released; run only on provider servers).
+
+\textbf{G2 — EU data-residency / GDPR.}
+Admissible (8/11): all open-weights plus GPT-3.5-Turbo and GPT-4 (OpenAI EU Enterprise data-residency available since 2023).
+Inadmissible (3/11): Claude models (no Anthropic EU data centre documented as of the corpus date).
+
+\textbf{G3 — commercial fine-tuning rights (Apache-2.0 only).}
+Admissible (2/11): Mistral-7B, Mixtral-8x7B (Apache-2.0).
+Inadmissible (9/11): all others (Llama~2 Community License restricts commercial fine-tuning at scale; proprietary APIs do not permit fine-tuning of base weights; Yi-34B Apache-2.0 but WizardLM-13B and Code-Llama have separate terms).
+
+\subsection*{Results}
+B2 (observed-Pareto) hidden-violation rates: G1 $= 16.7\%$ (25/150); G2 $= 8.0\%$ (12/150); G3 $= 45.3\%$ (68/150).
+Selective+measurement achieves 0 violations on all three gates (127/150, 150/150, 102/150 decisions resolved respectively; the remainder are genuinely infeasible).
+$\min(\text{HVR}) = 8.0\% > 0$ across all gates: blind-commit harm holds regardless of which governance gate is operative.
+The G3 rate is higher because only 2 of 11 models are admissible, so a high-quality floor more frequently forces an inadmissible model.
+The G2 rate is lower (8 of 11 admissible), but non-zero: even a permissive gate is silently violated.
+No gate requires any governance observation to be in the substrate; the admissibility set is determined by the deployment requirement, not by substrate measurements---illustrating precisely the scenario in which the substrate is $\bbot$ on governance and blind commitment cannot detect the violation.
+
+\section{(a)/(b)/(c) Decomposition of Underdetermination (Experiment C)}
+\label{app:circularity_detail}
+
+\emph{This section provides the full per-axis breakdown supporting the anti-circularity claim in Appendix~\ref{app:ablations}.}
+
+We classify each of the 1{,}563 underdetermined decisions by the primary cause of its $\bbot$ cells.
+Three cause types are defined:
+
+\begin{itemize}
+  \item \textbf{(a) Never-measured $\bbot$}: the blocking axis is in the set of axes for which the substrate contains zero observations for any configuration (governance, reviewer burden, energy, memory/hw, throughput in general-QA and function-calling contexts). These are structural absences.
+  \item \textbf{(b) Measurable-axis fragmented $\bbot$}: the axis has evidence somewhere in the corpus but not for the specific candidate that blocks the query (co-location failure). Cost, latency, and quality fall here when their cells are $\bbot$ for a particular configuration.
+  \item \textbf{(c) Interval straddle}: the axis has observations but the aggregated belief interval spans the query threshold (genuine epistemic uncertainty, not missing data).
+\end{itemize}
+
+\subsection*{Counts}
+Type-(a) only: \textbf{274 queries (17.5\%)} of the 1{,}563 underdetermined.
+Type-(b) present: \textbf{1{,}289 queries (82.5\%)}.
+Type-(c) present: \textbf{0 queries (0\%)} in the point-estimate regime ($\varphi{=}$point).
+
+\subsection*{Per-axis tally}
+Among causes: cost is type-(b) for all 1{,}289 of its appearances (pure co-location failure); governance is type-(a) for all 954 appearances; reviewer burden is type-(a) for all 751; latency is type-(b) for 557; quality is type-(b) for 70; memory/hw is type-(a) for 20.
+
+\subsection*{Interpretation}
+The 82.5\% type-(b) share refutes the circularity concern directly: the system is \emph{not} simply demanding axes that were never measured by anyone.
+Cost is the most common blocker (present in 82.5\% of underdetermined decisions) and is entirely a co-location failure---measuring the blocking candidate's cost would resolve it.
+The structural-absence share (17.5\%, type-(a) only) represents the queries whose blocking axis has no evidence anywhere in the corpus; for these, no amount of re-evaluating existing configurations helps.
+As stated in Appendix~\ref{app:ablations}: ``82.5\% of underdetermined decisions arise from co-location failures, not structural data absences. The classifier is not simply demanding axes that were never measured.''
+
+\section{Real Config$\leftrightarrow$Governance Audit Data (Experiment D)}
+\label{app:audit_data}
+
+\textbf{Finding: no public dataset was found pairing specific AI model configurations with audited governance verdicts.}
+
+We searched systematically for any public data source that records a (model/configuration, governance outcome) pair at the configuration level (i.e., approved/denied/compliant/non-compliant for a named model version, weight checkpoint, or fine-tune).
+Four major governance regimes were examined.
+
+\subsection*{FedRAMP}
+FedRAMP authorizes cloud \emph{services} (e.g., ``Azure OpenAI Service''), not individual model weights or configurations.
+The Marketplace records vendor name, service name, and impact level; it does not record model version, architecture, or quantization.
+The GSA ``20x'' AI prioritization initiative (August 2025) accelerates service-level authorizations but does not change the granularity.
+Individual LLM configurations are not independently authorized, and there is no record of such authorization in the Marketplace.
+
+\subsection*{NIST AI RMF}
+The AI RMF is a voluntary framework producing no certification database and no public registry of assessed systems.
+Organizations conduct private assessments; results are internal or proprietary.
+The Generative AI Profile (2024 draft) defines risk categories but produces no assessments of named systems.
+
+\subsection*{EU AI Act (Article 71)}
+The EU database for high-risk AI systems is legally mandated to be operational before 2 August 2026 but is not yet live as of the corpus date.
+When operational, it will record provider name, system name, intended purpose, and CE marking status.
+It will \emph{not} contain model weights, version hashes, architecture configurations, or fine-tune identifiers.
+Conformity assessment is self-declared for most high-risk categories; third-party notified-body assessment applies only to biometric ID and critical-infrastructure safety components.
+Assessment results are not mandated to be published at the technical-configuration level.
+
+\subsection*{FDA 510(k)}
+The FDA has cleared 1{,}451+ AI/ML devices (295 in 2025).
+Cleared devices are hardware-bundled software, not standalone LLM configurations; there is no ``denied'' column in the database; and architecture descriptions in submissions are inconsistent and not extractable as a structured dataset.
+Post-market changes are managed via Predetermined Change Control Plans, meaning a cleared device's underlying model can be updated without a new 510(k)---so the authorization unit is the device, not the configuration.
+
+\subsection*{Structural conclusion}
+The absence of config-level governance audit data is not a gap to be filled by collecting more data.
+\textbf{Governance regimes were designed for versioned software products, not checkpoint-based foundation models.}
+The concept of ``a governance verdict on this specific fine-tune'' does not map onto any current regulatory workflow: authorization boundaries are cloud services (FedRAMP), use-case descriptions (OMB inventory), or bundled hardware/software devices (FDA).
+Denial decisions are either confidential or not captured in any structured registry.
+As stated in the experiment conclusion: ``The absence of config-level governance audit data is structural: governance regimes were designed for versioned software products, not checkpoint-based foundation models.
+This structural gap is precisely the condition under which selective abstention becomes necessary.''
 
 \end{document}

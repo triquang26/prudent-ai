@@ -648,3 +648,42 @@ energy instrumentation is free open-source software (Zeus/NVML). Plan invariance
 
 No published number changed; frozen substrate read-only (md5-verified); main text exactly 9 pages
 (0 overfull, 0 undefined); 79/79 tests pass.
+
+---
+
+## Round 10 — Structural critique: declared→binding, multi-gate harm, anti-circularity
+
+**Critique summary:** Three structural reservations: (1) the declared→binding probability p is assumed, not measured; (2) harm is validated on a single self-hostability gate that may not represent the governance harm space; (3) the 91.1% underdetermination figure is potentially tautological (the classifier may simply demand axes nobody measures, making the result circular by construction).
+
+**Response:**
+
+**Problem 1 — Measured declared→binding rate (A1–A3).**
+We replace the assumed p with two independent empirical anchors.
+
+*A1: LLM-ensemble annotation* of all 954 governance-tagged cases (Qwen3-VL-8B-Instruct × 3 prompt variants, BINDING/NON_BINDING/UNDETERMINED rubric, few-shot anchored on 72 keyword-explicit cases): p̂ = 7.97% (95% CI: 6.3%–9.6%; Fleiss κ = 0.226, fair agreement). Labels are LLM-derived and explicitly presented as a scalable measurement, not human gold.
+
+*A2: OMB structured-field anchor* (non-LLM): among 1,290 GenAI cases in the US Federal AI Inventory 2025, 34.5% carry at least one self-reported binding indicator (is_high_impact=High-impact ∨ have_ato=Yes ∨ has_pii=Yes), with ATO the dominant driver (25.4%).
+
+*A3: Measured headline*: strict (BINDING-only labels) → 75.2% underdetermined; conservative (BINDING+UNDETERMINED) → 89.2%. Both land inside the existing p-sweep envelope [75.1%, 91.1%], turning the sensitivity analysis into a data-grounded range. The paper now cites p̂ = 7.97% and p̂_OMB = 34.5% as the headline qualifiers.
+
+**Problem 2 — Multi-gate governance harm (Experiment B).**
+We extend E11 from a single self-hostability gate to three independent categorical governance gates:
+- G1 (self-hostable/data-sovereignty): 6/11 admissible, B2 HVR = 16.7% (exact E11 replication)
+- G2 (EU data-residency/GDPR, 2024): 8/11 admissible (excl. Claude models with no documented EU region), B2 HVR = 8.0%
+- G3 (commercial fine-tuning rights, Apache-2.0 only): 2/11 admissible, B2 HVR = 45.3%
+
+min(HVR) = 8.0% > 0 across all three gates. The selective rule (B5) achieves 0 violations in every gate when governance is measured. Blind-commit harm is not an artifact of the single-gate choice — it is robust to the gate definition.
+
+**Problem 3 — Anti-circularity decomposition (Experiment C).**
+We classify all 1,563 underdetermined decisions by cause using the `belief.is_bottom` seam (distinguishes ⊥ from interval straddle):
+- (a) never-measured ⊥ (axis ∈ UNMEASURABLE_AXES — by construction): 274 decisions (17.5%)
+- (b) measurable-axis fragmented ⊥ (cost/latency/quality is ⊥ for the specific blocking configuration, though measured elsewhere in the substrate — co-location failure): 1,289 decisions (82.5%)
+- (c) interval straddle (axis present but uncertain): 0 in point-estimate regime
+
+**82.5% of underdetermined decisions are non-tautological.** The classifier is not simply demanding axes that nobody measures — it is demanding measurements that exist in principle (cost, latency, quality are all published benchmarks) but are absent for the *specific* deployment configuration. This fragmentation/co-location failure is a real empirical property of how benchmark coverage is distributed across configs, not a design artifact.
+
+Combined with the existing negative-control (random prior → 12.4% underdetermined) and the fragmentation evidence ("no configuration carries quality ∧ cost ∧ energy"), the circularity critique is empirically refuted: the 91.1% headline is driven by real co-location gaps, not definitional circularity.
+
+**Experiment D (supplementary):** No public dataset pairing specific model configurations with audited governance verdicts was found across FedRAMP, NIST AI RMF, EU AI Act, and FDA SaMD databases. This absence is structural: governance regimes authorize systems/services, not model-weight checkpoints. The structural gap is itself empirical support for the paper's central claim.
+
+**Paper changes:** §5 adds a signposted anti-circularity paragraph with the (a)/(b)/(c) decomposition figure; §7 extends the governance harm result to all three gates; the binding-rate paragraph now cites both measured anchors (p̂ = 7.97%, p̂_OMB = 34.5%). Main text remains at exactly 9 pages; appendix adds sections covering A1–A3, B, C, and D methodology.
