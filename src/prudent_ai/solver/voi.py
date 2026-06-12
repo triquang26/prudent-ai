@@ -53,15 +53,27 @@ DEFAULT_LAMBDA = 1.0
 # scale. Cheap axes are benchmarkable; the hard-to-observe A_h axes cost a human
 # audit / study and are deliberately expensive.
 # ---------------------------------------------------------------------------
+# Relative acquisition costs, grounded in published real-world figures (cited in
+# Appendix; affects only plan ORDERING, never the commit/abstain verdict):
+#   cost      ~free: read a token price sheet.
+#   latency/throughput/memory: a few GPU-hours of micro-benchmarking
+#     (A100 $0.60-$4.09/hr, H100 $1.49-$6.98/hr) -> single-digit to tens of $.
+#   energy:   measured by FREE open-source software (Zeus/NVML/RAPL) piggybacking
+#     on the same GPU-time as the micro-benchmarks -> NOT a costly axis (corrected
+#     from an earlier 0.4; real energy instrumentation is essentially free).
+#   quality:  run an eval suite (HELM per-model $85-$11k) -> the costliest compute axis.
+#   reviewer_burden: sustained expert human review ($40+/hr, hundreds-thousands per batch).
+#   governance: a SOC 2 Type II ($20k-$80k) or HIPAA assessment ($100k-$500k+) audit
+#     -> the most expensive axis by 1-3 orders of magnitude.
 ACQUISITION_COST: dict[str, float] = {
-    "quality": 0.3,          # run an eval suite
-    "latency_p95": 0.1,      # micro-benchmark
-    "throughput": 0.1,       # micro-benchmark
-    "cost": 0.05,            # arithmetic from token price
-    "energy": 0.4,           # instrumented power measurement (ML.ENERGY-style)
+    "cost": 0.05,            # arithmetic from a token price sheet (~free)
+    "latency_p95": 0.1,      # micro-benchmark (GPU-hours)
+    "throughput": 0.1,       # micro-benchmark (GPU-hours)
+    "energy": 0.15,          # free software (Zeus/NVML) on the same GPU-time
     "memory_hw": 0.2,        # profiling
-    "governance": 1.0,       # legal / compliance audit (A_h)
-    "reviewer_burden": 0.8,  # human study (A_h)
+    "quality": 0.3,          # run an eval suite (HELM per-model $85-$11k)
+    "reviewer_burden": 0.8,  # sustained expert human review (A_h)
+    "governance": 1.0,       # SOC 2 / HIPAA compliance audit (A_h), most expensive
 }
 _DEFAULT_ACQ_COST = 0.5
 
