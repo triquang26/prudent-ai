@@ -368,3 +368,67 @@ end — not a binary cliff.
 - **Dense prose** — taken seriously, but the main text is at exactly 9 pages; the
   round-5 additions are appendix-only, so main-text density is unchanged, and we did
   not cut claims to loosen prose.
+
+---
+
+# Author response — round 6 (6/10, lean accept; Soundness Good, Presentation Fair)
+
+We thank the reviewer for the most penetrating review of the cycle. It raised one new,
+correct critique (criterion-dependence of the headline), one fair gap (infeasible verdict),
+and an excellent question (Q4) that exposes a strength. **No published number changed; frozen
+substrate read-only via the immutable interface.**
+
+## W1 / Q1 — the headline is criterion-dependent (completion semantics)
+
+Agreed, and we ran the requested sensitivity (E10, new). The criterion completes each ⊥ cell
+over its **entire** domain — the conservative, lower-bound-certified, but adversarial reading.
+Confining ⊥ cells on the **measurable** axes (quality, cost, latency) to their observed corpus
+range instead — a bounded-prior reading, queries and thresholds unchanged, under interval
+semantics — lowers the headline from **91.1%** to **56.9%**, and this is **robust to the bound
+width** (point p50, [p40,p60], [p25,p75], [p10,p90] all give 56.9%). So roughly a third of the
+full figure is the adversarial-completion tail on the measurable axes; the **56.9%** that
+survives any bounded belief is the criterion-robust core, of which **47.3 points** are blocked
+by a never-measured axis — which admits **no** bounded range at all, there being no evidence to
+bound it with. We now frame 91.1% as the conservative certified headline and **56.9% as its
+any-reasonable-belief floor**, and report the sweep in Appendix G with a one-clause pointer in
+§5. This is the honest separation the reviewer asked for: it is less flattering than 91.1% but
+still shows that, under the most generous belief about the measurable axes, most decisions are
+underdetermined and the never-measured axes dominate.
+
+## W6 — the infeasible verdict gets no empirical discussion
+
+Fixed. **0/1,716** queries are infeasible at FULL regime; we state this in Appendix G — the
+binding question is always decidable-versus-underdetermined on this corpus, never "no feasible
+candidate exists."
+
+## Q4 — does the VoI ranking also have nothing to compute on never-measured axes?
+
+No — and this is a strength we now make explicit (Appendix G). The VoI of a ⊥ axis is the
+two-world regret, which needs only the **cost spread and violation penalty**, not an estimate
+of the axis's value. So the procedure ranks a governance measurement precisely **where
+imputation, lacking any cross-context signal, has nothing to compute.** The Bayesian baseline
+collapses to the prior there; the VoI does not, because it prices the *decision*, not the
+*value*.
+
+## Q2 — reconciling the 75–91% range with the small structural-only residual
+
+Added (§5/Appendix G): the operationally relevant floor depends on what a deployer can cheaply
+acquire. Under price-sheet (cost) access the irreducible remainder is the structural residual;
+75–91% is what the evidence **as published** leaves before any acquisition. The numbers are not
+in tension — they are the same quantity read at different acquisition budgets.
+
+## On the weaknesses we cannot close here (acknowledged, not papered over)
+
+- **W2 (harm validated on a measurable proxy axis):** necessary — there is no governance ground
+  truth; that is the finding. The graded-bite result (round 5) at least shows the proxy harm is
+  a mechanism-consistent, continuous phenomenon, not a cliff.
+- **W3 (diverse acquisition blocking structures):** not data-feasible. RouterBench has
+  co-located ground truth only for quality+cost; other axis pairs lack co-located truth (the
+  blind spot again), so a diverse-blocking validation cannot be run honestly.
+- **W4 / Q5 (publication self-selection; second corpus):** the key external-validity limitation;
+  no second independently-collected deployment corpus is on hand (MedHELM was access-gated). We
+  state it plainly and note the likely bias favors the finding.
+- **W5 (methods novelty modest):** accepted — this is a measurement-and-diagnosis paper; the
+  contribution is the reframing and the evidence, not a new method or theorem.
+- **W6 (prose density, Figure 1 legibility):** the main text is at exactly 9 pages; round-6
+  additions are appendix-only, and we trimmed §5/§8 rather than add density.
