@@ -459,11 +459,78 @@ def fig_graded_bite() -> Path:
     return out
 
 
+def fig_external_validity() -> Path:
+    """Three independent corpora: the headline replicates while the never-measured
+    blind-spot share scales with governance+reviewer-burden demand."""
+    c2 = _load("outputs/p3/corpus2_external.json")
+    c3 = _load("outputs/p3/corpus3_omb.json")
+    # corpus 1 = published headline (ZenML); corpora 2-3 from their artifacts.
+    corpora = [
+        ("ZenML\n(mixed industry)", 91.1, 72.4, 55.6 + 43.8),
+        ("Evidently\n(consumer tech)", 100 * c2["frac_underdetermined"],
+         100 * c2["frac_blindspot"],
+         100 * (c2["axis_demand_rate"]["governance"]
+                + c2["axis_demand_rate"]["reviewer_burden"])),
+        ("US Federal\n(government)", 100 * c3["frac_underdetermined"],
+         100 * c3["frac_blindspot"],
+         100 * (c3["axis_demand_rate"]["governance"]
+                + c3["axis_demand_rate"]["reviewer_burden"])),
+    ]
+    names = [c[0] for c in corpora]
+    head = [c[1] for c in corpora]
+    blind = [c[2] for c in corpora]
+    demand = [c[3] for c in corpora]
+
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(9.6, 2.9), gridspec_kw={"width_ratios": [1.25, 1.0]})
+
+    xs = list(range(len(corpora)))
+    w = 0.38
+    b1 = ax1.bar([x - w / 2 for x in xs], head, w, color="#2980b9",
+                 label="underdetermined (headline)")
+    b2 = ax1.bar([x + w / 2 for x in xs], blind, w, color="#c0392b",
+                 label="blocked by a never-measured axis")
+    for bars in (b1, b2):
+        for b in bars:
+            ax1.text(b.get_x() + b.get_width() / 2, b.get_height() + 1.5,
+                     f"{b.get_height():.1f}", ha="center", fontsize=8.5,
+                     fontweight="bold", color=b.get_facecolor())
+    ax1.set_xticks(xs)
+    ax1.set_xticklabels(names, fontsize=8.5)
+    ax1.set_ylabel("% of decisions")
+    ax1.set_ylim(0, 112)
+    ax1.legend(loc="lower left", bbox_to_anchor=(0.0, 1.02), ncol=1,
+               fontsize=8.0, framealpha=0.95, borderaxespad=0.0)
+    ax1.grid(axis="y", ls=":", color="0.88")
+    ax1.set_axisbelow(True)
+
+    colors = ["#2980b9", "#e67e22", "#27ae60"]
+    _sx = sorted(zip(demand, blind, strict=True))
+    ax2.plot([p[0] for p in _sx], [p[1] for p in _sx], "--", color="0.6",
+             lw=1.0, zorder=1)
+    for x, y, c, nm in zip(demand, blind, colors, names, strict=True):
+        ax2.scatter([x], [y], s=70, color=c, zorder=3)
+        ax2.annotate(nm.split("\n")[0], (x, y), textcoords="offset points",
+                     xytext=(6, -10), fontsize=8.0)
+    ax2.set_xlabel("governance + reviewer-burden demand (%)")
+    ax2.set_ylabel("never-measured blind-spot (%)")
+    ax2.set_xlim(0, 110)
+    ax2.set_ylim(0, 85)
+    ax2.grid(ls=":", color="0.88")
+    ax2.set_axisbelow(True)
+
+    fig.tight_layout(w_pad=2.0)
+    out = FIGDIR / "fig_external_validity.pdf"
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
     outs = [fig_teaser(), fig_decidability_map(), fig_hidden_violation()]
     voi_path, voi_err = fig_voi_identity()
     outs += [voi_path, fig_coverage_risk_gt(), fig_cost_decomposition(),
-             fig_graded_bite()]
+             fig_graded_bite(), fig_external_validity()]
     print("Generated:")
     for p in outs:
         print(f"  {p.relative_to(ROOT)}  ({p.stat().st_size} bytes)")
