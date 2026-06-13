@@ -717,3 +717,41 @@ Three items: (1) *Infeasible verdict empirically empty*: confirmed — 0/1,716 q
 **Q4 — Independent taxonomy check.**
 
 Three independent checks establish that the taxonomy is not tuned beyond its negative control. (1) *Negative-control prior* (12.4%): a prior that binds only measured axes produces 12.4% underdetermined — the governance/reviewer-burden mappings are the identified cause, not the decidability machinery, which resolves cleanly when those axes are removed from demand. (2) *(a)/(b)/(c) decomposition*: 82.5% of underdetermined decisions (1,289/1,563) are type-(b) co-location failures on measurable axes — cost, latency, quality — which have nothing to do with the governance taxonomy; only 17.5% (274 decisions) are type-(a) structural absences on unmeasured axes, so the headline cannot be an artifact of how governance tags are drawn. (3) *Single-deletion robustness*: every individual tag-to-axis mapping can be deleted (86+ mappings), and the headline stays ≥ 83.2%; the largest single influence is the human-review mapping (−7.9 points), consistent with reviewer burden being declared in 43.8% of deployments. A taxonomy tuned to produce a high headline would not survive 86 independent single-deletion stress tests with a minimum of 83.2%.
+
+---
+
+## Round 12 — Second reviewer response: co-location as lead result, governance vignettes, constraint-recording corpus
+
+We thank this reviewer for the sharp Q2 and Q4 which identify the most actionable improvements.
+
+**W3 / Q2 — Co-location as lead result. [This is the most important point]**
+
+The reviewer is correct that 82.5% co-location failure is the stronger, more actionable finding. We have promoted it to §5 main text as the primary driver of underdetermination, with governance structural absences (17.5%) as a second layer. The co-location finding has a distinct policy implication: even if governance were fully measured, most decisions would remain underdetermined because benchmark suites cover models but not the configs at which real deployments are evaluated (specific quantization levels, context lengths, infrastructure variants). Abstract and §1 now lead with this framing.
+
+**W1 / W4 — Headline-harm axis gap.**
+
+This is structurally correct and cannot be resolved empirically (Appendix K). We address it by: (1) making the gap explicit in §1 rather than caveating it late; (2) framing the harm result as "mechanism validation on a proxy measurable axis" not "governance harm estimate"; (3) the co-location promotion means 82.5% of the headline no longer relies on governance — it is driven by cost/latency/quality co-location, where the harm result DOES apply directly.
+
+**W2 / Q1 — Direct evidence governance binds.**
+
+From the 72 keyword-explicit cases, we have concrete governance→config-change examples: QuantumBlack (drug discovery) "could not leverage API-based models like GPT-4"; John Snow Labs (healthcare) "couldn't use general-purpose LLMs like GPT-4"; Slack "cannot send data to third-party"; Qatar Computing "cannot simply use cloud-based LLM." In each case a cheaper/better external option was governance-excluded, confirming binding at the optimum. Added to §5. Separately, the declared-vs-binding distinction: 55.6% is a tag-declaration rate (the mismatch rate — axes with zero evidence); the binding rate is what the p-sweep addresses. The abstract is now clearer that 55.6% is a declaration rate, not a binding rate.
+
+**Q4 — Corpus recording constraints independently.**
+
+The US Federal AI Inventory (OMB 2025) IS this corpus: it records governance requirements as structured machine-readable fields (authority-to-operate, PII, high-impact designation) independent of the deployed solution. It records what constrains, not what was built. Under the same decidability classifier it shows 97.8% underdetermination — confirming the mismatch holds in a constraints-first corpus. Added to §5.
+
+**Q3 / W6 — Missing-as-satisfied and B4.**
+
+B4 (missing-as-fail) achieves 0% HVR at 0% coverage — already in Table 1. The 57.1% is the B2/B4 gap: a practitioner who decides under uncertainty (B2) violates in 57.1% of cases; one who always escalates (B4) never violates but never decides. The selective procedure sits between: it abstains and NAMES what to measure, recovering full coverage with 0% violations. This is the value over "just escalate" (B4). The missing-as-satisfied convention is appropriate for our setting because governance constraints ARE genuinely unknown to practitioners ex ante — they represent the axis not yet measured, not a known constraint deliberately ignored.
+
+**W5 — Theorem 2 mathematical depth.**
+
+Acknowledged honestly: the mathematics is classical (von Neumann + EVPI); the contribution is the framing (regret floor indexed by evidence regime) and the implementation check (machine precision, 40 instances). We soften the theorem presentation to reflect this.
+
+**W7 / W8 — Presentation.**
+
+Abstract now leads with co-location finding and uses 5 numbers instead of 9. Infeasible=0 note added. "First..." claims softened.
+
+**W6 — VoI least useful for expensive audit.**
+
+Agreed and now stated explicitly in §8: for a single-blocker expensive audit, VoI certificate adds modest marginal value; the procedure's gain is converting the CERTIFICATE (non-identifiability) into the INSTRUCTION (which specific measurement to acquire). For cheap measurable axes (82.5% of underdetermined decisions), the gain is substantial (2.0 vs 6.0 measurements).
