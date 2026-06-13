@@ -994,3 +994,21 @@ Implemented the calibrated-transfer (Tier-1) and live-acquisition-loop (Tier-3) 
 **Honest scope:** transfer recovery is *partial* (Phase-0 found full-set recovery 2.5%; the 25% is on the actual battery where strong models sit far from thresholds). The contribution is "recovers a guaranteed minority, certifies the majority needs measurement" — which strengthens the thesis. Hard-to-transfer benchmarks include MMLU/ARC, stated plainly.
 
 **Invariants:** 9 main-text pages, §8 on page 9, 0 overfull, 0 undefined refs; 89 tests pass (79+7 transfer+3 loop); frozen substrate md5 unchanged; transfer-OFF determinism asserted.
+
+---
+
+## Round 21 — Present the methods as algorithms; motivation-driven rewrite
+
+Restructured the paper so the two methods are presented contributions, not appendix notes, and the narrative leads with motivation (following a strict writing-guideline set). Multi-agent: figures redrawn + numbers cross-checked + §8 drafted in parallel, integration serial.
+
+**New main-text §8 "Resolving the Gap: Calibrated Transfer and a Live Acquisition Loop"** (`sec:resolve`):
+- Opens with motivation and **names the resolution trichotomy**: every underdetermined co-location decision is *curable by transfer*, *resolvable by measurement*, or *structurally unmeasured* (operational definitions given).
+- Both methods described in prose with the guarantee inline; **Algorithm 1 (Calibrated Transfer)** and **Algorithm 2 (Live Acquisition Loop)** are `algorithm`/`algpseudocode` floats in Appendix L (graceful-degradation for the 9-page limit; referenced from §8).
+- **Main-text results table** (`tab:resolve`): imputation (cov 1.00 / HVR 0.533), calibrated transfer (0.249 / 0.000, guarantee), live loop (1.00 / 0.000 / 1–2 probes) — the trichotomy made quantitative.
+- New **trichotomy schematic** (`fig:trichotomy`) + redrawn **recovery–risk frontier** (`fig:frontier`, bigger fonts, B&W-legible).
+
+**Framing elevated:** positioning reframed from "decision discipline, *rather than a deployed tool*" to "we contribute both halves: a diagnosis AND two guaranteed methods that act on it," with the trichotomy named as a citable contribution (contribution item 4 rewritten).
+
+**Writing-guideline pass** (abstract/§1/§6/§7/§8): operational definitions at first use for *binding axis* and *co-location failure*; de-staccato of the worst em-dash chains; insight-not-factoid (each method states its mechanism).
+
+**Page budget:** held at **9 main-text pages** (§8 and §9 both on page 9), **0 overfull**, **0 undefined refs**. Cuts (moved to appendix, not deleted): regret-floor canonical instance, validation prose, related-work, substrate taxonomy, one robustness item, and the redundant §6 procedure flowchart. No result number changed; 90 tests pass; frozen substrate md5 unchanged.
