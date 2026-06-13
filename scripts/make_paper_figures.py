@@ -179,17 +179,27 @@ def fig_decidability_map() -> Path:
     labels = [REGIME_LABELS[r] for r in ladder]
 
     fig, ax = plt.subplots(figsize=(7.4, 2.9))
-    ax.bar(xs, underdet, 0.6, color="#c0392b", label="underdetermined")
+    ax.bar(xs, underdet, 0.6, color="#c0392b", label="underdetermined (adversarial ceiling)")
     ax.bar(xs, decidable, 0.6, bottom=underdet, color="#27ae60", label="decidable")
     for x, u in zip(xs, underdet, strict=True):
         ax.text(x, u - 4, f"{u:.1f}%", ha="center", va="top", color="white",
                 fontsize=9.5, fontweight="bold")
+    # Floor-first reference lines: the claim leads with the certified floor, not the
+    # adversarial-ceiling bars. 41.0% = bounded completion, no declared binding (p=0);
+    # 56.9% = belief-robust (bounded, p=1). Both from the 2x2 in the paper's Sec. map.
+    x_right = len(ladder) - 0.4
+    ax.axhline(41.0, color="#1a1a1a", ls="--", lw=1.3, zorder=5)
+    ax.axhline(56.9, color="#555555", ls=":", lw=1.3, zorder=5)
+    ax.text(x_right, 41.0 + 1.2, "certified floor 41.0% (bounded, $p{=}0$)",
+            ha="right", va="bottom", fontsize=8.0, color="#1a1a1a", fontweight="bold")
+    ax.text(x_right, 56.9 + 1.2, "belief-robust 56.9% (bounded, $p{=}1$)",
+            ha="right", va="bottom", fontsize=8.0, color="#555555")
     ax.set_xticks(xs)
     ax.set_xticklabels(labels, fontsize=9.5)
     ax.set_xlabel("evidence regime (axes the rule may see; richer $\\rightarrow$)")
     ax.set_ylabel("% of 1716 real queries")
     ax.set_ylim(0, 104)
-    ax.legend(loc="lower right", framealpha=0.95)
+    ax.legend(loc="lower right", framealpha=0.95, fontsize=8.0)
     fig.tight_layout()
     out = FIGDIR / "fig_decidability_map.pdf"
     fig.savefig(out, bbox_inches="tight")
@@ -360,7 +370,7 @@ def fig_coverage_risk_gt() -> Path:
 
 # ---------------------------------------------------------------------------
 # Figure (appendix) -- cost-versus-structural decomposition: what survives
-# granting cost as determined, on the published headline vs the skeptical floor.
+# granting cost as determined, on the adversarial ceiling vs the skeptic floor.
 # Source: outputs/p3/blocker_decomposition.json (E6).
 # ---------------------------------------------------------------------------
 def fig_cost_decomposition() -> Path:
@@ -374,8 +384,8 @@ def fig_cost_decomposition() -> Path:
         return cost_res, struct, other
 
     rows = [
-        ("Published\nheadline", segs(data["published_prior"])),
-        ("Skeptical\nfloor", segs(data["joint_drop_prior"])),
+        ("Adversarial\nceiling", segs(data["published_prior"])),
+        ("Skeptic\nfloor", segs(data["joint_drop_prior"])),
     ]
     # left-to-right: resolved by granting cost | structural residual | other residual
     c_cost, c_struct, c_other = "#95a5a6", "#c0392b", "#e67e22"
@@ -487,7 +497,7 @@ def fig_external_validity() -> Path:
     xs = list(range(len(corpora)))
     w = 0.38
     b1 = ax1.bar([x - w / 2 for x in xs], head, w, color="#2980b9",
-                 label="underdetermined (headline)")
+                 label="underdetermined (adversarial ceiling)")
     b2 = ax1.bar([x + w / 2 for x in xs], blind, w, color="#c0392b",
                  label="blocked by a never-measured axis")
     for bars in (b1, b2):

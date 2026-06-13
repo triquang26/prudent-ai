@@ -1066,3 +1066,34 @@ New computed number (#9): **bounded × p grid** (run_bounded_p_grid.py) → at t
 - **Consistency (#12):** main-text "91.1% headline" framings → "adversarial ceiling"; fig:extval caption + §9 scope updated.
 
 9 main-text pages (§9 page 9), 0 overfull, 0 undefined; 90 tests pass; frozen substrate md5 unchanged; no result number changed (41.0/48.1/56.9 all computed). Residual generic "headline" shorthand remains in some appendix robustness prose (lower-priority polish).
+
+## Round-26 — reviewer consistency sweep (floor-first vocabulary + abstract/A2 anchor)
+
+Reviewer flagged residual arithmetic/vocabulary hooks left by the round-25 floor-first reframe.
+All fixed, exposition-only (no result number changed):
+
+- **#2 (abstract, most dangerous):** the anchored sentence conflated the bounded row (48.1%) with
+  the ceiling row (~82%). Rewritten so 48.1% is locked to the bounded row: "...the strongest
+  binding anchor we can measure ... is 34.5%, and at that anchor the rate is **48.1% under any
+  bounded belief**—well below the ceiling." The phrase "under any bounded belief" disambiguates.
+- **Appendix A2 (paired with #2):** "giving a headline of ≈82%" → "giving an **adversarial-ceiling
+  reading of ≈82% (full-domain), or 48.1% under bounded completion**" — so the appendix ≈82% and
+  the abstract 48.1% no longer read as a contradiction (they are the two completion semantics).
+- **#1 grep `headline` sweep:** eliminated *every* occurrence of the ambiguous "headline" shorthand
+  (26 sites). 91.1%-meaning → "adversarial ceiling"; replication/robustness-meaning → "result";
+  knob-setting-meaning → "rate". Includes §5 robustness (ii)/(vi), Appendix E taxonomy, Appendix A1
+  ("⇒ near the p≈0 **skeptic floor** (75.1%)"), Table 4 (nmap) rows, §9.4 2×2, and all appendix prose.
+- **#5 (§9 scope):** dropped the semantics-mixing "rate stays ≥84.3% even if half bind" (that 84.3%
+  is full-domain p=0.5, not comparable to the bounded floor) → "the certified floor (41.0%) **already
+  assumes none does, so granting any binding only raises the rate**." 84.3% retained where it belongs
+  (full-domain p-sweep, §5(v) and Appendix W2).
+- **#3 (Figure 2 / fig:map):** added a dashed line at **41.0%** (certified floor, bounded p=0) and a
+  dotted line at **56.9%** (belief-robust, bounded p=1) to the figure; caption reordered to lead with
+  the floor, bars relabelled "underdetermined (adversarial ceiling)". The figure now reads floor-first.
+- **Figure 3 (fig:extval) legend:** in-image "underdetermined (headline)" → "underdetermined
+  (adversarial ceiling)". **Figure 7 (fig:costdecomp):** bar labels "Published headline"/"Skeptical
+  floor" → "Adversarial ceiling"/"Skeptic floor"; caption "The headline is structural" → "The ceiling
+  is structural". All figures regenerated; frozen substrate md5 unchanged.
+
+9 main-text pages (§9 page 9, §5 map page 6), 0 overfull, 0 undefined refs; 90 tests pass; frozen
+substrate md5 `140231fefda2c06e0642a529dff611d9` unchanged. Zero "headline" tokens remain in the paper.
