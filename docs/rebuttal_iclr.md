@@ -1022,3 +1022,16 @@ Reviewer/author asked for the algorithm to be in the main text, not the appendix
 Reclaimed the page via: §3 regret-floor Theorem+Corollary moved to the appendix proof (kept inline as the exact result + reference), `fig:teaser` shrunk 0.66→0.56\linewidth, and tightening of §8/§3/§6 prose now redundant with the algorithm. Removed the two appendix algorithm floats (and the lingering overfull they caused).
 
 **Invariants:** §8 + §9 + `alg:resolve` all on **page 9**; **0 overfull, 0 undefined**; no result number changed; 90 tests pass; frozen substrate md5 unchanged.
+
+---
+
+## Round 23 — Nested triple (+ computed 41.0% core), OMB language, 57.1% scope, 20.5% pull
+
+New computed result (not fabricated): the missing 2×2 corner — **bounded completion AND governance/reviewer-burden bindings deleted (p=0)** — is **41.0%** (scripts/run_assumption_minimal_core.py; stable across bound widths, 0.5pp structural; reproduces full+deleted=75.1% as a logic check; frozen db md5 unchanged). This **corrects** the ≈10% hypothesis (47.3pp never-measured is not all removable by p=0 — it includes throughput/energy/hw — and 41% does NOT match the 12.4% negative-control).
+
+- **Abstract + §5 (item 1,2):** replaced the single "criterion-robust 56.9%" framing with a **nested triple by assumption strength**: 41.0% (robust to both knobs) → 56.9% (bounded, granting governance) → 75.1–91.1% (granting binding). Added a **2×2 table** (`tab:twobytwo`, Appendix L) replacing the rambly "two senses of conservative" paragraph.
+- **OMB language (item 5):** find-and-replaced "binds/binding" → "declared / binding-indicator" in abstract, §5, and the A2 appendix; added "measures a declared requirement, not activeness at the optimum (Appendix K)" — closes a credibility leak (OMB fields measure declaration, not optimum-activeness).
+- **57.1% scope (item 6):** §7 paragraph now **leads** with "What 57.1% is, and is not" — measured on the quality axis, a slice-average over a 10–93% graded spectrum (Spearman 0.63), and **does not transfer to governance**; the gate magnitude (16.7–53.3%) is a function of admissible-set size, not measured governance. Fig 1 caption scoped to "the measurable quality axis, not governance".
+- **20.5% pull (item 7):** §5 now states only 20.5% of underdetermined queries are *purely* measurable; the rest leave a structural blocker after resolving co-location.
+
+9 main-text pages (§8+§9 on page 9), 0 overfull, 0 undefined; 90 tests pass; frozen substrate md5 unchanged. Remaining (lower-priority, follow-up): items 3 (intro method clause), 4 (contributions 2/4 rewrite + three-valued soft-pedal), 8 (theorem soft-pedal), 9 (taxonomy release + tag/human confusion matrix), 10 (framing).
