@@ -48,3 +48,27 @@ does not exist (Appendix K). This is the clean boundary, not a limitation papere
 
 GATE 2: end-to-end demo runs on ≥1 real slice (5 here) with zero violations and minimum-
 sufficient commitments → Tier-3 demonstrated.
+
+## Phase 2b — live loop swept over the FULL battery (510 decisions)
+
+`outputs/phase2/live_loop_full.json` · `experiments/phase2b_live_loop_full.py`. Scaled the
+demo from 5 slices to all 30 RouterBench per-benchmark slices (510 measurable-GT decisions),
+both masking settings, VoI-plan vs random acquisition. Every measurement real; frozen db
+byte-identical after.
+
+| setting | n | coverage | hidden viol. | min-sufficient | plan probes | random probes |
+|---|---|---|---|---|---|---|
+| mask quality | 510 | 1.00 | **0** | **1.00** | **1.0** (`{1:510}`) | 2.94 |
+| mask quality+cost | 510 | 1.00 | **0** | **1.00** | **2.0** (`{2:510}`) | 3.98 |
+
+At full scale the loop resolves **every** decision with **0 hidden violations** and **100%
+minimum-sufficient** commitments. The VoI plan is deterministically optimal (always exactly
+the minimal probe count — `{1:510}` / `{2:510}`), ~2–3× fewer probes than random — the
+simulated 2.0-vs-6.0 result now real and swept over the whole battery. Random's mean
+(2.94/3.98) is over a 5-axis measurable pool (coupon-collector); the plan never wastes a probe.
+
+**Full picture (transfer + loop):** calibrated transfer resolves ~25% of co-location
+decisions for free (0 measurement, 0 risk; Appendix L); the live loop measures the rest,
+reaching 100% coverage with 0 violations at 1–2 real probes each. Curable-by-transfer,
+resolvable-by-measurement, and structurally-unmeasured (governance, refused) — the clean
+three-way split, now demonstrated end-to-end at scale.
