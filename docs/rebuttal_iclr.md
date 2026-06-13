@@ -973,3 +973,24 @@ New `scripts/annotate/run_annotate_ensemble.py`: **3 instruct models from 3 prov
 New `scripts/annotate/make_human_kit.py` → `outputs/p3/human_annotation_sheet.{csv,md}`: **150 cases** (all 49 model-disagreement cases + 101 random), same rubric, blank label column. `score_human_agreement.py` computes human-vs-ensemble Cohen's κ + per-model agreement once labeled. **Honest caveat (stated in paper):** single annotator ⇒ inter-human κ undefined; we report human–LLM agreement only and do not claim two-annotator reliability.
 
 **Page constraint:** Appendix grew, main text held at **9 pages, 0 overfull**; 79/79 tests pass.
+
+---
+
+## Round 18 — Tier-1 calibrated transfer + Tier-3 live loop integrated; reframing applied
+
+Implemented the calibrated-transfer (Tier-1) and live-acquisition-loop (Tier-3) contributions and folded the reframing notes into the paper. Full build is gated and verified (see docs/REPO_MAP.md, PHASE0/1/2_RESULTS.md, PAPER_REVISION_NOTES.md).
+
+**New results in the paper (Appendix L, `app:transfer`):**
+- **Calibrated transfer** (predict a distribution-free interval by cross-benchmark transfer, feed the *unchanged* verdict, commit only on a non-straddling interval): recovers **24.9%** of masked-quality co-location decisions at **0** hidden violations (vs the point imputer's 53.3%), with **Proposition 2**: `P(infeasible|commit) ≤ α`, verified on held-out truth (coverage ≥ 1−α; feas-error 0.007/0.032/0.046 at α=.05/.10/.20). The other ~75% correctly abstain — *certified* to require measurement. Refuses by construction on the never-measured structural axes.
+- **Live acquisition loop**: closes the selective procedure for real on 5 RouterBench slices — 100% coverage, **0** hidden violations, **100%** minimum-sufficient, 1.0 probe (mask quality) / 2.0 probes (mask quality+cost), the simulated 2.0-vs-6.0 now backed by a real loop. Governance refused (no measurement path); frozen db byte-identical.
+
+**Reframing applied to main text:**
+- Abstract + §1: the **three-move arc** (diagnose → cure with transfer → close loop → name governance); OMB **34.5%** promoted as *measured* governance evidence (structured ATO/PII/high-impact fields, independent of configuration — defuses self-selection AND tag-imputation in one stroke).
+- §6: compact transfer+loop paragraph pointing to Appendix L.
+- B2 renamed **"automated-tooling default"** (avoids the strawman).
+- Categorical-gate magnitude **caveated**: min HVR=8.0%>0 is the *mechanism* claim; the 8.0–45.3% magnitude is a function of admissible-set size, not measured governance.
+- §5 robustness compressed (10 items → 7).
+
+**Honest scope:** transfer recovery is *partial* (Phase-0 found full-set recovery 2.5%; the 25% is on the actual battery where strong models sit far from thresholds). The contribution is "recovers a guaranteed minority, certifies the majority needs measurement" — which strengthens the thesis. Hard-to-transfer benchmarks include MMLU/ARC, stated plainly.
+
+**Invariants:** 9 main-text pages, §8 on page 9, 0 overfull, 0 undefined refs; 89 tests pass (79+7 transfer+3 loop); frozen substrate md5 unchanged; transfer-OFF determinism asserted.
