@@ -697,25 +697,32 @@ Calibrated transfer ($\alpha{=}0.20$) & 0.257 & 0.000 \\
 \end{tabular}
 \end{table}
 
-\emph{Honest scope.} This is \emph{partial} recovery. On the full 30-benchmark cell set the transferable signal is heavy-tailed (the additive predictor's $R^2$ is $0.81$ but a cluster of benchmarks---including MMLU, ARC-challenge, HellaSwag---is near-unpredictable cross-benchmark), so a distribution-free interval tight enough to guarantee $\le5\%$ risk is wide; the $24.9\%$ recovered are decisions where a strong model sits far from the threshold. The $\sim$25\% is a \emph{structural} ceiling, not an artifact of loose intervals: a locally-adaptive (residual-normalized) split-conformal that tightens intervals and commits $32\%$ more held-out cells at $\alpha{=}0.05$---guarantee preserved (coverage $0.952$, feasibility error $0.022$)---leaves decision recovery \emph{unchanged} at $24.9\%$, because the limiter is the decision geometry (whether the cheapest contested config's interval resolves), not interval width. The contribution is therefore not ``transfer recovers most decisions''---it is that transfer recovers a \emph{guaranteed} minority safely and \emph{certifies the majority genuinely require measurement}, which is exactly the paper's thesis and the bridge to the loop.
+\emph{Honest scope.} This is \emph{partial} recovery. On the full 30-benchmark cell set the transferable signal is heavy-tailed (the additive predictor's $R^2$ is $0.81$ but a cluster of benchmarks---including MMLU, ARC-challenge, HellaSwag---is near-unpredictable cross-benchmark), so a distribution-free interval tight enough to guarantee $\le5\%$ risk is wide; the $24.9\%$ recovered are decisions where a strong model sits far from the threshold. The $\sim$25\% is a \emph{structural} ceiling, not an artifact of loose intervals: a locally-adaptive (residual-normalized) split-conformal that tightens intervals and commits $32\%$ more held-out cells at $\alpha{=}0.05$---guarantee preserved (coverage $0.952$, feasibility error $0.022$)---leaves decision recovery \emph{unchanged} at $24.9\%$ (Figure~\ref{fig:frontier}), because the limiter is the decision geometry (whether the cheapest contested config's interval resolves), not interval width. The contribution is therefore not ``transfer recovers most decisions''---it is that transfer recovers a \emph{guaranteed} minority safely and \emph{certifies the majority genuinely require measurement}, which is exactly the paper's thesis and the bridge to the loop.
 
-\paragraph{The live acquisition loop, closed with real measurement.}
-The simulated 2.0-vs-6.0 acquisition count (Section~\ref{sec:acq}) is here closed end-to-end: an underdetermined query triggers the VoI-ranked measurement, whose \emph{measured} value is revealed into the scratch overlay and the verdict re-runs, until commit. On 5 RouterBench slices (Table~\ref{tab:loop}) the loop commits every decision with \textbf{0} hidden violations and \textbf{100\%} minimum-sufficient cost, in \textbf{1.0} measurement when quality is hidden and \textbf{2.0} when quality and cost are both hidden. Governance has \emph{no} measurement path (Appendix~\ref{app:audit_data}), so when the only remaining blocker is governance the loop \emph{refuses}---raising rather than fabricating a value---and the frozen snapshot is byte-identical after every run.
+\paragraph{The live acquisition loop, closed with real measurement (full battery).}
+The simulated 2.0-vs-6.0 acquisition count (Section~\ref{sec:acq}) is here closed end-to-end and swept over the \emph{entire} battery: an underdetermined query triggers the VoI-ranked measurement, whose \emph{measured} value is revealed into the scratch overlay and the verdict re-runs, until commit. Over all \textbf{510} RouterBench decisions (Table~\ref{tab:loop}) the loop commits \emph{every} one with \textbf{0} hidden violations and \textbf{100\%} minimum-sufficient cost. The VoI plan is deterministically optimal---exactly \textbf{1.0} probe when quality is hidden and \textbf{2.0} when quality and cost are both hidden (every one of the 510 decisions, with no exceptions), versus \textbf{2.9}/\textbf{4.0} for random acquisition. Governance has \emph{no} measurement path (Appendix~\ref{app:audit_data}), so when the only remaining blocker is governance the loop \emph{refuses}---raising rather than fabricating a value---and the frozen snapshot is byte-identical after every run. Together with calibrated transfer (which resolves ${\sim}25\%$ for free) this completes a clean three-way split of the co-location gap: curable-by-transfer, resolvable-by-measurement, and structurally-unmeasured.
 
 \begin{table}[h]
 \centering
-\caption{\textbf{Live acquisition loop on 5 RouterBench slices.} Real measurement re-entered through the C7 interface; the frozen snapshot is unchanged; governance is refused.}
+\caption{\textbf{Live acquisition loop over the full RouterBench battery} ($n{=}510$ decisions). Real measurement re-entered through the C7 interface; the frozen snapshot is byte-identical; governance is refused. ``Plan'' is the VoI-ranked acquisition (deterministically the minimal probe count on every decision), ``Rand.'' uniformly-random acquisition.}
 \label{tab:loop}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccccc}
 \toprule
-Setting & Cov. & Probes & Acq.\ cost & Hidden viol. & Min-suff. \\
+Setting & Cov. & Plan probes & Rand.\ probes & Acq.\ cost & Hidden viol. & Min-suff. \\
 \midrule
-Mask quality (1 blocker) & 1.00 & 1.0 & 0.30 & 0 & 1.00 \\
-Mask quality $+$ cost (2 blockers) & 1.00 & 2.0 & 0.35 & 0 & 1.00 \\
+Mask quality (1 blocker) & 1.00 & 1.0 & 2.9 & 0.30 & 0 & 1.00 \\
+Mask quality $+$ cost (2 blockers) & 1.00 & 2.0 & 4.0 & 0.35 & 0 & 1.00 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig_risk_frontier.png}
+\caption{\textbf{The recovery--risk frontier of calibrated transfer.} Sweeping the conformal $\alpha$, cell-level recovery rises with realized risk along a concave frontier; the locally-adaptive (normalized) interval Pareto-dominates the global radius (convex envelope, dashed). But the \emph{decision-level} recovery through the real verdict (green) is capped at ${\sim}25\%$ at zero realized risk---reaching ${\sim}28\%$ only by admitting genuine violations. The ${\sim}25\%$ safe ceiling is structural to the decision geometry, not an artifact of interval width: what transfer cannot recover, the live loop must measure.}
+\label{fig:frontier}
+\end{figure}
 
 \end{document}
