@@ -35,7 +35,7 @@
 \maketitle
 
 \begin{abstract}
-Practitioners size AI deployments against public evaluation evidence, assuming the open problem is \emph{estimate quality}. We ask a prior question: given the evidence that exists, is the decision \emph{identified at all}? We formalize \emph{evidence-decidability}: a decision is decidable iff one configuration is provably feasible and cheapest in every world consistent with the evidence. We measure it over right-sizing queries derived from 1{,}716 documented production LLM deployments, read against a provenance-tracked corpus of public results. The skeptic-robust finding is this: \textbf{75.1\%} of decisions are underdetermined even under maximal skepticism about governance binding---this is the defensible floor. Of these underdetermined decisions, \textbf{82.5\%} fail because the evidence that \emph{does} exist (cost, latency, quality) is not co-located with the deployment configurations that matter---a gap measurable in principle; only \textbf{17.5\%} fail on axes no source measures at all. Under the full governance-binding assumption the rate rises to \textbf{91.1\%} with a \textbf{72.4\%} structural core, but this reading requires that declared governance tags bind at the optimum, which our instruments measure at 0.1\%--34.5\%---a contested assumption the paper flags. The mismatch has teeth where ground truth lets us measure it: imputation leaves the violation rate nearly unchanged (median fill is a no-op; a learned imputer halves it to 30.6\%; a Bayesian rule avoids violations only by over-provisioning $70{\times}$--$127{\times}$). The selective procedure instead abstains and names the blocking measurement, reaching full coverage with zero violations---the only approach achieving both simultaneously. We read the result as a two-layer diagnosis: co-location failures on measurable axes (82.5\%, all cost-mediated, but ~88\% also require latency, quality, or governance measurement); and a structural layer on never-measured axes (17.5\%).
+Practitioners size AI deployments against public evaluation evidence, assuming the open problem is \emph{estimate quality}. We ask a prior question: given the evidence that exists, is the decision \emph{identified at all}? We formalize \emph{evidence-decidability} and measure it over 1{,}716 right-sizing queries from documented production deployments. The skeptic-robust finding: \textbf{75.1\%} of decisions are underdetermined without any governance-binding assumption---the defensible floor---decomposing as \textbf{51.4\%} cost-only (cheap: acquisition cost $\approx 0$), \textbf{43.2\%} cost+latency, and \textbf{5.4\%} cost+quality co-location failures. Of all 1{,}563 underdetermined decisions: \textbf{20.5\%} are purely-measurable (no structural axis in the blocking set); \textbf{62.0\%} are mixed (both co-location failure and structural absence); \textbf{17.5\%} are structural-only. The 82.5\% ``co-location failures'' and 72.4\% ``structural'' figures are not mutually exclusive; the 62.0\% overlap is the mixed bucket. Under the full governance-binding assumption the rate rises to \textbf{91.1\%}, but direct binding-rate measurements (0.1\%--34.5\%) make this a contested upper bound; \textbf{75.1\%} is the defensible number. The mismatch has teeth: imputation is a no-op (median fill leaves the 57.1\% violation rate unchanged); a learned imputer halves it (30.6\%); Bayesian/CC rules escape only by $70{\times}$--$127{\times}$ over-provisioning. The selective procedure abstains and names the blocking measurement, reaching full coverage with zero violations---the only approach achieving both.
 \end{abstract}
 
 \section{Introduction}
@@ -164,7 +164,7 @@ A decidability rate is meaningful only relative to a query distribution, and a h
 
 For each of the 1{,}716 queries and each regime in an inclusion ladder (accuracy only $\to$ +cost $\to$ +latency $\to$ +throughput $\to$ +energy $\to$ full), we compute the three-valued verdict of Section~\ref{sec:decidability} with $\kappa = \{H,M\}$, thresholds grounded at observed percentiles, and bootstrap CIs ($n{=}1000$, fixed seed). Figure~\ref{fig:map} is the result.
 
-\looseness=-1 \textbf{The headline, scoped.} The rate is a property of \emph{this} corpus and taxonomy; we report a range because the declared-implies-binding assumption is contestable. \emph{Skeptic-robust floor (\textbf{75.1\%}):} deleting all declared governance and reviewer-burden bindings leaves 75.1\% underdetermined, cost the modal blocker; granting cost resolves a further 38.2 pp, leaving a structural residual of 1.2\%---no contested assumption required. The (a)/(b)/(c) decomposition (Appendix~\ref{app:circularity_detail}) attributes \textbf{82.5\%} of underdetermined decisions to co-location failures on measurable axes and \textbf{17.5\%} to structural absences on never-measured axes. \emph{Full-domain upper bound (\textbf{91.1\%}):} granting bindings at face value gives 91.1\% (95\% CI [89.7, 92.4]) with 72.4\% structural, but requires declared-implies-binding; direct measurements place the binding rate at 0.1\%--34.5\%, so 91.1\% is an upper bound. A bounded-prior gives \textbf{56.9\%}; accuracy-only gives 100\%. Modal blockers: cost (1{,}289), governance (954), reviewer burden (751).
+\looseness=-1 \textbf{The headline, scoped.} We report a range because the declared-implies-binding assumption is contestable. \emph{Skeptic-robust floor (\textbf{75.1\%}):} deleting governance and reviewer-burden bindings leaves 75.1\% underdetermined; the floor decomposes as \textbf{51.4\%} cost-only (cheap: $\approx\$0$), \textbf{43.2\%} cost+latency (moderate), \textbf{5.4\%} cost+quality (expensive, \$85--\$11k); granting cost resolves 38.2 pp, leaving a 1.2\% structural residual---no assumption required. \emph{The 82.5\% and 72.4\% are not mutually exclusive} (cross-tab in Appendix~\ref{app:circularity_detail}): \textbf{20.5\%} purely-measurable (no structural axis in blocking set), \textbf{62.0\%} mixed (co-location failure AND structural absence both present), \textbf{17.5\%} structural-only; 82.5\% counts $\ge 1$ measurable blocker; 72.4\% of all queries counts $\ge 1$ structural blocker; 62.0\% is the overlap. \emph{Full-domain upper bound (\textbf{91.1\%}):} granting bindings at face value gives 91.1\% (95\% CI [89.7, 92.4]), but requires declared-implies-binding (instruments: 0.1\%--34.5\%), so 91.1\% is the upper bound. Modal blockers: cost (1{,}289), governance (954), reviewer burden (751).
 
 \looseness=-1 \textbf{Robustness} (full ablations in Appendix~\ref{app:ablations}).
 The result is not a knob artifact. (i) \emph{Confidence policy:} underdetermination stays $\ge 89.3\%$ across every confidence filter; measured-only drives it to 100\%. (ii) \emph{Taxonomy:} deleting any single tag-to-axis mapping leaves the headline at $\ge 83.2\%$. (iii) \emph{Query distribution:} a uniform prior yields \textbf{98.5\%}; an adversarial prior that nearly never binds governance or reviewer burden still yields \textbf{95.7\%}; a negative-control prior demanding only measured axes collapses to 12.4\%---the cause is demand for unmeasured axes, not the particular corpus. (iv) \emph{Grounding sharpens, not flatters:} a uniform grid gives 85.7\% versus 91.1\%. (v) \emph{Scale:} 20 sources leave the blind spot intact (Section~\ref{sec:substrate}). (vi) \emph{Verdict mechanics:} bit-identical under grounding percentiles p25--p75 and cost-tie tolerances to 20\% (Appendix~\ref{app:reviewer}). (vii) \emph{Correlated overcounting:} deleting the governance \emph{and} reviewer-burden mappings together leaves \textbf{75.1\%} (87.3\% restricting governance to the 73 keyword-explicit cases; 75.9\% under both)---even the most skeptical reading keeps three quarters underdetermined, cost the modal blocker (Appendix~\ref{app:reviewer}). (viii) \emph{Corpus composition:} deleting whole industries (not down-weighting) leaves the headline $\ge 88.8\%$---even removing all five regulated industries, the governance drivers, with cost modal throughout (Appendix~\ref{app:reviewer}); this stresses \emph{which} deployments are indexed, distinct from publication self-selection (Section~\ref{sec:limitations}). (ix) \emph{Declared-vs-binding:} binding each declared governance/reviewer constraint only with probability $p$ gives a monotone \textbf{75.1\%} ($p{=}0$)--\textbf{91.1\%} ($p{=}1$), still \textbf{84.3\%} at $p{=}0.5$---the result does not need the strong declared-implies-binding assumption (Appendix~\ref{app:reviewer}). (x) \emph{Independent corpora:} the headline replicates on two further separately-curated corpora (Evidently, consumer tech, \textbf{96.4\%}; the US Federal AI inventory, government, \textbf{97.8\%}), the never-measured blind-spot share scaling with governance demand from $17.5\%$ to $72.4\%$ (Figure~\ref{fig:extval}).
@@ -573,18 +573,47 @@ Three cause types are defined:
   \item \textbf{(c) Interval straddle}: the axis has observations but the aggregated belief interval spans the query threshold (genuine epistemic uncertainty, not missing data).
 \end{itemize}
 
-\subsection*{Counts}
+\subsection*{Counts (primary cause)}
 Type-(a) only: \textbf{274 queries (17.5\%)} of the 1{,}563 underdetermined.
 Type-(b) present: \textbf{1{,}289 queries (82.5\%)}.
 Type-(c) present: \textbf{0 queries (0\%)} in the point-estimate regime ($\varphi{=}$point).
 
+\subsection*{Cross-tab: purely-measurable vs.\ mixed vs.\ structural-only}
+
+The 82.5\% and 72.4\% figures count different things and \emph{overlap}. A finer three-way partition:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Category & Queries & \% of underdetermined \\
+\midrule
+Purely-measurable (blocking $\subseteq$ measurable axes) & 320 & 20.5\% \\
+Mixed (both measurable AND structural in blocking set) & 969 & 62.0\% \\
+Structural-only (blocking $\subseteq$ UNMEASURABLE\_AXES) & 274 & 17.5\% \\
+\midrule
+\emph{Measurement-dominant} (purely-meas.\ + mixed) & 1{,}289 & 82.5\% \\
+\emph{Structural-dominant} (mixed + structural-only) & 1{,}243 & 79.5\% (= 72.4\% of all) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The 82.5\% ``co-location failure'' count uses the measurement-dominant framing (any measurable blocker present). The 72.4\% ``structural blind spot'' count (of all 1{,}716 queries) equals the structural-dominant count: 1{,}243/1{,}716. The overlap is the 62.0\% mixed bucket. Only the \textbf{20.5\%} purely-measurable subset could be resolved without any governance data.
+
+\subsection*{Skeptic-floor decomposition}
+
+Under the skeptic floor (governance+reviewer\_burden removed), the 1{,}289 remaining underdetermined decisions are all cost-mediated. Their blocking axes are: cost (100\%), latency (43.2\%), quality (5.4\%), memory/hw (1.6\%). Decomposing further:
+\begin{itemize}
+\item \textbf{Cost-only}: 662 queries (51.4\% of floor-underdetermined) --- cheap, acquisition cost $\approx\$0$
+\item \textbf{Cost+latency}: 557 queries (43.2\%) --- moderate cost (load-test)
+\item \textbf{Cost+quality}: 70 queries (5.4\%) --- expensive (\$85--\$11k per eval run)
+\end{itemize}
+The floor is dominated by cost co-location (cheap to fix in principle) but 48.6\% also require latency or quality measurement.
+
 \subsection*{Per-axis tally}
-Among causes: cost is type-(b) for all 1{,}289 of its appearances (pure co-location failure); governance is type-(a) for all 954 appearances; reviewer burden is type-(a) for all 751; latency is type-(b) for 557; quality is type-(b) for 70; memory/hw is type-(a) for 20.
+Among causes: cost is type-(b) for all 1{,}289 of its appearances; governance is type-(a) for all 954; reviewer burden is type-(a) for all 751; latency is type-(b) for 557; quality is type-(b) for 70; memory/hw is type-(a) for 20.
 
 \subsection*{Interpretation}
-The 82.5\% type-(b) share refutes the circularity concern directly: the system is \emph{not} simply demanding axes that were never measured by anyone.
-Cost is the most common blocker (present in 82.5\% of underdetermined decisions) and is entirely a co-location failure---measuring the blocking candidate's cost would resolve it.
-The structural-absence share (17.5\%, type-(a) only) represents the queries whose blocking axis has no evidence anywhere in the corpus; for these, no amount of re-evaluating existing configurations helps.
+The 82.5\% type-(b) share refutes the circularity concern: the system is \emph{not} simply demanding axes no one measures. But 82.5\% and 79.5\% are not contradictory---they count from opposite directions; the 62.0\% mixed bucket is where measurement helps but is not sufficient.
 As stated in Appendix~\ref{app:ablations}: ``82.5\% of underdetermined decisions arise from co-location failures, not structural data absences. The classifier is not simply demanding axes that were never measured.''
 
 \section{Real Config$\leftrightarrow$Governance Audit Data (Experiment D)}

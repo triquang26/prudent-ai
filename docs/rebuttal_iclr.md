@@ -878,3 +878,32 @@ Three things: (1) it establishes that the abstention's named measurement is not 
 2. **Round-13 changes**: 75.1% floor as defensible number; 91.1% as upper bound; 57.1% as foil; imputation comparison foregrounded — all remain.
 3. **Governance hierarchy**: §7 now explicitly states: "(1) decidability claim (verified), (2) mechanism validated on measurable axes, (3) governance harm rate unknowable."
 4. **Q2 decomposition**: cost-only resolvable = 9.7% of underdetermined; the rest require moderate/expensive/structural measurement. Added to §5 robustness and rebuttal.
+
+---
+
+## Round 15 — Cross-tab reconciliation of 82.5% and 72.4%; skeptic-floor decomposition
+
+**The 82.5% and 72.4% are not mutually exclusive — here is the cross-tab:**
+
+We ran a three-way partition of the 1,563 underdetermined decisions by blocking-set composition:
+
+| Category | N | % of underdetermined |
+|---|---|---|
+| Purely-measurable (blocking ⊆ measurable only) | 320 | **20.5%** |
+| Mixed (both co-location failure AND structural absence) | 969 | **62.0%** |
+| Structural-only (blocking ⊆ UNMEASURABLE_AXES) | 274 | **17.5%** |
+| **Measurement-dominant** (any measurable blocker) | 1,289 | **82.5%** ← current paper |
+| **Structural-dominant** (any structural blocker) | 1,243 | **79.5%** = 72.4% of all 1,716 |
+
+The reconciliation: 82.5% and 72.4% count from opposite directions; the 62.0% mixed bucket is where both are true. Only the **20.5% purely-measurable** subset is resolvable without any governance data. Added as an explicit table in Appendix C (cross-tab subsection).
+
+**Skeptic-floor (75.1%) decomposition:**
+
+Under the floor (governance+reviewer_burden removed), the 1,289 underdetermined decisions decompose as:
+- **51.4%** cost-only — cheap (~$0, price sheet)
+- **43.2%** cost+latency — moderate (load-test)  
+- **5.4%** cost+quality — expensive ($85–$11k per eval run)
+
+This is honest about the cost structure: the floor is dominated by cost co-location (cheap) but 48.6% also requires latency/quality measurement.
+
+**Headline now anchored at 75.1%** (defensible floor, no assumptions). 91.1% = contested upper bound, clearly labeled. Abstract compressed to 7 key numbers. §5 "headline, scoped" paragraph has the cross-tab inline with appendix reference.
