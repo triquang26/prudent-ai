@@ -939,3 +939,37 @@ Added "using the text of each deployment description as input to" the tag-to-axi
 Contributions C4: changed "numerically verified" → "confirmed as an implementation check (not a result over the query distribution)."
 
 **Page constraint:** held at exactly 9 main-text pages, 0 overfull boxes. The abstract compression (-45 words) offset all additions; §1 intro paragraph tightened to compensate for §5 restructuring.
+
+---
+
+## Round 17 — LLM-as-reader boundary + multi-LLM ensemble + human anchor
+
+The critique restated the three structural reservations (declared⇒binding, harm-on-wrong-axis, circularity) and proposed experiments A–D. **A–D were already executed in rounds 10–16.** The genuinely new demands were the **LLM boundary**, a **multi-model ensemble**, and a **human anchor** — all on the binding-rate anchor (Appendix B). Crucially, these are kept **appendix-only**; the round-16 headline discipline (56.9% leads; binding sweep is bracket-justification) is preserved. Abstract/§1/§8 untouched.
+
+### The boundary (the deepest point)
+
+Added an explicit boundary block to Appendix B and one sentence to §4: the LLM/keyword/OMB annotators **read what a deployment DECLARES** (does the narrative state a governance requirement that excludes a concrete candidate?) — they are **never** used to predict whether governance *truly* binds (that would require the unmeasured axis itself). Labels anchor the prior `p`; they are **never written to the substrate**, never fill a ⊥ cell, never enter a verdict. This is consistent with never-impute and the label-substitution limit of Dorner et al. A reviewer can no longer read A3 as "imputing the very axis you call unmeasurable."
+
+### Multi-LLM ensemble (replaces single Qwen-32B, κ=0.097)
+
+New `scripts/annotate/run_annotate_ensemble.py`: **3 instruct models from 3 providers** (Qwen2.5-32B-Instruct / Meta-Llama-3-8B-Instruct / Mistral-7B-Instruct-v0.3), each × 3 prompts, majority within model then across models. Result on n=980 governance cases:
+
+| model | p̂ (declared binding) |
+|---|---|
+| Qwen2.5-32B | 0.1% |
+| Llama-3-8B | 0.4% |
+| Mistral-7B | 1.1% |
+| **ensemble** | **0.2%** (2/980, CI [0.0%, 0.5%]) |
+
+- **Inter-model Fleiss κ = 0.096**, but **raw inter-model agreement is high** (pairwise 95.6–98.1%; all 3 agree on 95.0% of cases). The low κ is the **prevalence paradox** (974/980 = UNDETERMINED), not disagreement. Reported honestly with both numbers.
+- The on-thesis reading: **three independent providers all find binding almost never *declared*** — direct evidence the axis must be measured, not inferred from text.
+
+### A3 recompute from the ensemble
+
+`BINDING_ANN_PATH=…ensemble.json run_prob_binding.py --empirical` (added an env-var override + dual-schema reader, no headline-logic change): strict **75.2%** (1,290/1,716), conservative **91.1%** (1,563/1,716) — both inside the published [75.1%, 91.1%] envelope. Frozen substrate md5 **unchanged** (labels are prior-only).
+
+### Human anchor (Phase 2, kit released)
+
+New `scripts/annotate/make_human_kit.py` → `outputs/p3/human_annotation_sheet.{csv,md}`: **150 cases** (all 49 model-disagreement cases + 101 random), same rubric, blank label column. `score_human_agreement.py` computes human-vs-ensemble Cohen's κ + per-model agreement once labeled. **Honest caveat (stated in paper):** single annotator ⇒ inter-human κ undefined; we report human–LLM agreement only and do not claim two-annotator reliability.
+
+**Page constraint:** Appendix grew, main text held at **9 pages, 0 overfull**; 79/79 tests pass.

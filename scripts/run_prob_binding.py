@@ -24,6 +24,7 @@ Run empirical: PYTHONNOUSERSITE=1 uv run python scripts/run_prob_binding.py --em
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 import sys
@@ -113,7 +114,11 @@ def classify_headline(sub, prior: QueryPrior, th) -> dict:
             "frac_blindspot": round(n_blindspot / n, 4) if n else 0.0}
 
 
-ANN_PATH = Path("outputs/p3/binding_annotation_per_case.json")
+# Annotation source for the measured-label headline (A3). Override with the
+# BINDING_ANN_PATH env var to point at the multi-LLM ensemble file, e.g.
+#   BINDING_ANN_PATH=outputs/p3/binding_annotation_ensemble.json
+ANN_PATH = Path(os.environ.get(
+    "BINDING_ANN_PATH", "outputs/p3/binding_annotation_per_case.json"))
 P_HAT = 0.0797  # measured binding rate from LLM annotations (31/954 BINDING cases)
 
 
@@ -126,10 +131,16 @@ def _normalize_title(s: str) -> str:
 
 
 def build_labels_by_title(ann_path: Path = ANN_PATH) -> dict[str, str]:
-    """Load per-case annotations and return {normalized_title: majority_label}."""
+    """Load per-case annotations and return {normalized_title: label}.
+
+    Accepts both the standardized ensemble schema ({"per_case":[{title, final_label}]})
+    and the older bare-list 32B schema ([{title, majority_label}]).
+    """
     data = json.loads(ann_path.read_text(encoding="utf-8"))
-    return {_normalize_title(case["title"]): case["final_label"]
-            for case in data["per_case"]}
+    cases = data["per_case"] if isinstance(data, dict) else data
+    return {_normalize_title(case["title"]):
+            case.get("final_label") or case.get("majority_label")
+            for case in cases}
 
 
 def derive_empirical_binding(
