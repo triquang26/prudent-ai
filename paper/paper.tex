@@ -12,6 +12,7 @@
 \usepackage{subcaption}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{float}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc}
 
@@ -49,10 +50,10 @@ This paper flips that premise into a measurable question. Before asking how prec
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.66\linewidth]{figures/fig_teaser.pdf}
+\includegraphics[width=0.56\linewidth]{figures/fig_teaser.pdf}
 \caption{\textbf{The evidence and the decisions it must support are misaligned, and deciding anyway silently fails.}
-\textbf{Left:} for each of the eight deployment axes, the fraction of 1{,}716 documented deployments declaring it a constraint (blue) versus the fraction of configurations for which public evidence is silent (red); governance and reviewer burden are constraints in roughly half of deployments and unmeasured for \emph{every} configuration.
-\textbf{Right:} on 476 ground-truth decisions with one binding axis hidden, ranking on the visible axes (and imputing the missing value) silently violates the hidden constraint on 57.1\% of decisions, while the selective procedure abstains and names the resolving measurement---zero violations (slice-clustered 95\% CI [46.8, 67.6]).}
+\textbf{Left:} per deployment axis, the fraction of 1{,}716 documented deployments declaring it a constraint (blue) versus the fraction of configurations for which public evidence is silent (red); governance and reviewer burden are constraints in roughly half of deployments and unmeasured for \emph{every} configuration.
+\textbf{Right:} on 476 ground-truth decisions with one binding axis hidden, ranking on the visible axes silently violates the hidden constraint on 57.1\% of decisions, while the selective procedure abstains and names the resolving measurement (zero violations, 95\% CI [46.8, 67.6]).}
 \label{fig:teaser}
 \end{figure}
 
@@ -125,22 +126,7 @@ An \textbf{evidence regime} $R \subseteq A$ is the set of axes a rule is permitt
 \end{proposition}
 The conditions coincide under the conservative reading our implementation certifies: with non-binding cells and costs determined, only binding-axis cells can flip the optimum.
 
-The price of violating the necessary condition is quantitative. On the canonical two-candidate family ($x_{\mathrm{cheap}}$ at cost $1$, $x_{\mathrm{safe}}$ at cost $1{+}\delta$, with one binding axis $a^*\notin\cl(R)$ unmeasured for $x_{\mathrm{cheap}}$ and satisfied by $x_{\mathrm{safe}}$), under the loss $L(\hat{x}) = \max(0, \mathrm{cost}(\hat{x}) - \mathrm{cost}(x^*)) + \lambda \mathbf{1}[\hat{x}\text{ violates}]$ (cost overshoot plus a violation penalty $\lambda$):
-
-\begin{theorem}[Regret floor]
-\label{thm:floor}
-Any rule restricted to $R$ that must commit one of the candidates (deterministic or randomized) has worst-case expected regret at least
-$\Delta = \delta\lambda/(\delta+\lambda)$
-on this family, and the bound is attained.
-\end{theorem}
-Abstention escapes the floor only by paying for a measurement, which the corollary prices exactly.
-
-\begin{corollary}[Value of the missing measurement]
-\label{cor:voi}
-The value of information of measuring $a^*$---the reduction in minimax committed regret from observing it---equals $\Delta$ exactly. The measurement the procedure recommends is worth precisely the regret that deciding without it must incur.
-\end{corollary}
-
-Theorem~\ref{thm:floor} states the principle---evidence on the wrong axes cannot be traded for evidence on the binding one at any exchange rate, the analogue for evidence regimes of the label-substitution ceiling of \citet{dorner2025limits}---and it \emph{generalizes}: for any finite candidates$\times$completions, the minimax committed regret of a regime-omitting rule equals the value of the regret game, which equals the VoI of the binding axis (Theorem~\ref{thm:general}, Appendix~\ref{app:general}); the two-world $\Delta$ is its $2\times2$ corollary. The \emph{implemented} VoI coincides with $\Delta$ to machine precision (Figure~\ref{fig:anchors}, left) and with the general game value to $<10^{-4}$ over random instances---so the abstention reports the floor, not a proxy. Proposition~\ref{prop:char}(i) makes two testable predictions: decidability rises only when a blocked axis enters the regime, plateauing once remaining blockers are out of reach (Figure~\ref{fig:map}), and hidden-constraint failures track certified binding (Section~\ref{sec:validation}).
+The price of violating the necessary condition is quantitative, and we make it exact. On the canonical two-candidate family ($x_{\mathrm{cheap}}$ at cost $1$, $x_{\mathrm{safe}}$ at cost $1{+}\delta$, one binding axis $a^*\notin\cl(R)$ unmeasured for $x_{\mathrm{cheap}}$), under cost-overshoot-plus-violation loss with penalty $\lambda$, any rule restricted to $R$ that must commit has worst-case expected regret at least $\Delta = \delta\lambda/(\delta+\lambda)$, and the bound is attained (Theorem~\ref{thm:floor}, Appendix~\ref{app:proofs}). Abstention escapes the floor only by paying to measure, and the value of information of measuring $a^*$ equals $\Delta$ exactly (Corollary~\ref{cor:voi}): the recommended measurement is worth precisely the regret that deciding without it must incur. This is the analogue for evidence regimes of the label-substitution ceiling of \citet{dorner2025limits}: evidence on the wrong axes cannot be traded for evidence on the binding one at any exchange rate. It \emph{generalizes} to any finite candidates$\times$completions, where the minimax committed regret of a regime-omitting rule equals the value of the regret game and hence the VoI of the binding axis (Theorem~\ref{thm:general}, Appendix~\ref{app:general}); the implemented VoI matches the closed form to machine precision (Figure~\ref{fig:anchors}, left). Proposition~\ref{prop:char}(i) thus predicts that decidability rises only when a blocked axis enters the regime, plateauing once remaining blockers are out of reach (Figure~\ref{fig:map}).
 
 \section{An Evidential Substrate and a Real Query Distribution}
 \label{sec:substrate}
@@ -188,8 +174,7 @@ $\VoI(a)$ uses the two-world construction of Section~\ref{sec:theory}; by Coroll
 
 The two methods that act on an underdetermined verdict---calibrated transfer and the live acquisition loop---are the subject of Section~\ref{sec:resolve}.
 
-\textbf{Risk-tolerant commitment.}
-Strict decidability is the $\alpha{=}0$ extreme; for a tolerated risk, a margin $m$ chosen on a calibration split enforces $P(\text{committed config infeasible} \mid \text{commit}) \le \alpha$, trading coverage against risk (validated on held-out ground truth, Section~\ref{sec:validation}). The guarantee is finite-sample and calibration-based \citep{geifman2017selective,jung2025trust}; the \emph{strict} verdict is instead indexed by which axes carry evidence (Theorem~\ref{thm:floor}), its abstention informative rather than mute.
+\textbf{Risk-tolerant commitment.} Strict decidability is the $\alpha{=}0$ extreme; for a tolerated risk a calibration-based margin enforces $P(\text{infeasible}\mid\text{commit})\le\alpha$, trading coverage against risk (validated on held-out truth, Section~\ref{sec:validation}), whereas the \emph{strict} verdict is indexed instead by which axes carry evidence.
 
 \section{Validation: Deciding Blind Fails; Informed Refusal Pays}
 \label{sec:validation}
@@ -241,9 +226,27 @@ Operations may prefer a tolerated risk. The calibrated-margin variant scores aga
 
 \section{Resolving the Gap: Calibrated Transfer and a Live Acquisition Loop}\label{sec:resolve}
 
-Section~\ref{sec:validation} shows that committing blind is unsafe: a point imputer fills every $\bbot$ cell and hides a violation in 53.3\% of decisions. The open question is whether an underdetermined decision can be resolved \emph{without} always paying to measure. We answer it by sorting every underdetermined co-location decision into one of three classes, a partition we name the \textbf{resolution trichotomy} (Figure~\ref{fig:trichotomy}). A decision is \emph{curable by transfer} when its blocking axis is measurable and its value is predictable from the same model's evidence on its other benchmarks, so no new measurement is needed. It is \emph{resolvable by measurement} when the axis is measurable but not predictable, so its value must be physically acquired. It is \emph{structurally unmeasured} when no measurement path exists in any public source, as with governance, where there is no configuration-to-audit data to read. The two methods below handle the first two classes and refuse on the third.
+Section~\ref{sec:validation} shows that committing blind is unsafe: a point imputer fills every $\bbot$ cell and hides a violation in 53.3\% of decisions. The open question is whether an underdetermined decision can be resolved \emph{without} always paying to measure. We answer it by sorting every underdetermined co-location decision into the \textbf{resolution trichotomy} (Figure~\ref{fig:trichotomy}): a decision is \emph{curable by transfer} when its blocking axis is measurable and predictable from the same model's other benchmarks; \emph{resolvable by measurement} when the axis is measurable but not predictable, so its value must be acquired; or \emph{structurally unmeasured} when no measurement path exists in any public source, as with governance. Algorithm~\ref{alg:resolve} acts on the first two classes in two phases and refuses on the third.
 
-\textbf{Calibrated transfer} cures the first class (Algorithm~\ref{alg:transfer}, Appendix~\ref{app:transfer}): for a fragmented-$\bbot$ quality cell it predicts a calibrated interval by leave-one-benchmark-out transfer, injects it as the cell's belief, runs the \emph{unchanged} verdict, and commits only when the interval lies entirely on the satisfying side of the threshold. Because the interval is a split-conformal set covering the truth with probability $\ge 1-\alpha$, this gives a finite-sample, distribution-free guarantee $P(\text{infeasible}\mid\text{commit})\le\alpha$, and on the structurally-unmeasured axes the predictor refuses an interval rather than paper over the blind spot. \textbf{The live acquisition loop} resolves the second class (Algorithm~\ref{alg:loop}): on an underdetermined query it commits if decidable, otherwise acquires the top $\VoI$-per-cost \emph{measurable} axis for real, writes the value to a scratch overlay that never touches the frozen store, and re-decides; when only structurally-unmeasured blockers remain it refuses rather than fabricate a value.
+\begin{algorithm}[H]
+\caption{Selective Resolution of an underdetermined decision}\label{alg:resolve}
+\begin{algorithmic}[1]
+\Require query $q$; substrate $S$; conformal radius $\tau_\alpha$; oracle $\mathcal{O}$
+\Statex \emph{Phase 1 --- calibrated transfer (no new measurement).}
+\For{each fragmented-$\bbot$ quality cell $(x,\text{q})$ blocking $q$}
+  \State \textbf{if} axis measurable: belief $\gets[\hat q(x){-}\tau_\alpha,\,\hat q(x){+}\tau_\alpha]$; \textbf{else} skip \Comment{refuse}
+\EndFor
+\State run verdict; \textbf{if} \textsc{Decidable}: \textbf{commit} cheapest; \textbf{return}
+\Statex \emph{Phase 2 --- live acquisition loop (measure what the verdict needs).}
+\Loop
+  \State $a\gets$ top $\VoI$/cost measurable blocking axis; \textbf{if} none: \textbf{refuse}
+  \State \textbf{for} each candidate $x$: belief$(x,a)\gets\mathcal{O}(x,a)$ \Comment{acquire}
+  \State run verdict; \textbf{if} \textsc{Decidable}: \textbf{commit}; \textbf{return}
+\EndLoop
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Phase 1} runs the \emph{unchanged} verdict on a calibrated interval, predicted by leave-one-benchmark-out transfer, rather than a blind point fill. Its guarantee is what makes this safe: the interval is a split-conformal set covering the truth with probability $\ge 1-\alpha$ and a commit fires only when the whole interval clears the threshold, so $P(\text{infeasible}\mid\text{commit})\le\alpha$, finite-sample and distribution-free; on structurally-unmeasured axes it refuses an interval rather than paper over the blind spot. \textbf{Phase 2} spends real measurement only on the axis that most changes the verdict per unit cost, writing it to a scratch overlay that never touches the frozen store, and refuses rather than fabricate a value when only structurally-unmeasured blockers remain.
 
 \begin{table}[h]
 \centering
@@ -289,6 +292,17 @@ Fix a query $q=(\tau, c)$, a regime $R$, and the value-reading semantics: each a
 The bracket is tight in the stated sense: when the non-binding constrained cells and all costs are determined, the only undetermined cells that can flip the optimum are those on binding axes, so (i) and (ii) coincide. The implementation certifies the sufficient condition for decidability and flags underdetermination only via an explicit witness completion, so flagged queries are provably underdetermined and every reported rate is a floor. \hfill$\square$
 
 \subsection{Proof of Theorem~\ref{thm:floor} and Corollary~\ref{cor:voi}}
+
+\begin{theorem}[Regret floor]
+\label{thm:floor}
+On the canonical two-candidate family ($x_{\mathrm{cheap}}$ at cost $1$, $x_{\mathrm{safe}}$ at cost $1{+}\delta$, with one binding axis $a^*\notin\cl(R)$ unmeasured for $x_{\mathrm{cheap}}$ and satisfied by $x_{\mathrm{safe}}$), scoring by $L(\hat{x}) = \max(0, \mathrm{cost}(\hat{x}) - \mathrm{cost}(x^*)) + \lambda \mathbf{1}[\hat{x}\text{ violates}]$, any rule restricted to $R$ that must commit one candidate (deterministic or randomized) has worst-case expected regret at least $\Delta = \delta\lambda/(\delta+\lambda)$, and the bound is attained.
+\end{theorem}
+
+\begin{corollary}[Value of the missing measurement]
+\label{cor:voi}
+The value of information of measuring $a^*$---the reduction in minimax committed regret from observing it---equals $\Delta$ exactly.
+\end{corollary}
+
 The family has two candidates and two worlds. In $W_{\mathrm{fav}}$, $x_{\mathrm{cheap}}$ satisfies the unmeasured binding constraint, so $x^* = x_{\mathrm{cheap}}$: committing $x_{\mathrm{safe}}$ pays cost overshoot $\delta$, committing $x_{\mathrm{cheap}}$ pays $0$. In $W_{\mathrm{unfav}}$, $x_{\mathrm{cheap}}$ violates, so $x^* = x_{\mathrm{safe}}$: committing $x_{\mathrm{cheap}}$ pays $\lambda$, committing $x_{\mathrm{safe}}$ pays $0$. A rule restricted to $R$ observes identical evidence in both worlds (the only differing cell is off-regime), so its (possibly randomized) action is the same: commit $x_{\mathrm{cheap}}$ with probability $p$. Worst-case expected regret is $\max\{p\lambda,\ (1-p)\delta\}$, minimized where the arms are equal: $p^* = \delta/(\delta+\lambda)$, giving value $\delta\lambda/(\delta+\lambda) = \Delta > 0$, attained by $p^*$. For the corollary: a rule that first measures $a^*$ learns the world and commits its optimum, paying $0$ in each; the reduction in minimax regret from the measurement is therefore exactly $\Delta$. \hfill$\square$
 
 The implemented VoI computes precisely this minimax committed regret by resolving the queried axis both ways while holding other pending axes optimistic; Figure~\ref{fig:anchors} (left) verifies the match at $1.1 \times 10^{-16}$ over $\delta \in [0.05, 1.0]$, $\lambda = 1$, and the released test asserts it at relative tolerance $10^{-9}$ over four $(\delta,\lambda)$ pairs.
@@ -654,27 +668,7 @@ This structural gap is precisely the condition under which selective abstention 
 This appendix substantiates the two operational claims of Section~\ref{sec:method}: that a \emph{calibrated transfer} interval cures a guaranteed minority of the co-location failures while certifying the rest require measurement, and that the acquisition loop closes \emph{end-to-end with real measurement}. Both run on the frozen substrate through the immutable C7 interface; an interface-invariance check confirms the substrate snapshot is byte-identical before and after, and a transfer-OFF determinism test asserts every published number is unchanged when the interval injection is disabled.
 
 \paragraph{Method.}
-A fragmented-$\bbot$ quality cell has evidence \emph{somewhere} in the corpus but not for the blocking configuration. Rather than fill it with a point (which commits blind), we predict a \emph{calibrated interval} by transfer from the same model's other benchmarks: a leave-one-benchmark-out two-way additive predictor $\hat{q}[m,B] = \text{coleff}[B] + \text{rowresid}[m]$ (benchmark difficulty from other models, model skill from its other benchmarks; no leakage of the target cell), wrapped in a split-conformal radius $\tau_\alpha$ calibrated on a seeded half of the cells. The interval $[\hat{q}-\tau_\alpha,\ \hat{q}+\tau_\alpha]$ is injected as the belief for that one $\bbot$ cell---via an overlay that synthesizes two observations so the existing $\varphi$ derives $[\mathrm{lo},\mathrm{hi}]$, never writing the frozen store---and the \emph{unchanged} verdict then commits only if the interval lies entirely on the satisfying side of the threshold. On the never-measured structural axes (governance, reviewer burden, energy, throughput, memory/hw) the predictor \emph{refuses} to emit an interval (there is no cross-context signal to transfer), so the method abstains there by construction. Algorithm~\ref{alg:transfer} states the procedure.
-
-\begin{algorithm}[h]
-\caption{Calibrated Transfer}\label{alg:transfer}
-\begin{algorithmic}[1]
-\Statex \textbf{Calibration (once).} Given the RouterBench quality matrix $Q$ over models $m$ and benchmarks $B$, and miscoverage $\alpha$:
-\For{each observed cell $(m,B)$}
-  \State $\hat q[m,B] \gets \mathrm{colEffect}[B] + \mathrm{rowResidual}[m]$ \Comment{leave-one-benchmark-out additive fit}
-\EndFor
-\State split observed cells by a fixed seed into a calibration half $\mathcal{C}$ and a test half
-\State $\tau_\alpha \gets$ the $\lceil(n{+}1)(1{-}\alpha)\rceil/n$ empirical quantile of $\{|q-\hat q|:\mathcal{C}\}$, $n=|\mathcal{C}|$
-\Statex \textbf{Inference (per fragmented-$\bbot$ quality cell of a blocking config $x$).}
-\If{the axis is structurally unmeasured}
-  \State \textbf{refuse}: emit no interval \Comment{no cross-context signal to transfer}
-\Else
-  \State $I \gets [\,\hat q-\tau_\alpha,\ \hat q+\tau_\alpha\,]$ clipped to $[0,1]$
-  \State inject $I$ as the belief for $(x,\text{quality})$ and run the existing verdict
-  \State \textbf{commit} only if $I$ lies entirely on the satisfying side of the threshold
-\EndIf
-\end{algorithmic}
-\end{algorithm}
+A fragmented-$\bbot$ quality cell has evidence \emph{somewhere} in the corpus but not for the blocking configuration. Rather than fill it with a point (which commits blind), we predict a \emph{calibrated interval} by transfer from the same model's other benchmarks: a leave-one-benchmark-out two-way additive predictor $\hat{q}[m,B] = \text{coleff}[B] + \text{rowresid}[m]$ (benchmark difficulty from other models, model skill from its other benchmarks; no leakage of the target cell), wrapped in a split-conformal radius $\tau_\alpha$ calibrated on a seeded half of the cells. The interval $[\hat{q}-\tau_\alpha,\ \hat{q}+\tau_\alpha]$ is injected as the belief for that one $\bbot$ cell---via an overlay that synthesizes two observations so the existing $\varphi$ derives $[\mathrm{lo},\mathrm{hi}]$, never writing the frozen store---and the \emph{unchanged} verdict then commits only if the interval lies entirely on the satisfying side of the threshold. On the never-measured structural axes (governance, reviewer burden, energy, throughput, memory/hw) the predictor \emph{refuses} to emit an interval (there is no cross-context signal to transfer), so the method abstains there by construction. The end-to-end procedure (transfer then acquisition) is Algorithm~\ref{alg:resolve} in the main text.
 
 \begin{figure}[h]
 \centering
@@ -713,27 +707,7 @@ Calibrated transfer ($\alpha{=}0.20$) & 0.257 & 0.000 \\
 \emph{Honest scope.} This is \emph{partial} recovery. On the full 30-benchmark cell set the transferable signal is heavy-tailed (the additive predictor's $R^2$ is $0.81$ but a cluster of benchmarks---including MMLU, ARC-challenge, HellaSwag---is near-unpredictable cross-benchmark), so a distribution-free interval tight enough to guarantee $\le5\%$ risk is wide; the $24.9\%$ recovered are decisions where a strong model sits far from the threshold. The $\sim$25\% is a \emph{structural} ceiling, not an artifact of loose intervals: a locally-adaptive (residual-normalized) split-conformal that tightens intervals and commits $32\%$ more held-out cells at $\alpha{=}0.05$---guarantee preserved (coverage $0.952$, feasibility error $0.022$)---leaves decision recovery \emph{unchanged} at $24.9\%$ (Figure~\ref{fig:frontier}), because the limiter is the decision geometry (whether the cheapest contested config's interval resolves), not interval width. The contribution is therefore not ``transfer recovers most decisions''---it is that transfer recovers a \emph{guaranteed} minority safely and \emph{certifies the majority genuinely require measurement}, which is exactly the paper's thesis and the bridge to the loop.
 
 \paragraph{The live acquisition loop, closed with real measurement (full battery).}
-Algorithm~\ref{alg:loop} states the loop.
-
-\begin{algorithm}[h]
-\caption{Live Acquisition Loop}\label{alg:loop}
-\begin{algorithmic}[1]
-\Require underdetermined query $q$, masked substrate $S$, oracle $\mathcal{O}(x,a)$ returning the measured value
-\State $\text{overlay}\gets\varnothing$ \Comment{scratch beliefs; the frozen store $S$ is never written}
-\Loop
-  \State classify $q$ against $S$ under $\text{overlay}$
-  \If{\textsc{Decidable}} \textbf{commit} cheapest config; \textbf{stop}
-  \ElsIf{\textsc{Infeasible}} \textbf{stop}
-  \EndIf
-  \State $a \gets$ top $\VoI$-per-cost blocking axis that is measurable
-  \If{no such $a$} \textbf{refuse}: only structural blockers remain
-  \EndIf
-  \State \textbf{for} each candidate $x$: $\ \text{overlay}[(x,a)]\gets\mathcal{O}(x,a)$ \Comment{acquire}
-\EndLoop
-\end{algorithmic}
-\end{algorithm}
-
-The simulated 2.0-vs-6.0 acquisition count (Section~\ref{sec:acq}) is here closed end-to-end and swept over the \emph{entire} battery: an underdetermined query triggers the VoI-ranked measurement, whose \emph{measured} value is revealed into the scratch overlay and the verdict re-runs, until commit. Over all \textbf{510} RouterBench decisions (Table~\ref{tab:loop}) the loop commits \emph{every} one with \textbf{0} hidden violations and \textbf{100\%} minimum-sufficient cost. The VoI plan is deterministically optimal---exactly \textbf{1.0} probe when quality is hidden and \textbf{2.0} when quality and cost are both hidden (every one of the 510 decisions, with no exceptions), versus \textbf{2.9}/\textbf{4.0} for random acquisition. Governance has \emph{no} measurement path (Appendix~\ref{app:audit_data}), so when the only remaining blocker is governance the loop \emph{refuses}---raising rather than fabricating a value---and the frozen snapshot is byte-identical after every run. Together with calibrated transfer (which resolves ${\sim}25\%$ for free) this completes a clean three-way split of the co-location gap: curable-by-transfer, resolvable-by-measurement, and structurally-unmeasured.
+The simulated 2.0-vs-6.0 acquisition count (Section~\ref{sec:acq}) is here closed end-to-end (Phase 2 of Algorithm~\ref{alg:resolve}) and swept over the \emph{entire} battery: an underdetermined query triggers the VoI-ranked measurement, whose \emph{measured} value is revealed into the scratch overlay and the verdict re-runs, until commit. Over all \textbf{510} RouterBench decisions (Table~\ref{tab:loop}) the loop commits \emph{every} one with \textbf{0} hidden violations and \textbf{100\%} minimum-sufficient cost. The VoI plan is deterministically optimal---exactly \textbf{1.0} probe when quality is hidden and \textbf{2.0} when quality and cost are both hidden (every one of the 510 decisions, with no exceptions), versus \textbf{2.9}/\textbf{4.0} for random acquisition. Governance has \emph{no} measurement path (Appendix~\ref{app:audit_data}), so when the only remaining blocker is governance the loop \emph{refuses}---raising rather than fabricating a value---and the frozen snapshot is byte-identical after every run. Together with calibrated transfer (which resolves ${\sim}25\%$ for free) this completes a clean three-way split of the co-location gap: curable-by-transfer, resolvable-by-measurement, and structurally-unmeasured.
 
 \begin{table}[h]
 \centering

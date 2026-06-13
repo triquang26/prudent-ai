@@ -1012,3 +1012,13 @@ Restructured the paper so the two methods are presented contributions, not appen
 **Writing-guideline pass** (abstract/§1/§6/§7/§8): operational definitions at first use for *binding axis* and *co-location failure*; de-staccato of the worst em-dash chains; insight-not-factoid (each method states its mechanism).
 
 **Page budget:** held at **9 main-text pages** (§8 and §9 both on page 9), **0 overfull**, **0 undefined refs**. Cuts (moved to appendix, not deleted): regret-floor canonical instance, validation prose, related-work, substrate taxonomy, one robustness item, and the redundant §6 procedure flowchart. No result number changed; 90 tests pass; frozen substrate md5 unchanged.
+
+---
+
+## Round 22 — Algorithm promoted to MAIN text (one combined box)
+
+Reviewer/author asked for the algorithm to be in the main text, not the appendix. Structural fix: replaced the two appendix algorithm floats with **one combined main-text Algorithm 1, "Selective Resolution"** (`alg:resolve`), in §8 on page 9, with two labelled phases — **Phase 1: calibrated transfer** (commit for free under the conformal guarantee) and **Phase 2: live acquisition loop** (measure the VoI-ranked axis, re-decide, refuse on structural axes). Pinned with `\usepackage{float}` `[H]` so it sits in place (no float migration). One combined box is more page-efficient than two separate floats and reads as the unified procedure.
+
+Reclaimed the page via: §3 regret-floor Theorem+Corollary moved to the appendix proof (kept inline as the exact result + reference), `fig:teaser` shrunk 0.66→0.56\linewidth, and tightening of §8/§3/§6 prose now redundant with the algorithm. Removed the two appendix algorithm floats (and the lingering overfull they caused).
+
+**Invariants:** §8 + §9 + `alg:resolve` all on **page 9**; **0 overfull, 0 undefined**; no result number changed; 90 tests pass; frozen substrate md5 unchanged.
