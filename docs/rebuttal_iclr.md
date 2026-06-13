@@ -755,3 +755,41 @@ Abstract now leads with co-location finding and uses 5 numbers instead of 9. Inf
 **W6 — VoI least useful for expensive audit.**
 
 Agreed and now stated explicitly in §8: for a single-blocker expensive audit, VoI certificate adds modest marginal value; the procedure's gain is converting the CERTIFICATE (non-identifiability) into the INSTRUCTION (which specific measurement to acquire). For cheap measurable axes (82.5% of underdetermined decisions), the gain is substantial (2.0 vs 6.0 measurements).
+
+---
+
+## Round 13 — Third reviewer: two-layer reframe, 57.1% repositioned as foil
+
+We thank this reviewer for a precise and honest assessment that identifies the core structural tension.
+
+**W1 / Q1 — The two headline numbers tell different stories; what number do you defend?**
+
+The reviewer is correct. We now lead with the skeptic-robust floor: **75.1%** of decisions are underdetermined without any governance-binding assumption. Of these, 82.5% fail because evidence that *does* exist (cost, latency, quality) is not co-located with the deployment configurations that matter — a gap measurable in principle; 17.5% fail on axes no source measures at all. This two-layer structure is now the framing in the abstract, §1, §5 headline paragraph, and contribution list.
+
+The 91.1% figure is repositioned as an upper bound requiring the contested declared-implies-binding assumption. Our instruments place the binding rate at 0.1% (LLM annotation)–34.5% (OMB structured fields), well below 1. We now state this explicitly: "91.1% is the upper bound; 75.1% is the defensible single number."
+
+On acquisition cost: the reviewer correctly notes that under the skeptical floor, the dominant failure mode is cost co-location (38.2 pp of the 75.1% floor), and cost acquisition is cheap (0.05). We acknowledge this — it is a real but mild finding: the eval ecosystem hasn't measured cost for the specific configs that matter. The structural layer (1.2% under the floor, 17.5% of underdetermined decisions) is the harder, unfixable part. We now state the split explicitly rather than presenting 72.4% structural as the lead number.
+
+**W3 / W4 — 57.1% is on the wrong axis; the real finding is the imputation comparison.**
+
+Accepted. We now position 57.1% explicitly as a foil, not a headline. The informative content is the remedy comparison: median fill = no-op; learned imputer = halves to 30.6%; Bayesian/CC rules = 0% violations only by 70×–127× over-provisioning. The selective procedure is the only approach achieving both zero violations and full coverage. This reframing is now in the abstract, §7 link paragraph, and contribution item 3.
+
+**W2 / Q2 — Declared→binding anchors undercut 91.1%.**
+
+Accepted as a legitimate concession. We concede the 91.1% structural story is the upper bound under an assumption our instruments don't support at p=1. The paper now makes this explicit in §5 ("direct measurements place binding at 0.1%–34.5%, making 91.1% an upper bound"). The 72.4% structural figure remains in the paper but labeled as contingent on the unskeptical reading.
+
+**W5 / Q3 — Single-benchmark validation.**
+
+Acknowledged. RouterBench's 11-model cost-quality geometry is the only available ground-truth slice. Whether the masked-quality picture generalizes is untested; stated as a limitation.
+
+**W6 / Q4 — VoI marginal value for single expensive governance audit.**
+
+Accepted: for a single-blocker expensive audit, VoI adds a certificate of non-identifiability rather than a ranking; already stated in §8. No change needed.
+
+**Summary of structural changes made (round 13):**
+- Abstract: leads with 75.1% floor + 82.5%/17.5% split; 91.1% positioned as upper bound; 57.1% repositioned as foil with imputation comparison foregrounded
+- §1 intro: two-layer diagnosis structure, 75.1% floor first
+- §5 "headline, scoped": floor/upper-bound structure explicit; binding instruments cited
+- Contribution items 2–3: two-layer structure, 57.1% as foil
+- §7 link paragraph: "57.1% is a foil" made explicit
+- §8 conclusion: leads with 75.1% floor + co-location/structural split
