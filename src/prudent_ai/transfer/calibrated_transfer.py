@@ -92,7 +92,9 @@ class CalibratedTransfer:
     def __init__(self, split_seed: int = DEFAULT_SPLIT_SEED) -> None:
         self.split_seed = split_seed
         self._point: dict[str, float] = {}          # config_id -> q̂
+        self._scale: dict[str, float] = {}          # config_id -> ŝ (residual-magnitude)
         self._abs_resid_calib: np.ndarray = np.array([])
+        self._norm_resid_calib: np.ndarray = np.array([])  # |resid|/ŝ on calib half
         # held-out TEST half (disjoint from calibration) for the guarantee check:
         # (config_id, q_true, q_hat) — used to verify coverage ≥ 1−α / feas-err ≤ α.
         self._test_pairs: list[tuple[str, float, float]] = []
@@ -117,60 +119,83 @@ class CalibratedTransfer:
 
         P = _lobo_additive(Q)
         mask = ~np.isnan(Q) & ~np.isnan(P)
-        # store per-config predictions and a parallel cell list (mask/row-major order)
+        R = np.abs(Q - P)  # absolute-residual matrix (NaN where unmasked)
+
+        # per-cell residual-magnitude scale ŝ[i,j] for locally-adaptive (MAD-normalized)
+        # conformal: a leave-one-out estimate of how hard THIS cell is to predict, as the
+        # geometric mean of model m's residual magnitude (over its other benchmarks) and
+        # benchmark B's residual magnitude (over its other models). Unlike the σ_B (label
+        # spread) scale tried in Phase-0b, this tracks the *prediction error*, so
+        # normalizing by it both tightens easy cells and preserves coverage.
+        floor = max(float(np.nanmean(R)) * 0.25, 1e-3)
         inv_m = {i: m for m, i in mi.items()}
         inv_b = {j: b for b, j in bj.items()}
-        cells: list[tuple[str, float, float]] = []  # (config_id, q_true, q_hat)
+        cells: list[tuple[str, float, float, float]] = []  # (cid, q_true, q_hat, ŝ)
         for i in range(len(models)):
             for j in range(len(benches)):
-                if mask[i, j]:
-                    cid = _config_id(slug[inv_m[i]], inv_b[j])
-                    self._point[cid] = float(P[i, j])
-                    cells.append((cid, float(Q[i, j]), float(P[i, j])))
+                if not mask[i, j]:
+                    continue
+                row = R[i].copy()
+                row[j] = np.nan
+                col = R[:, j].copy()
+                col[i] = np.nan
+                row_mae = np.nanmean(row) if np.any(~np.isnan(row)) else floor
+                col_mae = np.nanmean(col) if np.any(~np.isnan(col)) else floor
+                s_hat = max(float(np.sqrt(row_mae * col_mae)), floor)
+                cid = _config_id(slug[inv_m[i]], inv_b[j])
+                self._point[cid] = float(P[i, j])
+                self._scale[cid] = s_hat
+                cells.append((cid, float(Q[i, j]), float(P[i, j]), s_hat))
 
-        # seeded half-split (the gt_guarantee discipline): calibrate τ on one half,
-        # hold out the other for the guarantee check.
-        abs_resid = np.abs(np.array([qt - qh for _, qt, qh in cells]))
+        # seeded half-split (the gt_guarantee discipline): calibrate on one half, hold out
+        # the other for the guarantee check. Store both the raw |resid| (global mode) and
+        # the normalized |resid|/ŝ (locally-adaptive mode) calibration scores.
+        abs_resid = np.array([abs(qt - qh) for _, qt, qh, _ in cells])
+        norm_resid = np.array([abs(qt - qh) / s for _, qt, qh, s in cells])
         idx = np.arange(len(cells))
         rng = np.random.default_rng(split_seed)
         rng.shuffle(idx)
         half = len(idx) // 2
         calib_i, test_i = idx[:half], idx[half:]
         self._abs_resid_calib = abs_resid[calib_i]
-        self._test_pairs = [cells[k] for k in test_i]
+        self._norm_resid_calib = norm_resid[calib_i]
+        self._test_pairs = [(cells[k][0], cells[k][1], cells[k][2]) for k in test_i]
         self._fitted = True
         return self
 
-    def test_guarantee(self, alpha: float) -> dict:
+    def test_guarantee(self, alpha: float, mode: str = "global") -> dict:
         """On the held-out test half: realized interval coverage and the decision-level
         feasibility error among decisive-satisfied commits, swept over query thresholds
-        (p10..p90 of each cell's value is not available here, so we use a fixed grid in
-        [0,1]). The conformal guarantee predicts coverage ≥ 1−α and feas-error ≤ α."""
-        t = self.tau(alpha)
+        (a fixed grid in [0,1]). The conformal guarantee predicts coverage ≥ 1−α and
+        feas-error ≤ α. `mode` ∈ {"global","normalized"}."""
         n = len(self._test_pairs)
-        covered = sum(1 for _, qt, qh in self._test_pairs if qh - t <= qt <= qh + t)
         grid = [round(0.1 * k, 2) for k in range(1, 10)]  # thresholds 0.1..0.9
-        n_commit = n_infeas = 0
-        for _, qt, qh in self._test_pairs:
-            lo = max(QUALITY_DOMAIN[0], qh - t)
+        covered = n_commit = n_infeas = 0
+        widths = []
+        for cid, qt, qh in self._test_pairs:
+            lo, hi = self._interval_from(cid, qh, alpha, mode)
+            widths.append(hi - lo)
+            if lo <= qt <= hi:
+                covered += 1
             for qstar in grid:
                 if lo >= qstar:  # interval entirely satisfies q≥qstar → commit
                     n_commit += 1
                     if qt < qstar:  # true value violates → infeasible commit
                         n_infeas += 1
         return {
-            "alpha": alpha,
-            "n_test": n,
+            "alpha": alpha, "mode": mode, "n_test": n,
+            "mean_interval_width": round(float(np.mean(widths)), 4) if widths else 0.0,
             "interval_coverage": round(covered / n, 4) if n else 0.0,
             "target_coverage": round(1 - alpha, 4),
             "n_decisive_commit": n_commit,
             "feasibility_error": round(n_infeas / n_commit, 4) if n_commit else 0.0,
         }
 
-    def tau(self, alpha: float) -> float:
+    def tau(self, alpha: float, mode: str = "global") -> float:
         if not self._fitted:
             raise RuntimeError("CalibratedTransfer not fitted")
-        return _split_conformal_tau(self._abs_resid_calib, alpha)
+        scores = self._norm_resid_calib if mode == "normalized" else self._abs_resid_calib
+        return _split_conformal_tau(scores, alpha)
 
     def report(self, alpha: float) -> TransferReport:
         t = self.tau(alpha)
@@ -183,34 +208,40 @@ class CalibratedTransfer:
     def predict_point(self, config_id: str) -> float | None:
         return self._point.get(config_id)
 
+    def _interval_from(self, config_id: str, pt: float, alpha: float,
+                       mode: str) -> tuple[float, float]:
+        """Conformal interval around point estimate `pt`, clipped to [0,1].
+        global: pt ± τ_α; normalized: pt ± τ_α·ŝ (locally adaptive)."""
+        t = self.tau(alpha, mode)
+        radius = t * self._scale.get(config_id, 1.0) if mode == "normalized" else t
+        return (max(QUALITY_DOMAIN[0], pt - radius), min(QUALITY_DOMAIN[1], pt + radius))
+
     def predict_interval(
-        self, config_id: str, axis: str, alpha: float,
+        self, config_id: str, axis: str, alpha: float, mode: str = "global",
     ) -> tuple[float, float] | None:
         """Calibrated [lo, hi] for (config, axis), or None (refusal).
 
         Refuses on structural axes and on any non-quality axis (no cross-context signal),
         and on configs with no transfer prediction. Otherwise returns the conformal
-        interval clipped to the quality domain [0,1].
+        interval clipped to the quality domain [0,1]. `mode` selects global (constant τ)
+        or normalized (locally-adaptive τ·ŝ) split-conformal.
         """
         if axis in UNMEASURABLE_AXES or axis not in TRANSFERABLE_AXES:
             return None  # structural / non-transferable → refuse, abstain by construction
         pt = self._point.get(config_id)
         if pt is None:
             return None
-        t = self.tau(alpha)
-        lo = max(QUALITY_DOMAIN[0], pt - t)
-        hi = min(QUALITY_DOMAIN[1], pt + t)
-        return (lo, hi)
+        return self._interval_from(config_id, pt, alpha, mode)
 
     def build_overlays(
         self, alpha: float, axis: str = "quality",
-        config_ids: list[str] | None = None,
+        config_ids: list[str] | None = None, mode: str = "global",
     ) -> dict[tuple[str, str], tuple[float, float]]:
         """Map {(config_id, axis): (lo, hi)} for the requested configs (default: all)."""
         cids = config_ids if config_ids is not None else list(self._point)
         out: dict[tuple[str, str], tuple[float, float]] = {}
         for cid in cids:
-            iv = self.predict_interval(cid, axis, alpha)
+            iv = self.predict_interval(cid, axis, alpha, mode)
             if iv is not None:
                 out[(cid, axis)] = iv
         return out

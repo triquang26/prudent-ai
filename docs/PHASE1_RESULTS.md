@@ -90,3 +90,27 @@ value to fall outside the interval, an event of probability ≤ α. Verified: fe
 
 GATE 1: a usable operating point exists (24.9% recovered at 0% realized risk / ≤5%
 guaranteed) and the guarantee check holds → Tier-1 is a paper-grade (partial) contribution.
+
+## Phase 1b — can a better conformal increase recovery? (locally-adaptive)
+
+`outputs/phase1/normalized_conformal.json` · `experiments/phase1b_normalized_conformal.py`.
+We tested the principled upgrade: a **locally-adaptive (MAD-normalized)** split-conformal
+interval `q̂ ± τ_α·ŝ`, where `ŝ` estimates the per-cell prediction-residual magnitude
+(geometric mean of model- and benchmark-level leave-one-out MAE) — tight where the model
+predicts well, wide where it does not. (This fixes the Phase-0b failure, which normalized
+by the wrong scale `σ_B`, the label spread, and broke the guarantee.)
+
+| | held-out decisive commits @α=0.05 | mean width | coverage | feas-error | **battery recovery** |
+|---|---|---|---|---|---|
+| global | 136 | 0.478 | 0.970 | 0.007 | **24.9%** |
+| **normalized** | **180 (+32%)** | 0.377 | 0.952 | 0.022 | **24.9%** |
+
+**The upgrade works at the interval level but not the decision level.** Normalized conformal
+tightens intervals and commits 32% more held-out cells while *preserving* the guarantee
+(coverage ≥ 1−α, feas-error ≤ α) — but **recovery of actual decisions through the real
+verdict is unchanged (~25%)**. The reason: recovery is capped by the *decision geometry*
+(whether the cheapest contested config's quality interval resolves at the query threshold),
+not by interval width on arbitrary cells. So **~25% is a structural ceiling at this risk
+level**, not an artifact of loose intervals — which reinforces the thesis: the remaining
+~75% genuinely require measurement, and no better interval recovers them. Test:
+`test_normalized_conformal_holds_guarantee` (90 tests pass).

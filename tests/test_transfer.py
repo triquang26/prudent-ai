@@ -41,6 +41,19 @@ def test_unknown_config_refuses(transfer: CalibratedTransfer) -> None:
     assert transfer.predict_interval("rb-nonexistent-foo", "quality", 0.05) is None
 
 
+def test_normalized_conformal_holds_guarantee(transfer: CalibratedTransfer) -> None:
+    """Locally-adaptive mode tightens intervals but still meets coverage ≥ 1−α
+    and decision-level feasibility error ≤ α on held-out truth."""
+    for alpha in (0.05, 0.10, 0.20):
+        g = transfer.test_guarantee(alpha, mode="normalized")
+        assert g["interval_coverage"] >= (1 - alpha) - 0.03
+        assert g["feasibility_error"] <= alpha + 0.02
+    # structural refusal still holds in normalized mode
+    cid = next(iter(transfer._point))
+    assert transfer.predict_interval(cid, "governance", 0.05, mode="normalized") is None
+    assert transfer.predict_interval(cid, "quality", 0.05, mode="normalized") is not None
+
+
 def test_tau_monotone_in_alpha(transfer: CalibratedTransfer) -> None:
     # smaller α (more coverage) → wider interval
     assert transfer.tau(0.05) >= transfer.tau(0.10) >= transfer.tau(0.20)
