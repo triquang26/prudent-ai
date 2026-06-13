@@ -1047,3 +1047,22 @@ New computed result (not fabricated): the missing 2×2 corner — **bounded comp
 - **Item 10 (framing):** the "we contribute both halves (diagnosis AND guaranteed methods)" positioning is already at the end of §1.
 
 9 main-text pages (§8+§9 page 9), 0 overfull, 0 undefined; 90 tests pass; frozen substrate md5 unchanged; no result number changed (41.0% is the computed value from round 23).
+
+---
+
+## Round 25 — Floor-first reframe (the trunk is bounding-of-a-floor, not x>y)
+
+Decision: the paper's axis is the identifiability flip, realized as a **bounding claim** — "at least 41% of real deployment decisions are irreducibly undecidable from public evidence, an unshrinkable floor." The selective procedure (x>y) is the *teeth* (proof the diagnosis has consequences and is actionable), not a co-equal headline.
+
+New computed number (#9): **bounded × p grid** (run_bounded_p_grid.py) → at the OMB anchor p=0.345 under bounded completion the rate is **48.1%** (the *anchored belief-robust estimate*), monotone between the 41.0% floor and 56.9%. Frozen db md5 unchanged.
+
+**Name system applied at the lead (#1):** 41.0% = *certified floor* (the finding), 56.9% = *belief-robust rate*, 75.1% = *skeptic floor*, 91.1% = *adversarial ceiling* (never "headline").
+
+- **Abstract (#3):** flip-first → floor-first; 41.0% is *the finding*; ceiling labelled in-place as exceeding our own evidence (anchor 34.5%, anchored rate 48.1%).
+- **Intro (#4) + Contributions #2 (#5):** 41% as the subject of the claim; "the floor, not the ceiling, carries the claim."
+- **§5 (#6,#7,#9,#10):** section title → "At Least 41% … Irreducibly Underdetermined"; topic sentence "The certified floor is 41.0%"; **2×2 table promoted to main §5** (Table 1) with all four corners labelled; 48.1% anchored estimate; the three binding anchors stated as *floors on declared binding, not estimates of true binding* (truth ≥ floor; axis must be measured).
+- **Figure 2 (#8):** caption labels the bars as the adversarial-ceiling reading and surfaces the 41% certified floor.
+- **Conclusion (#11):** ends on floor + teeth, not a range.
+- **Consistency (#12):** main-text "91.1% headline" framings → "adversarial ceiling"; fig:extval caption + §9 scope updated.
+
+9 main-text pages (§9 page 9), 0 overfull, 0 undefined; 90 tests pass; frozen substrate md5 unchanged; no result number changed (41.0/48.1/56.9 all computed). Residual generic "headline" shorthand remains in some appendix robustness prose (lower-priority polish).
