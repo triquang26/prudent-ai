@@ -687,3 +687,33 @@ Combined with the existing negative-control (random prior → 12.4% underdetermi
 **Experiment D (supplementary):** No public dataset pairing specific model configurations with audited governance verdicts was found across FedRAMP, NIST AI RMF, EU AI Act, and FDA SaMD databases. This absence is structural: governance regimes authorize systems/services, not model-weight checkpoints. The structural gap is itself empirical support for the paper's central claim.
 
 **Paper changes:** §5 adds a signposted anti-circularity paragraph with the (a)/(b)/(c) decomposition figure; §7 extends the governance harm result to all three gates; the binding-rate paragraph now cites both measured anchors (p̂ = 7.97%, p̂_OMB = 34.5%). Main text remains at exactly 9 pages; appendix adds sections covering A1–A3, B, C, and D methodology.
+
+---
+
+## Round 11 — Reviewer response: headline range reframing, governance harm scoping, missing-as-satisfied
+
+**Thank you for the thorough and constructive review. We address each weakness and question directly.**
+
+**W1 / Q1 — Headline number and defensibility.**
+
+The range [56.9%, 91.1%] is the finding; 75.1% is the defensible floor and we agree it should lead more prominently. The existing robustness checks already establish this: the p-sweep, joint-drop, negative-control, and three-corpus replication all converge on 75.1% as the "honest core." The three measured binding-rate anchors (p̂_32B ≈ 0.001, p̂_kw = 7.5%, p̂_OMB = 34.5%) span the full plausible binding range and all map to headlines within [75.1%, 82%] — firmly establishing the floor independently of the declared→binding assumption. We are repositioning the abstract and introduction to lead with the range, with 75.1% as the defensible core and 91.1% as the full-domain upper bound. No published number changes; the presentation order does.
+
+**W2 / Q2 — Governance harm: decidability claim plus proxy.**
+
+Appendix K (Experiment D) documents that no real config-level governance audit dataset exists structurally — governance regimes authorize systems, not model checkpoints, so the structural absence is itself an empirical finding. We reframe the governance harm claim in two explicit parts: (1) a decidability claim — governance axes are ⊥ everywhere in the substrate, so governance-binding decisions are structurally underdetermined under Proposition 1; and (2) proxy validation — the multi-gate experiment (G1–G3: HVR range 8.0%–45.3%; min(HVR) = 8.0% > 0 across all three independent categorical gates; B5-oracle achieves 0% violations in every gate when governance is measured) shows the harm mechanism operates whenever a categorical gate is measurable. We do not claim the HVR figures transfer to unobservable governance constraints; we demonstrate that the mechanism functions on governance-shaped categorical axes, and the decidability argument covers the rest. The governance harm claim is now stated as decidability + proxy throughout §7 and the abstract.
+
+**W3 / Q3 — Missing-as-satisfied and practitioner knowledge.**
+
+This is a sharp observation and deserves direct treatment. A practitioner who already knows their governance constraint can apply it manually — this is precisely what oracle baseline B5 models, which achieves 0% violations across all three gates (G1–G3) by construction. The 8%–45% harm arises in blind-commit rules (B2/B3/B6) precisely because governance constraints are genuinely unmeasured in the substrate: a practitioner in a GDPR context does not know ex ante whether their candidate configuration is EU-data-residency-compliant without conducting the assessment, just as a deployer has not acquired quality measurements prior to running the audit. For the measurable-axis battery the same convention applies: B5 = 0% is the "apply manually" answer, and the gap B2–B5 (16.7% to 45.3% across gates) is the measurable harm of operating without the data. We add a paragraph in §7 making this B2-vs-B5 interpretation explicit.
+
+**W4 — Practical utility.**
+
+We agree the "procedure" contribution is weaker than the "diagnosis" contribution and are repositioning accordingly. The abstract and contributions now foreground the diagnosis ("evaluation-ecosystem blind spot") with the ranked acquisition plan as a secondary implication. The 2.0 vs 6.0 acquisition-plan win holds on measurable axes where VoI has traction; for expensive governance audits, VoI's value reduces to a certificate of non-identifiability — knowing the decision is genuinely unidentified (VoI > 0) vs. already resolved (VoI = 0) has real value even when the ranking order is trivial, particularly for audits costing $100K–$500K where the decision to acquire vs. abstain is itself high-stakes. We now state this explicitly as a feature of the procedure rather than leaving it implicit.
+
+**W5 — Minor structural points.**
+
+Three items: (1) *Infeasible verdict empirically empty*: confirmed — 0/1,716 queries are infeasible on this corpus, the system is two-valued (decidable vs. underdetermined) in practice; a note is added to §4 and Appendix G. (2) *"First..." claims*: softened throughout to "to our knowledge," matching standard hedging. (3) *Abstract number-saturated*: the abstract is trimmed from ~15 inline statistics to ~8, leading with the mechanism ("governance declared in 55.6%, measured in 0%") and the range [56.9%, 91.1%], with secondary numbers moved to the body or contributions list.
+
+**Q4 — Independent taxonomy check.**
+
+Three independent checks establish that the taxonomy is not tuned beyond its negative control. (1) *Negative-control prior* (12.4%): a prior that binds only measured axes produces 12.4% underdetermined — the governance/reviewer-burden mappings are the identified cause, not the decidability machinery, which resolves cleanly when those axes are removed from demand. (2) *(a)/(b)/(c) decomposition*: 82.5% of underdetermined decisions (1,289/1,563) are type-(b) co-location failures on measurable axes — cost, latency, quality — which have nothing to do with the governance taxonomy; only 17.5% (274 decisions) are type-(a) structural absences on unmeasured axes, so the headline cannot be an artifact of how governance tags are drawn. (3) *Single-deletion robustness*: every individual tag-to-axis mapping can be deleted (86+ mappings), and the headline stays ≥ 83.2%; the largest single influence is the human-review mapping (−7.9 points), consistent with reviewer burden being declared in 43.8% of deployments. A taxonomy tuned to produce a high headline would not survive 86 independent single-deletion stress tests with a minimum of 83.2%.
