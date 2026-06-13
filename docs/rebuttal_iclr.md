@@ -1035,3 +1035,15 @@ New computed result (not fabricated): the missing 2×2 corner — **bounded comp
 - **20.5% pull (item 7):** §5 now states only 20.5% of underdetermined queries are *purely* measurable; the rest leave a structural blocker after resolving co-location.
 
 9 main-text pages (§8+§9 on page 9), 0 overfull, 0 undefined; 90 tests pass; frozen substrate md5 unchanged. Remaining (lower-priority, follow-up): items 3 (intro method clause), 4 (contributions 2/4 rewrite + three-valued soft-pedal), 8 (theorem soft-pedal), 9 (taxonomy release + tag/human confusion matrix), 10 (framing).
+
+---
+
+## Round 24 — remaining reframing items (3,4,8,9,10)
+
+- **Item 3 (intro):** §1 finding rewritten to the nested triple (41.0% core → 56.9% → 75.1–91.1%); added a **bolded novelty sentence** — the delta from selective prediction (Chow 1970; El-Yaniv & Wiener 2010) is that the trigger is non-identifiability from missing evidence and the abstention is informative.
+- **Item 4 (contributions):** contribution 2 → nested triple + only-20.5%-purely-measurable; **soft-pedalled the three-valued verdict** (contribution 1 now notes the infeasible label is empirically empty, 0/1716). §9 conclusion updated to the nested triple for consistency.
+- **Item 8 (theorem soft-pedal):** appendix now states Theorems 1–2 are elementary (a 2×2 zero-sum game and its minimax generalization), their role being to give the implemented VoI a closed-form target, not a hard theoretical result.
+- **Item 9 (taxonomy release):** reproducibility statement now releases the full taxonomy (tag list, tag→axis map, LLM prompts, keyword patterns), anonymized. **Confusion matrix skipped** — the human-annotation kit was generated but never filled (task pending), so there are no human labels to build a tag-vs-human matrix; flagged for the user.
+- **Item 10 (framing):** the "we contribute both halves (diagnosis AND guaranteed methods)" positioning is already at the end of §1.
+
+9 main-text pages (§8+§9 page 9), 0 overfull, 0 undefined; 90 tests pass; frozen substrate md5 unchanged; no result number changed (41.0% is the computed value from round 23).
