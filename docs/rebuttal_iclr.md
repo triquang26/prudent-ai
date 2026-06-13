@@ -793,3 +793,88 @@ Accepted: for a single-blocker expensive audit, VoI adds a certificate of non-id
 - Contribution items 2–3: two-layer structure, 57.1% as foil
 - §7 link paragraph: "57.1% is a foil" made explicit
 - §8 conclusion: leads with 75.1% floor + co-location/structural split
+
+---
+
+## Round 14 — Fourth reviewer response: Q1–Q4 direct answers; W3 concession; governance hierarchy
+
+We thank this reviewer for the most precise assessment yet. The concerns are all legitimate; several require concrete concessions.
+
+---
+
+### Direct answer to Q1: what is the strongest defensible version of the governance claim?
+
+Yes — the reviewer's framing is correct. The paper's strongest defensible claim is:
+
+**(A) Decidability claim (verified, no governance ground truth required):** governance axes are ⊥ for every configuration in every source. By Proposition 1, any query that binds a ⊥ axis is structurally underdetermined. This is verified directly from the corpus: 0 configurations carry a governance observation.
+
+**(B) Mechanism claim (validated on measurable axes):** the harm mechanism — when a binding axis is unmeasured, blind commitment violates in proportion to binding frequency — is validated on quality (57.1%, RouterBench) and on a governance-shaped categorical proxy (self-hostability, 16.7%–53.3%). These two validation points span different constraint types: a continuous quality axis and a binary license-derived gate.
+
+**(C) Governance harm rate: unknowable.** No public dataset pairs configurations with audited governance verdicts (Appendix K). We do not claim a governance harm rate.
+
+We now state this hierarchy explicitly: "(A) decidability → (B) mechanism demonstrated on measurable axes + proxy → (C) governance harm rate unknowable." The paper's governance contribution is (A) plus supporting (B); nothing rests on (C). We accept this scoping.
+
+---
+
+### W3 / Q2: re-split the 82.5% co-location layer by acquisition cost
+
+The reviewer is correct that "cheaply closable in principle (82.5%)" overstates. The axis-level decomposition gives:
+
+| Co-location (type-b) blocker | Appearances | Acquisition cost |
+|---|---|---|
+| Cost | 1,289 (all co-loc queries) | ~free (0.05: price sheet) |
+| Latency | 557 | moderate ($10–$100: load-test) |
+| Quality | 70 | expensive ($85–$11k: full eval run) |
+
+Within the 1,289 co-location queries, cost-**only** sole blocker = **9.7% of underdetermined** (151 queries) — these are genuinely cheaply resolvable. The remaining **72.8%** also require latency, quality, **or** governance/reviewer_burden measurement; only the 9.7% cost-sole subset is cheap in the price-sheet sense.
+
+We have corrected the abstract's "cheaply closable in principle (82.5%)" to: *"co-location failures on measurable axes (82.5%, all cost-mediated, but ~88% also require latency, quality, or governance measurement)"*. The "cheap" claim applies precisely to the 9.7% cost-only subset, which we now state explicitly.
+
+This correction actually **strengthens** the paper's argument: the co-location gap is harder to close than previously implied, making the case for the selective procedure more compelling — not less.
+
+---
+
+### W1: validated harm on quality, not governance
+
+Accepted as written. The 57.1% harm result validates the mechanism on quality. For governance, the claim is (A) above: decidability, not harm. We now say this hierarchy in §7.
+
+On the self-hostability proxy: it is a constructed categorical gate, not audited governance. Its function is to show the mechanism operates on a **governance-shaped** constraint (binary, license-grounded, not a continuous measurement) — distinct from the quality validation. The two together demonstrate the mechanism across constraint types, not across the governance axis itself.
+
+The paper already states in §7: "we do not claim the 57.1% transfers to governance, which stays a decidability claim." We have now made "57.1% is a foil, not the conclusion" explicit in the section, with the imputation comparison as the operative finding.
+
+---
+
+### W2: p̂_32B ≈ 0.001 undercuts 91.1%
+
+Accepted and already addressed in round-13: 91.1% is labeled the upper bound, 75.1% the defensible floor. p̂ = 0.001 is the strict annotation floor (most engineering write-ups do not state governance constraints explicitly; the LLM labels explicit binding, not deployment-level constraint). OMB = 34.5% is from structured self-reported government fields — the upper end of a real-world range. The range 0.1%–34.5% is well below 1, confirming 91.1% as an upper bound.
+
+The important point: **75.1% requires no governance-binding assumption at all** — it is driven by cost co-location, which is governance-independent. The 75.1% finding stands regardless of p̂.
+
+---
+
+### W6: 57.1% in abstract and Fig 1 vs. "foil" in §7
+
+This is a legitimate presentation tension we have now resolved. The abstract now leads with the imputation comparison ("median fill is a no-op; a learned imputer halves it to 30.6%; Bayesian/CC rules escape only by 70×–127× over-provisioning; the selective procedure is the only method achieving both zero violations and full coverage"). The 57.1% is still reported as the measured baseline rate but is no longer the headline number. Figure 1 caption retains 57.1% as the violation rate of blind baselines but frames it as the starting point for the comparison, not the conclusion.
+
+---
+
+### Q3: co-location = demand or infrastructure?
+
+Both are necessary, and the combination is the finding. **Demand side:** real deployments require simultaneous satisfaction of cost + quality + latency + governance; these axes must co-occur on the same configuration. **Infrastructure side:** the eval ecosystem measures each axis in a different silo — benchmark suites for quality, production monitoring for cost, MLPerf/ML.ENERGY for throughput and energy. The silos reflect how different scientific communities organize (hardware engineers, NLP researchers, ops teams) — it is infrastructure by design, not by accident. The fragmentation is a structural consequence of this organization meeting multi-axis deployment demand.
+
+Evidence that this is infrastructure, not taxonomy: scaling to 20 sources adds zero co-location (App C); safety leaderboards measure model safety, not deployment governance; the fragmentation persists across corpora with maximally different selection methods (ZenML, Evidently, OMB). The co-location failure is a genuine infrastructure finding.
+
+---
+
+### Q4: what does Theorem 2 buy beyond anchoring the implementation?
+
+Three things: (1) it establishes that the abstention's named measurement is not arbitrary — it is worth **exactly** the minimax committed regret any rule must incur for deciding without it; (2) the machine-precision verification confirms the implementation matches the theory (not a guarantee over the query distribution, as stated); (3) Theorem 2 generalizes beyond the 2×2 case to any finite instances (App A), providing a decision-theoretic foundation for the VoI computation in multi-blocker settings. The mathematics is classical (minimax + EVPI), as we concede — the contribution is the **evidence-regime framing** (regret indexed by which axes carry evidence), not the algebra.
+
+---
+
+### Summary of paper changes made in response to this review
+
+1. **Abstract**: Removed "cheaply closable in principle (82.5%)"; replaced with honest language about the cost-split within co-location failures.
+2. **Round-13 changes**: 75.1% floor as defensible number; 91.1% as upper bound; 57.1% as foil; imputation comparison foregrounded — all remain.
+3. **Governance hierarchy**: §7 now explicitly states: "(1) decidability claim (verified), (2) mechanism validated on measurable axes, (3) governance harm rate unknowable."
+4. **Q2 decomposition**: cost-only resolvable = 9.7% of underdetermined; the rest require moderate/expensive/structural measurement. Added to §5 robustness and rebuttal.
