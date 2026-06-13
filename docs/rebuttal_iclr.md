@@ -907,3 +907,35 @@ Under the floor (governance+reviewer_burden removed), the 1,289 underdetermined 
 This is honest about the cost structure: the floor is dominated by cost co-location (cheap) but 48.6% also requires latency/quality measurement.
 
 **Headline now anchored at 75.1%** (defensible floor, no assumptions). 91.1% = contested upper bound, clearly labeled. Abstract compressed to 7 key numbers. §5 "headline, scoped" paragraph has the cross-tab inline with appendix reference.
+
+---
+
+## Round 16 — Root-cause fix for score regression (5→6 path per Reviewer 5)
+
+**Why the score went from 6 to 5:** Rounds 13–15 added the cross-tab decomposition (20.5%/62.0%/17.5%) and skeptic-floor breakdown (51.4%/43.2%/5.4%) responding to Reviewers 3–4. This pushed the abstract to 11+ numbers, directly triggering Reviewer 5's W7 ("percentage soup"). Reviewer 5 has opposite preferences: wants ONE defensible number as the headline, not more decompositions.
+
+**What Reviewer 5 said explicitly:** "A revision that leads with the defensible structural number, reframes the baseline to the correct population, and halves the percentage soup would move this to a clear accept for me."
+
+**Changes implemented:**
+
+### W7 — Halve the percentage soup (abstract: 11+ numbers → 5 numbers)
+
+New abstract leads with **56.9%** (criterion-robust) + **47.3 pp structural** (83%), then the bracket **75.1%–91.1%** (1 range), then **57.1%** harm foil, then **zero violations**. Total: 5 numbers/ranges. Cross-tab and floor decompositions moved to appendix pointers.
+
+### W3 — Reframe B2 baseline population
+
+Changed "the community's honest default" → **"the pre-measurement default"** throughout §1/§6. This makes explicit that B2 models a deployer who has not yet acquired the missing measurement, not the community's intended best practice.
+
+### W4 — Concede governance is definitional
+
+Added to §6 governance hierarchy layer (i): "governance, as a property of (config, jurisdiction, use-case), is absent from every configuration-level source **by construction**; any governance-binding decision is structurally underdetermined." The contribution is quantifying how often this blocks decisions, not discovering it.
+
+### W5 — Query distribution qualifier
+
+Added "using the text of each deployment description as input to" the tag-to-axis taxonomy in §4. Makes explicit that queries are derived from deployment descriptions, not invented.
+
+### W6 — Demote VoI machine-precision
+
+Contributions C4: changed "numerically verified" → "confirmed as an implementation check (not a result over the query distribution)."
+
+**Page constraint:** held at exactly 9 main-text pages, 0 overfull boxes. The abstract compression (-45 words) offset all additions; §1 intro paragraph tightened to compensate for §5 restructuring.
