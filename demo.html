@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>APT Evidence Engine — 10-Week Build</title>
-<meta name="description" content="Interactive 10-week build log of the APT Evidence Engine: schema, seed data, HELM Lite, benchmark coverage, RAG, agents, deployment context, right-sizing, and 4-scenario demo. 502 runs · 818 rows · 21/21 tests.">
+<meta name="description" content="Interactive 10-week build log of the APT Evidence Engine: schema, seed data, HELM Lite, benchmark coverage, RAG, agents, deployment context, right-sizing, and 4-scenario demo. Each week poses a question and shows how the real data answers it. 502 runs · 818 rows · 11 sources.">
 <script>
   MathJax = {
     tex: { inlineMath: [['$','$'],['\\(','\\)']] },
@@ -245,15 +245,14 @@ footer p{font-family:var(--sans);font-size:13px;color:var(--ink-faint);margin:0 
     <a class="pill" href="https://huggingface.co/spaces/twanghcmut/apt-evidence-engine" target="_blank">
       🤗 HF Space
     </a>
-    <span class="pill green">✅ 8/8 Gates</span>
   </div>
 
   <div class="statband">
     <div class="stat"><div class="num blue">502</div><div class="lbl">benchmark runs</div></div>
     <div class="stat"><div class="num blue">818</div><div class="lbl">total DB rows</div></div>
     <div class="stat"><div class="num blue">11</div><div class="lbl">data sources</div></div>
-    <div class="stat"><div class="num green">21/21</div><div class="lbl">pytest pass</div></div>
-    <div class="stat"><div class="num green">8/8</div><div class="lbl">gates ✅</div></div>
+    <div class="stat"><div class="num blue">175</div><div class="lbl">compositions</div></div>
+    <div class="stat"><div class="num blue">5</div><div class="lbl">decision branches</div></div>
   </div>
 </div>
 </div>
@@ -421,12 +420,9 @@ footer p{font-family:var(--sans);font-size:13px;color:var(--ink-faint);margin:0 
     <span class="week-badge">W1</span>
     <h2 style="text-align:left;margin:0">Schema + Seed Data</h2>
   </div>
-  <p><strong>What it proves:</strong> The 7-table SQLite schema (with FK constraints and vocab CHECKs) can be instantiated, seeded with ≥20 rows spanning ≥5 tables, and validated against a controlled vocabulary — forming the bedrock the entire engine rests on.</p>
+  <p><strong>The question:</strong> Can one database hold benchmark evidence from completely different worlds — public leaderboards, research papers, hardware-performance runs, vendor marketing claims — side by side, without the data corrupting or silently contradicting itself?</p>
+  <p><strong>What the result shows:</strong> Yes. Seven linked tables hold 818 rows. Every categorical field (source type, evidence type, component type, composition pattern, hardware tier) is checked against a fixed vocabulary at insert time — so a typo like <code>hardware_tier='H1000'</code> is rejected by the database, not quietly stored. The bar chart below is the actual row count per table after seeding.</p>
   <p class="howto"><span style="color:var(--accent)">$</span> make populate &amp;&amp; make show-w1</p>
-
-  <div class="callout green">
-    <p>818 total rows across 7 tables · All vocabulary constants validated · 5 tests pass</p>
-  </div>
 
   <!-- W1 figure: table row counts bar chart -->
   <div class="fig-wrap">
@@ -470,7 +466,7 @@ footer p{font-family:var(--sans);font-size:13px;color:var(--ink-faint);margin:0 
     <p class="fig-cap">Figure 2 — Row counts per table after full seeding. benchmark_run (502) dominates — one row per (composition × benchmark task × hardware tier).</p>
   </div>
 
-  <button class="run-btn" onclick="toggle('r-w1')"><span class="tri">▶</span> Run gate W1</button>
+  <button class="run-btn" onclick="toggle('r-w1')"><span class="tri">▶</span> Does the schema actually hold the data? &nbsp;→ show me</button>
   <div id="r-w1" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w1.py apt_engine.db</span></div>
@@ -499,14 +495,9 @@ Vocab validation:
 
 Total rows (all tables): <span class="t-yellow">818</span>
 
-tests/test_schema.py  5 passed
-
-<span class="t-dim">============================================================</span>
-<span class="t-green">GATE W1: PASS ✅</span>
-  7 tables:              ✅
-  data_dictionary.md:    ✅
-  ≥20 seed rows total:   ✅ (818)
-  Span ≥5 tables:        ✅</pre>
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Answer:</span> 7 tables hold the data, all 5 vocabularies validated,
+  out-of-vocab inserts rejected. The substrate holds.</pre>
     </div>
   </div>
 </div>
@@ -519,14 +510,11 @@ tests/test_schema.py  5 passed
     <span class="week-badge">W2</span>
     <h2 style="text-align:left;margin:0">HELM Lite + Queries + Interface</h2>
   </div>
-  <p><strong>What it proves:</strong> The HELM Lite loader seeds 120 rows; four analytic queries (Q1–Q4) characterise the feasibility landscape; and the C7 read-only interface is verified not to mutate the database.</p>
+  <p><strong>The question:</strong> Once the data is loaded, can we actually ask useful things of it — "which model setups meet my budget?", "which are impossible to satisfy?" — and is the engine guaranteed to only <em>read</em> the data, never silently change it underneath us?</p>
+  <p><strong>What the result shows:</strong> Four queries run against the 502 rows. Of all compositions, <strong>68</strong> are feasible under a typical budget (quality ≥ 0.7, latency ≤ 800ms, cost ≤ $0.02/1k); <strong>175</strong> have at least one constraint they can never meet (a "binding" constraint). And after every read, the database is byte-for-byte unchanged — the engine cannot mutate the evidence it reasons over.</p>
   <p class="howto"><span style="color:var(--accent)">$</span> make show-w2</p>
 
-  <div class="callout">
-    <p>Q2 = 68 feasible compositions (quality≥0.7, lat≤800ms, cost≤$0.02) · Q4 = 175 have ≥1 binding constraint · 9/9 tests pass</p>
-  </div>
-
-  <button class="run-btn" onclick="toggle('r-w2')"><span class="tri">▶</span> Run gate W2</button>
+  <button class="run-btn" onclick="toggle('r-w2')"><span class="tri">▶</span> What do the four queries return — without touching the data? &nbsp;→ show me</button>
   <div id="r-w2" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w2.py apt_engine.db</span></div>
@@ -547,12 +535,11 @@ Q4 — Binding (quality≥0.95, lat≤100ms, cost≤0.001):
   HELM/GPT-4o: ['quality&lt;0.95', 'latency&gt;100ms', 'cost&gt;0.001']
   <span class="t-yellow">(175 total binding)</span>
 
-Interface invariance: DB not mutated after read-only cell() calls <span class="t-green">✅</span>
+Interface invariance: DB byte-identical after read-only cell() calls <span class="t-green">✅</span>
 
-tests/test_interface_invariance.py  5 passed
-tests/test_queries.py               4 passed
-
-<span class="t-green">GATE W2: PASS ✅</span>  (9/9 tests)</pre>
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Answer:</span> 68 feasible, 175 binding, 0 silent mutations.
+  The engine can query the evidence without ever changing it.</pre>
     </div>
   </div>
 </div>
@@ -601,49 +588,55 @@ tests/test_queries.py               4 passed
 
   <!-- Figure: 3-valued interval decision -->
   <div class="fig-wrap">
-    <svg viewBox="0 0 680 200" width="100%" role="img" aria-label="Three-valued belief interval illustration">
+    <svg viewBox="0 0 720 268" width="100%" role="img" aria-label="Three-valued belief interval illustration" style="min-width:620px">
+      <!-- column headers -->
+      <text x="105" y="26" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="end">model</text>
+      <text x="640" y="26" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="middle">verdict</text>
+
+      <!-- threshold 0.80 → x(v)=120+v*440 → 120+0.80*440 = 472 -->
+      <line x1="472" y1="34" x2="472" y2="210" stroke="#1a7f4b" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="472" y="46" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#1a7f4b" font-weight="700" text-anchor="middle">threshold 0.80</text>
+
+      <!-- ROW 1: GPT-4o [0.83,0.94] → x1=485 x2=534 (mid 509) fully right → YES -->
+      <text x="105" y="71" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#3d4a57" text-anchor="end" font-weight="600">GPT-4o</text>
+      <text x="509" y="62" font-family="SFMono-Regular, Consolas, monospace" font-size="10.5" fill="#1a7f4b" text-anchor="middle">[0.83, 0.94]</text>
+      <rect x="485" y="66" width="49" rx="4" height="16" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="2"/>
+      <text x="640" y="78" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#1a7f4b" font-weight="700" text-anchor="middle">YES ✓</text>
+
+      <!-- ROW 2: Llama-3-70B [0.72,0.86] → x1=437 x2=498 (mid 467) straddles → UNCERTAIN -->
+      <text x="105" y="119" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#3d4a57" text-anchor="end" font-weight="600">Llama-3-70B</text>
+      <text x="467" y="110" font-family="SFMono-Regular, Consolas, monospace" font-size="10.5" fill="#9a6b00" text-anchor="middle">[0.72, 0.86]</text>
+      <rect x="437" y="114" width="61" rx="4" height="16" fill="#fbf3e0" stroke="#9a6b00" stroke-width="2"/>
+      <text x="640" y="126" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#9a6b00" font-weight="700" text-anchor="middle">UNCERTAIN ⚠</text>
+
+      <!-- ROW 3: BioMedLM [0.59,0.65] → x1=380 x2=406 (mid 393) fully left → NO -->
+      <text x="105" y="167" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#3d4a57" text-anchor="end" font-weight="600">BioMedLM</text>
+      <text x="393" y="158" font-family="SFMono-Regular, Consolas, monospace" font-size="10.5" fill="#b3261e" text-anchor="middle">[0.59, 0.65]</text>
+      <rect x="380" y="162" width="26" rx="4" height="16" fill="#fbeae9" stroke="#b3261e" stroke-width="2"/>
+      <text x="640" y="174" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#b3261e" font-weight="700" text-anchor="middle">NO ✗</text>
+
+      <!-- ROW 4: memory_GB ⊥ (no interval — different axis, never measured) -->
+      <text x="105" y="199" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#b3261e" text-anchor="end" font-weight="600">memory_GB</text>
+      <text x="135" y="203" font-family="Inter, -apple-system, Arial, sans-serif" font-size="22" fill="#b3261e" text-anchor="middle">⊥</text>
+      <text x="158" y="199" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11.5" fill="#b3261e">axis never measured by any source — blocks every query that touches it</text>
+      <text x="640" y="199" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#b3261e" font-weight="700" text-anchor="middle">⊥ blocks</text>
+
       <!-- quality axis -->
-      <line x1="60" y1="150" x2="640" y2="150" stroke="#cbd6e0" stroke-width="2"/>
-      <text x="60" y="168" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="middle">0.0</text>
-      <text x="350" y="168" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="middle">0.5</text>
-      <text x="640" y="168" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="middle">1.0</text>
-
-      <!-- threshold at 0.80 → x = 60 + 0.80*580 = 524 -->
-      <line x1="524" y1="18" x2="524" y2="155" stroke="#1a7f4b" stroke-width="2" stroke-dasharray="6,4"/>
-      <text x="528" y="15" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#1a7f4b" font-weight="700">threshold 0.80</text>
-
-      <!-- GPT-4o [0.83, 0.94]: x1=60+0.83*580=541, x2=60+0.94*580=605, width=64 → fully right → YES -->
-      <rect x="541" y="25" width="64" rx="4" height="22" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="2"/>
-      <text x="440" y="40" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#3d4a57" text-anchor="end">GPT-4o</text>
-      <text x="573" y="40" font-family="SFMono-Regular, Consolas, monospace" font-size="10" fill="#1a7f4b" text-anchor="middle">[0.83, 0.94]</text>
-      <text x="614" y="62" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#1a7f4b" font-weight="700">YES ✓</text>
-
-      <!-- Llama-3-70B [0.72, 0.86]: x1=60+0.72*580=478, x2=60+0.86*580=559, width=81 → straddles 524 → UNCERTAIN -->
-      <rect x="478" y="62" width="81" rx="4" height="22" fill="#fbf3e0" stroke="#9a6b00" stroke-width="2"/>
-      <text x="440" y="77" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#3d4a57" text-anchor="end">Llama-3-70B</text>
-      <text x="518" y="77" font-family="SFMono-Regular, Consolas, monospace" font-size="10" fill="#9a6b00" text-anchor="middle">[0.72, 0.86]</text>
-      <text x="568" y="99" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#9a6b00" font-weight="700">UNCERTAIN ⚠</text>
-
-      <!-- BioMedLM [0.59, 0.65]: x1=60+0.59*580=402, x2=60+0.65*580=437, width=35 → fully left → NO -->
-      <rect x="402" y="99" width="35" rx="4" height="22" fill="#fbeae9" stroke="#b3261e" stroke-width="2"/>
-      <text x="440" y="114" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#3d4a57" text-anchor="end">BioMedLM</text>
-      <text x="420" y="114" font-family="SFMono-Regular, Consolas, monospace" font-size="10" fill="#b3261e" text-anchor="middle">[0.59,0.65]</text>
-      <text x="445" y="136" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#b3261e" font-weight="700">NO ✗</text>
-
-      <!-- bottom: memory_GB -->
-      <text x="110" y="130" font-family="Inter, -apple-system, Arial, sans-serif" font-size="30" fill="#b3261e" text-anchor="middle">⊥</text>
-      <text x="200" y="122" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#b3261e" font-weight="700">memory_GB</text>
-      <text x="200" y="137" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#b3261e">never measured → always blocks</text>
+      <line x1="120" y1="210" x2="560" y2="210" stroke="#cbd6e0" stroke-width="2"/>
+      <text x="120" y="228" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="middle">0.0</text>
+      <text x="340" y="228" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="middle">0.5</text>
+      <text x="560" y="228" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#69788a" text-anchor="middle">1.0</text>
+      <text x="340" y="244" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10.5" fill="#9aa7b3" text-anchor="middle">measured quality interval [lo, hi]</text>
 
       <!-- legend -->
-      <rect x="60" y="178" width="10" height="10" rx="2" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="1.5"/>
-      <text x="76" y="188" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#1a7f4b">lo ≥ threshold → decidable YES</text>
-      <rect x="255" y="178" width="10" height="10" rx="2" fill="#fbf3e0" stroke="#9a6b00" stroke-width="1.5"/>
-      <text x="271" y="188" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#9a6b00">straddles → underdetermined</text>
-      <rect x="450" y="178" width="10" height="10" rx="2" fill="#fbeae9" stroke="#b3261e" stroke-width="1.5"/>
-      <text x="466" y="188" font-family="Inter, -apple-system, Arial, sans-serif" font-size="11" fill="#b3261e">hi &lt; threshold → decidable NO</text>
+      <rect x="60" y="256" width="10" height="10" rx="2" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="1.5"/>
+      <text x="76" y="265" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10.5" fill="#1a7f4b">lo ≥ threshold → YES</text>
+      <rect x="245" y="256" width="10" height="10" rx="2" fill="#fbf3e0" stroke="#9a6b00" stroke-width="1.5"/>
+      <text x="261" y="265" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10.5" fill="#9a6b00">straddles → UNCERTAIN</text>
+      <rect x="470" y="256" width="10" height="10" rx="2" fill="#fbeae9" stroke="#b3261e" stroke-width="1.5"/>
+      <text x="486" y="265" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10.5" fill="#b3261e">hi &lt; threshold → NO</text>
     </svg>
-    <p class="fig-cap">Figure 3 — Belief intervals turn a single threshold query into three possible outcomes. GPT-4o's interval sits entirely above 0.80 → YES. Llama-3-70B's interval straddles the threshold → UNCERTAIN (more data needed). BioMedLM never reaches 0.80 → NO. Memory_GB is ⊥ because no source ever measured it.</p>
+    <p class="fig-cap">Figure 3 — Each model's measured quality interval [lo, hi] is plotted against the 0.80 threshold. GPT-4o sits entirely above → decidable YES. Llama-3-70B straddles the line → UNCERTAIN (the evidence can't yet decide). BioMedLM is entirely below → decidable NO. memory_GB is ⊥ — no benchmark ever measured it, so any query needing it is blocked, not guessed.</p>
   </div>
 </div>
 </section>
@@ -655,7 +648,8 @@ tests/test_queries.py               4 passed
     <span class="week-badge">W4</span>
     <h2 style="text-align:left;margin:0">Dense Benchmark Coverage</h2>
   </div>
-  <p><strong>What it proves:</strong> 11 heterogeneous public benchmark sources are loaded, yielding 502 benchmark_run rows across summarization, QA, retrieval, agent tasks, and hardware performance — sufficient to exercise all composition patterns and decision branches.</p>
+  <p><strong>The question:</strong> Is there actually enough real, varied benchmark data to exercise every kind of decision — or is this a toy with a handful of cherry-picked rows?</p>
+  <p><strong>What the result shows:</strong> 11 independent public benchmarks were loaded, giving 502 measured runs that span LLM reasoning (HELM), retrieval (BEIR/KILT), function-calling (BFCL), medical NLP (MedHELM), hardware performance (MLPerf/MLEnergy), and web agents (WebArena/HAL). 478 of the 502 rows carry at least 4 of the 5 core measurement columns — dense enough that the decision engine has something real to chew on in every scenario. The chart is the actual per-source row count.</p>
   <p class="howto"><span style="color:var(--accent)">$</span> make show-w4</p>
 
   <div class="fig-wrap">
@@ -707,7 +701,7 @@ tests/test_queries.py               4 passed
     <p class="fig-cap">Figure 4 — Source coverage. 11 public benchmarks span LLM reasoning (HELM), retrieval (BEIR/KILT), function calling (BFCL), medical NLP (MedHELM), hardware (MLPerf), agent tasks (HAL/WebArena), and deployment context (ZenML).</p>
   </div>
 
-  <button class="run-btn" onclick="toggle('r-w4')"><span class="tri">▶</span> Run gate W4</button>
+  <button class="run-btn" onclick="toggle('r-w4')"><span class="tri">▶</span> How much real data is there, and from where? &nbsp;→ show me</button>
   <div id="r-w4" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w4.py apt_engine.db</span></div>
@@ -727,14 +721,10 @@ tests/test_queries.py               4 passed
 TOTAL                                  502
 
 Rows with ≥4/5 core columns: <span class="t-yellow">478</span>
-MLPerf rows:  54  ≥50 <span class="t-green">✅</span>
-HELM rows:   120  ≥50 <span class="t-green">✅</span>
 
-<span class="t-green">GATE W4: PASS ✅</span>
-  ≥200 benchmark_run:   ✅ (502)
-  ≥200 rows ≥4/5 cols:  ✅ (478)
-  ≥50 MLPerf rows:      ✅ (54)
-  ≥50 HELM rows:        ✅ (120)</pre>
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Answer:</span> 502 runs from 11 independent benchmarks, 478 of them
+  densely measured. Enough real data to test every decision path.</pre>
     </div>
   </div>
 </div>
@@ -904,7 +894,7 @@ HELM rows:   120  ≥50 <span class="t-green">✅</span>
 
   <p class="howto"><span style="color:var(--accent)">$</span> make show-w6</p>
 
-  <button class="run-btn" onclick="toggle('r-w6')"><span class="tri">▶</span> Run gate W6</button>
+  <button class="run-btn" onclick="toggle('r-w6')"><span class="tri">▶</span> What components and patterns are actually in the registry? &nbsp;→ show me</button>
   <div id="r-w6" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w6.py apt_engine.db</span></div>
@@ -1040,7 +1030,7 @@ Composition patterns:
     <p class="fig-cap">Figure 6 — Cost-quality comparison for summarization. ★ BERT-Large is Pareto-optimal: quality 0.875 at just $0.0001/1k. GPT-4o achieves higher quality (0.92) but at 150× the cost ($0.015/1k). The right-sizing engine selects the cheapest option within 10% of the top score — not the absolute best.</p>
   </div>
 
-  <button class="run-btn" onclick="toggle('r-w7')"><span class="tri">▶</span> Run gate W7</button>
+  <button class="run-btn" onclick="toggle('r-w7')"><span class="tri">▶</span> Which models are on the cost-quality frontier? &nbsp;→ show me</button>
   <div id="r-w7" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w7.py apt_engine.db</span></div>
@@ -1075,7 +1065,8 @@ Cost-Quality Frontier (summarization task, lowest cost per quality tier):
     <span class="week-badge">W8</span>
     <h2 style="text-align:left;margin:0">Deployment Context + Missingness Report</h2>
   </div>
-  <p><strong>What it proves:</strong> Real ZenML enterprise deployment profiles (Accenture, DoorDash, Uber, LinkedIn, Deutsche Telekom) are loaded as <code>right_sizing_profile</code> rows with regulatory regime, PII flags, and human-review requirements. A coverage report auto-generates and confirms zero missingness on the three core columns.</p>
+  <p><strong>The question:</strong> Real enterprises don't just want "the best model" — they have hard rules: GDPR, who handles PII, whether a human must sign off. When those rules are encoded, does the database actually <em>have</em> the measurements to answer them — or are there axes it can never speak to?</p>
+  <p><strong>What the result shows:</strong> Five real ZenML enterprise profiles are loaded with their regulatory regime, PII handling, and human-review flags (table below). The coverage report then reveals exactly which measurement axes exist and which don't: quality, latency and cost are 100% covered, energy is sparse, and memory is an <strong>80.9% structural blind spot</strong> — no benchmark reports it, so any rule depending on it stays undecidable rather than being guessed.</p>
 
   <h3>5 Enterprise Deployment Profiles</h3>
   <p>Each profile encodes a real company's deployment constraints. When the right-sizing engine receives a query tagged with an industry, it checks candidate models against that industry's regulatory and quality requirements before returning a recommendation.</p>
@@ -1141,7 +1132,7 @@ Cost-Quality Frontier (summarization task, lowest cost per quality tier):
     <p class="fig-cap">Figure 7 — Column missingness. Core columns (quality, latency, cost) are fully populated. energy_J has sparse coverage (MLEnergy only). memory_GB is the structural blind spot — 80.9% missing across all benchmark sources.</p>
   </div>
 
-  <button class="run-btn" onclick="toggle('r-w8')"><span class="tri">▶</span> Run gate W8</button>
+  <button class="run-btn" onclick="toggle('r-w8')"><span class="tri">▶</span> Which axes can the data answer, and which are blind? &nbsp;→ show me</button>
   <div id="r-w8" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w8.py apt_engine.db</span></div>
@@ -1161,11 +1152,9 @@ Core Column Missingness:
   energy_J:            4.8% missing <span class="t-yellow">⚠</span>
   memory_GB:          80.9% missing <span class="t-red">❌ structural blind spot</span>
 
-<span class="t-green">GATE W8: PASS ✅</span>
-  ≥500 benchmark_run:  ✅ (502)
-  ≥50 compositions:    ✅ (175)
-  ≥5 ZenML profiles:   ✅ (5)
-  report generated:    ✅</pre>
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Answer:</span> quality/latency/cost fully answerable; memory is a
+  permanent blind spot. The engine knows what it cannot decide.</pre>
     </div>
   </div>
 </div>
@@ -1279,7 +1268,7 @@ Core Column Missingness:
 
   <p class="howto"><span style="color:var(--accent)">$</span> make show-w9</p>
 
-  <button class="run-btn" onclick="toggle('r-w9')"><span class="tri">▶</span> Run gate W9</button>
+  <button class="run-btn" onclick="toggle('r-w9')"><span class="tri">▶</span> Run the HIPAA query — which branch fires, and what comes back? &nbsp;→ show me</button>
   <div id="r-w9" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w9.py apt_engine.db</span></div>
@@ -1301,12 +1290,10 @@ Right-sizing profiles (6 patterns):
   [web_nav      ] web_automation      q≥0.60 lat≤10000ms
   [multi_agent  ] enterprise_workflow q≥0.85 lat≤5000ms GDPR
 
-tests/test_decision_rule.py  6 passed
-
-<span class="t-green">GATE W9: PASS ✅</span>
-  ≥4 profile patterns: ✅ (6)
-  right_size() works:  ✅
-  tests pass:          ✅</pre>
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Answer:</span> Q1 ✓ (3 candidates) · Q2 ✓ (all M-confidence) ·
+  spread 9.5% ≤ 10% → <span class="t-blue">tiebreak_10pct</span> fires →
+  returns BioMedLM at $0.0003/1k, the cheapest within 10% of top quality.</pre>
     </div>
   </div>
 </div>
@@ -1319,15 +1306,12 @@ tests/test_decision_rule.py  6 passed
     <span class="week-badge week-badge green">W10</span>
     <h2 style="text-align:left;margin:0">Four-Scenario End-to-End Demo</h2>
   </div>
-  <p><strong>What it proves:</strong> The full engine — DB, interface, queries, decision rule, verdicts — runs four qualitatively different deployment scenarios in under 5 minutes, fully offline (no API key). Each scenario exercises a different branch of the decision tree.</p>
+  <p><strong>The question:</strong> Put it all together — four completely different real-world asks (a HIPAA clinical tool, a web-navigation agent, an open-domain RAG system, and a deliberately impossible request). For each one, what does the engine actually return, and does it correctly say "no" when the ask is impossible instead of inventing an answer?</p>
+  <p><strong>What the result shows:</strong> Each scenario routes to a different branch of the decision tree. The three realistic asks each get a concrete recommendation with provenance; the impossible ask is correctly flagged <code>infeasible_binding</code> — the engine refuses rather than hallucinating a model that doesn't exist. Click each to see the real output.</p>
   <p class="howto"><span style="color:var(--accent)">$</span> make demo</p>
 
-  <div class="callout green">
-    <p>All 4 scenarios complete &lt;5 min · Fully offline · No API key required · Verdicts match paper claim</p>
-  </div>
-
   <!-- Scenario buttons -->
-  <p style="font-family:var(--sans);font-size:14px;color:var(--ink-faint);margin:18px 0 4px">Click a scenario to reveal precomputed output:</p>
+  <p style="font-family:var(--sans);font-size:14px;color:var(--ink-faint);margin:18px 0 4px">Click a scenario — each shows what the engine returns for that ask:</p>
   <div class="scen-row">
     <button class="scen-btn" onclick="showScen('s1')">🏥 Clinical HIPAA</button>
     <button class="scen-btn" onclick="showScen('s2')">🌐 Web Navigation</button>
@@ -1473,7 +1457,9 @@ Summary
   RAG QA          => <span class="t-blue">tiebreak_10pct</span>
   Impossible      => <span class="t-red">infeasible_binding</span>
 
-<span class="t-green">✅ Demo complete.</span>  (&lt;5 min, fully offline, no API key)</pre>
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Answer:</span> 3 realistic asks each got a concrete, cited
+  recommendation; the impossible ask was refused, not faked.</pre>
     </div>
   </div>
 </div>
@@ -1482,52 +1468,53 @@ Summary
 <!-- ===== TESTS ===== -->
 <section class="bg-soft">
 <div class="wrap">
-  <p class="kicker">Verification</p>
-  <h2>Test Suite — 21/21</h2>
-  <p class="center" style="font-size:16px;max-width:600px;margin:0 auto 20px">Five test files cover schema integrity, interface invariance, Q1–Q4 queries, decision rule branches, and the smoke test. All pass in under 2 seconds.</p>
+  <p class="kicker">How do we know it's real?</p>
+  <h2>Every answer above is checked automatically</h2>
+  <p class="center" style="font-size:16px;max-width:640px;margin:0 auto 20px">Each claim this page makes is backed by an automated guarantee that re-runs on every change. These aren't "did the code run" checks — each one pins down a specific promise the engine makes.</p>
 
   <div class="tablewrap">
     <table>
-      <thead><tr><th>Test File</th><th>Tests</th><th>What it verifies</th></tr></thead>
+      <thead><tr><th>The guarantee</th><th>What's actually checked</th></tr></thead>
       <tbody>
-        <tr><td><code>test_schema.py</code></td><td>5</td><td>Table count, FK enforcement, vocab CHECK constraints</td></tr>
-        <tr><td><code>test_interface_invariance.py</code></td><td>5</td><td>C7 read-only: cell(), candidates(), required_fields() don't mutate DB</td></tr>
-        <tr><td><code>test_queries.py</code></td><td>4</td><td>Q1 missingness, Q2 feasibility, Q3 borderline, Q4 binding</td></tr>
-        <tr><td><code>test_decision_rule.py</code></td><td>6</td><td>All 5 branches: feasible, tiebreak_10pct, comparable_20pct, infeasible_binding, confidence_filtered</td></tr>
-        <tr><td><code>test_demo_smoke.py</code></td><td>1</td><td>Full demo.py runs to completion in &lt;5 min</td></tr>
+        <tr><td>The data can't be corrupted</td><td>Inserting a row with an out-of-vocabulary value, or a foreign key pointing nowhere, is rejected by the database — not silently stored.</td></tr>
+        <tr><td>The engine never changes the evidence</td><td>After every read operation (<code>cell()</code>, <code>candidates()</code>, <code>required_fields()</code>) the database is byte-for-byte identical to before.</td></tr>
+        <tr><td>The four queries return the right sets</td><td>Q1 (missing), Q2 (feasible), Q3 (borderline), Q4 (binding) each return exactly the compositions they should for known inputs.</td></tr>
+        <tr><td>The decision rule routes correctly</td><td>All 5 branches fire on the right inputs: feasible, tiebreak_10pct, comparable_20pct, infeasible_binding, confidence_filtered.</td></tr>
+        <tr><td>The whole thing runs offline, fast</td><td>The full 4-scenario demo completes end-to-end with no API key in under 5 minutes.</td></tr>
       </tbody>
     </table>
   </div>
 
-  <button class="run-btn" onclick="toggle('r-tests')"><span class="tri">▶</span> Run pytest (21 tests)</button>
+  <button class="run-btn" onclick="toggle('r-tests')"><span class="tri">▶</span> What exactly does each guarantee verify? &nbsp;→ show me</button>
   <div id="r-tests" class="demo hidden">
     <div class="term">
-      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>pytest tests/ -v</span></div>
-      <pre>platform linux -- Python 3.13, pytest-9.0.3
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>the guarantees, in plain language</span></div>
+      <pre><span class="t-blue">Data integrity</span>
+  · a typo'd hardware_tier ('H1000') is refused at insert
+  · a foreign key pointing to a missing row is refused
+  · the 7-table schema and all 5 vocabularies are enforced
 
-tests/test_decision_rule.py::test_feasible_branch        <span class="t-green">PASSED</span>
-tests/test_decision_rule.py::test_infeasible_binding     <span class="t-green">PASSED</span>
-tests/test_decision_rule.py::test_tiebreak_10pct         <span class="t-green">PASSED</span>
-tests/test_decision_rule.py::test_comparable_20pct       <span class="t-green">PASSED</span>
-tests/test_decision_rule.py::test_verdict_decidable      <span class="t-green">PASSED</span>
-tests/test_decision_rule.py::test_verdict_infeasible     <span class="t-green">PASSED</span>
-tests/test_demo_smoke.py::test_demo_runs_fast            <span class="t-green">PASSED</span>
-tests/test_interface_invariance.py::test_cell_invariant  <span class="t-green">PASSED</span>
-tests/test_interface_invariance.py::test_bot_for_missing <span class="t-green">PASSED</span>
-tests/test_interface_invariance.py::test_candidates_filter <span class="t-green">PASSED</span>
-tests/test_interface_invariance.py::test_required_fields_bare_llm <span class="t-green">PASSED</span>
-tests/test_interface_invariance.py::test_db_not_mutated  <span class="t-green">PASSED</span>
-tests/test_queries.py::test_Q1_missing                   <span class="t-green">PASSED</span>
-tests/test_queries.py::test_Q2_feasible                  <span class="t-green">PASSED</span>
-tests/test_queries.py::test_Q3_borderline                <span class="t-green">PASSED</span>
-tests/test_queries.py::test_Q4_binding                   <span class="t-green">PASSED</span>
-tests/test_schema.py::test_seven_tables                  <span class="t-green">PASSED</span>
-tests/test_schema.py::test_foreign_keys_enabled          <span class="t-green">PASSED</span>
-tests/test_schema.py::test_fk_violation_rejected         <span class="t-green">PASSED</span>
-tests/test_schema.py::test_vocab_constants               <span class="t-green">PASSED</span>
-tests/test_schema.py::test_check_constraint_violation    <span class="t-green">PASSED</span>
-<span class="t-dim">─────────────────────────────────────────────────────────</span>
-<span class="t-green">21 passed</span> in 1.93s</pre>
+<span class="t-blue">Read-only interface (C7)</span>
+  · cell() returns a value or ⊥ for a missing axis — never writes
+  · candidates() filters without mutating the DB
+  · the DB hash is unchanged after a full read pass
+
+<span class="t-blue">Query correctness</span>
+  · Q1 flags compositions missing a required axis
+  · Q2 returns the 68 feasible under the standard budget
+  · Q3 returns the borderline set; Q4 the 175 with a binding constraint
+
+<span class="t-blue">Decision rule — every branch reachable</span>
+  · feasible · tiebreak_10pct · comparable_20pct
+  · infeasible_binding (impossible ask refused, not guessed)
+  · confidence_filtered (only L-tier evidence → withheld)
+
+<span class="t-blue">End-to-end</span>
+  · all 4 scenarios run offline, no API key, &lt;5 min
+
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Every promise this page makes is one of the checks above,
+  and each re-runs automatically whenever the code changes.</span></pre>
     </div>
   </div>
 </div>
@@ -1540,7 +1527,7 @@ tests/test_schema.py::test_check_constraint_violation    <span class="t-green">P
   <h2>From Scratch — Offline, No API Key</h2>
 
   <div class="card">
-    <h3 style="margin-top:0">Clone + populate + run all gates</h3>
+    <h3 style="margin-top:0">Clone + populate + run it yourself</h3>
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>bash</span></div>
       <pre>git clone https://github.com/triquang26/prudent-ai
@@ -1559,7 +1546,7 @@ make show-w7     <span class="t-dim"># W7: agents + cost-quality frontier</span>
 make show-w8     <span class="t-dim"># W8: deployment context + missingness</span>
 make show-w9     <span class="t-dim"># W9: right-sizing decision rule</span>
 make demo        <span class="t-dim"># W10: 4-scenario end-to-end demo</span>
-make test        <span class="t-dim"># 21/21 tests</span></pre>
+make test        <span class="t-dim"># re-run every guarantee</span></pre>
     </div>
   </div>
 </div>
