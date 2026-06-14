@@ -518,28 +518,41 @@ Total rows (all tables): <span class="t-yellow">818</span>
   <div id="r-w2" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w2.py apt_engine.db</span></div>
-      <pre><span class="t-blue">HELM Lite loaded: 120 benchmark_run rows</span> (total=502, sources=11)
+      <pre><span class="t-blue">HELM Lite loaded: 120 new rows</span> (DB now 502 runs, 11 sources)
 
-Q1 — Missingness (compositions missing required axes):
-  <span class="t-green">(0 total missing)</span>
+Each query asks ONE yes/no question of every composition, using its
+<span class="t-yellow">worst</span> measured value per axis — so a "pass" is a guarantee, not luck.
 
-Q2 — Feasible (quality≥0.7, lat≤800ms, cost≤0.02):
-  HELM/GPT-4o: q=0.88 lat=320ms cost=0.0150
-  HELM/Claude-3.5-Sonnet: q=0.85 lat=280ms cost=0.0120
-  <span class="t-yellow">(68 total feasible)</span>
+<span class="t-dim">── Q2 · "Which fit a typical budget?" ───────────────────────</span>
+  rule: worst quality ≥ 0.70  AND  worst lat ≤ 800ms  AND  worst cost ≤ $0.02
 
-Q3 — Borderline (near quality=0.80, lat=500ms, cost=0.012):
-  <span class="t-yellow">(136 total borderline)</span>
+  <span class="t-green">✓ RETURNED — 68 compositions. e.g.:</span>
+    <span class="t-green">HELM/GPT-4o</span>             q≥0.88  lat≤320ms   cost≤$0.0150  <span class="t-dim">all 3 pass</span>
+    <span class="t-green">HELM/Claude-3.5-Sonnet</span>  q≥0.85  lat≤280ms   cost≤$0.0120  <span class="t-dim">all 3 pass</span>
 
-Q4 — Binding (quality≥0.95, lat≤100ms, cost≤0.001):
-  HELM/GPT-4o: ['quality&lt;0.95', 'latency&gt;100ms', 'cost&gt;0.001']
-  <span class="t-yellow">(175 total binding)</span>
+  <span class="t-red">✗ NOT returned — and exactly why:</span>
+    <span class="t-red">MLPerf/Mixtral-8x7B</span>     q≥0.79  <span class="t-red">lat≤1200ms</span>  cost≤$0.0006  <span class="t-dim">good+cheap, too SLOW</span>
+    <span class="t-red">HELM/Llama-3-8B</span>         <span class="t-red">q≥0.69</span>  lat≤80ms    cost≤$0.0004  <span class="t-dim">fast+cheap, quality short</span>
 
-Interface invariance: DB byte-identical after read-only cell() calls <span class="t-green">✅</span>
+<span class="t-dim">── Q4 · "Which can NEVER hit a strict SLA?" ─────────────────</span>
+  rule: quality ≥ 0.95  AND  latency ≤ 100ms  AND  cost ≤ $0.001
+
+  <span class="t-green">✓ RETURNED — 175, each with the blocking axis named:</span>
+    <span class="t-red">HELM/GPT-4o</span>  best-ever quality 0.940 <span class="t-dim">(&lt;0.95)</span> · fastest 320ms <span class="t-dim">(&gt;100)</span>
+                · cheapest $0.0150 <span class="t-dim">(&gt;$0.001)</span> → <span class="t-red">all three unreachable</span>
+
+<span class="t-dim">── Q1 · "Any required axis never measured?" ─────────────────</span>
+  <span class="t-green">0 returned</span> — HELM Lite measures every required axis, nothing blocked here.
+  <span class="t-dim">(Contrast W8: memory_GB IS unmeasured → that one blocks.)</span>
+
+<span class="t-dim">── Q3 · "Sitting right on a threshold?" ─────────────────────</span>
+  136 borderline. e.g. HELM/GPT-4-turbo → axes <span class="t-yellow">[quality, cost]</span> within ±5% of the bar.
+
+Interface check: DB hash byte-identical before vs after all reads <span class="t-green">✅</span>
 
 <span class="t-dim">------------------------------------------------------------</span>
-<span class="t-green">→ Answer:</span> 68 feasible, 175 binding, 0 silent mutations.
-  The engine can query the evidence without ever changing it.</pre>
+<span class="t-green">→ Answer:</span> the engine sorts all 502 runs into feasible / borderline /
+  binding by asking precise questions — and reading them never changes them.</pre>
     </div>
   </div>
 </div>
@@ -720,11 +733,22 @@ Interface invariance: DB byte-identical after read-only cell() calls <span class
   ZenML Enterprise Case Studies          3
 TOTAL                                  502
 
-Rows with ≥4/5 core columns: <span class="t-yellow">478</span>
+Now zoom into individual rows — what's actually measured vs a hole (<span class="t-red">⊥</span>):
+
+  composition          qual   lat    cost     energy  memory
+  <span class="t-dim">----------------------------------------------------------</span>
+  <span class="t-green">HELM/Llama-3-70B</span>     0.82   180ms  $0.0008  130J    40GB    <span class="t-green">← fully measured</span>
+  HELM/GPT-4o          0.92   320ms  $0.0150  85J     <span class="t-red">⊥</span>       <span class="t-dim">← memory never reported</span>
+  MedHELM/Meditron/sum 0.675  780ms  $0.0008  <span class="t-red">⊥</span>      <span class="t-red">⊥</span>       <span class="t-dim">← energy &amp; memory both ⊥</span>
+
+Column coverage across all 502 rows:
+  quality  <span class="t-green">✓ 100%</span>     latency <span class="t-green">✓ 100%</span>     cost <span class="t-green">✓ 100%</span>
+  energy   <span class="t-yellow">⚠ 95.2%</span>    memory  <span class="t-red">❌ 19.1% present</span> (80.9% are ⊥)
 
 <span class="t-dim">------------------------------------------------------------</span>
-<span class="t-green">→ Answer:</span> 502 runs from 11 independent benchmarks, 478 of them
-  densely measured. Enough real data to test every decision path.</pre>
+<span class="t-green">→ Answer:</span> 502 runs from 11 independent benchmarks. quality/latency/cost
+  are everywhere; energy is patchy; memory is mostly ⊥. The engine <span class="t-yellow">sees</span>
+  these holes as ⊥ — it never quietly fills them with a guess.</pre>
     </div>
   </div>
 </div>
@@ -778,6 +802,33 @@ Rows with ≥4/5 core columns: <span class="t-yellow">478</span>
       </tbody>
     </table>
   </div>
+
+  <h3>The same engine, three asks — what actually comes back</h3>
+  <p>To make the three outcomes concrete, here is the literal result the engine returns for one ask of each kind. Notice the engine never just shrugs — even when it can't decide, it hands you the next move.</p>
+  <div class="demo" style="margin-top:8px">
+    <div class="term">
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>three asks, three outcomes</span></div>
+      <pre><span class="t-green">═══ DECIDABLE ═══════════════════════════════════════════</span>
+  ask: summarization, quality ≥ 0.30, lat ≤ 2000ms, cost ≤ $0.05
+  <span class="t-green">→ COMMITS:</span> MedHELM/BioMedLM  quality 0.612 · 420ms · <span class="t-green">$0.0003/1k</span>
+     why: 3 candidates all clear the bar; this is the cheapest
+          within 10% of the top quality. Provenance: MedHELM, kappa=H.
+
+<span class="t-yellow">═══ UNDERDETERMINED ═════════════════════════════════════</span>
+  ask: summarization, quality ≥ 0.80, <span class="t-yellow">memory_GB ≤ 24</span> (must fit 1 GPU)
+  candidate: HELM/GPT-4o → quality [0.905, 0.925] <span class="t-green">✓ clears 0.80</span>
+                          → memory_GB = <span class="t-red">⊥  (never measured)</span>
+  <span class="t-yellow">→ WITHHOLDS:</span> cannot decide — blocking axis = <span class="t-yellow">memory_GB</span>
+     next move: run MLPerf inference (it reports memory) to resolve.
+     <span class="t-dim">The engine refuses to guess GPT-4o's memory just to look decisive.</span>
+
+<span class="t-red">═══ INFEASIBLE ══════════════════════════════════════════</span>
+  ask: quality ≥ 0.99, latency ≤ 10ms, cost ≤ $0.00001
+  <span class="t-red">→ REFUSES:</span> no composition can satisfy all three at once
+     best in DB: quality 0.94 (need 0.99) · 19ms (need ≤10) · $0.0001 (need ≤$0.00001)
+     binding axes: <span class="t-red">[quality, latency, cost]</span> — not missing data, just impossible.</pre>
+    </div>
+  </div>
 </div>
 </section>
 
@@ -807,6 +858,62 @@ Rows with ≥4/5 core columns: <span class="t-yellow">478</span>
   </div>
 
   <p>Each composition also lists its <strong>components</strong>. For example, the BEIR RAG pipeline "Contriever + Llama3-70B" has two components: a <code>retriever</code> (Contriever) and an <code>llm</code> (Llama-3-70B, 70B parameters, open weights, Apache-2.0 license). This decomposition lets the engine answer constraint queries like "only open-weight models" or "no proprietary APIs" — enforced at the component level, not just the pipeline level.</p>
+
+  <h3>How each pattern is actually wired</h3>
+  <p>The pattern isn't just a label — it's the wiring that data flows through. Here is each pattern as a pipeline, with a real registered composition as the example:</p>
+  <div style="display:flex;flex-direction:column;gap:10px;margin:14px 0 20px">
+    <!-- reusable inline chip styles -->
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd">
+      <code style="min-width:96px">bare_llm</code>
+      <span style="color:#69788a">prompt</span><span style="color:#0b5cad">→</span>
+      <span style="background:#e8f0fa;color:#0b5cad;border:1px solid #b9d2ee;border-radius:5px;padding:2px 8px;font-weight:600">LLM</span>
+      <span style="color:#0b5cad">→</span><span style="color:#69788a">answer</span>
+      <span style="margin-left:auto;color:#9aa7b3;font-size:12px">e.g. <strong style="color:#3d4a57">HELM/GPT-4o</strong> · 91 of these</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd">
+      <code style="min-width:96px">rag</code>
+      <span style="color:#69788a">query</span><span style="color:#0b5cad">→</span>
+      <span style="background:#e6f4ec;color:#1a7f4b;border:1px solid #b6ddc9;border-radius:5px;padding:2px 8px;font-weight:600">retriever</span>
+      <span style="color:#0b5cad">→</span><span style="color:#69788a">top docs</span><span style="color:#0b5cad">→</span>
+      <span style="background:#e8f0fa;color:#0b5cad;border:1px solid #b9d2ee;border-radius:5px;padding:2px 8px;font-weight:600">LLM</span>
+      <span style="color:#0b5cad">→</span><span style="color:#69788a">answer</span>
+      <span style="margin-left:auto;color:#9aa7b3;font-size:12px">e.g. <strong style="color:#3d4a57">BEIR/BM25+GPT-4o</strong> · 24 of these</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd">
+      <code style="min-width:96px">tool_agent</code>
+      <span style="color:#69788a">request</span><span style="color:#0b5cad">→</span>
+      <span style="background:#e8f0fa;color:#0b5cad;border:1px solid #b9d2ee;border-radius:5px;padding:2px 8px;font-weight:600">LLM</span>
+      <span style="color:#0b5cad">→</span>
+      <span style="background:#fbf3e0;color:#9a6b00;border:1px solid #e8c97a;border-radius:5px;padding:2px 8px;font-weight:600">calls a function</span>
+      <span style="color:#0b5cad">→</span><span style="color:#69788a">result folded into answer</span>
+      <span style="margin-left:auto;color:#9aa7b3;font-size:12px">e.g. <strong style="color:#3d4a57">BFCL/GPT-4o</strong> · 12 of these</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd">
+      <code style="min-width:96px">web_nav</code>
+      <span style="color:#69788a">task</span><span style="color:#0b5cad">→</span>
+      <span style="background:#e8f0fa;color:#0b5cad;border:1px solid #b9d2ee;border-radius:5px;padding:2px 8px;font-weight:600">LLM</span>
+      <span style="color:#9a6b00">⇄</span>
+      <span style="background:#fbf3e0;color:#9a6b00;border:1px solid #e8c97a;border-radius:5px;padding:2px 8px;font-weight:600">browser</span>
+      <span style="color:#69788a">(click, type, read — repeat)</span><span style="color:#0b5cad">→</span><span style="color:#69788a">done?</span>
+      <span style="margin-left:auto;color:#9aa7b3;font-size:12px">e.g. <strong style="color:#3d4a57">WebArena/GPT-4o</strong> · 38 of these</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd">
+      <code style="min-width:96px">single_agent</code>
+      <span style="color:#69788a">goal</span><span style="color:#0b5cad">→</span>
+      <span style="background:#e8f0fa;color:#0b5cad;border:1px solid #b9d2ee;border-radius:5px;padding:2px 8px;font-weight:600">LLM: plan → act → observe ↻</span>
+      <span style="color:#0b5cad">→</span><span style="color:#69788a">done</span>
+      <span style="margin-left:auto;color:#9aa7b3;font-size:12px">e.g. <strong style="color:#3d4a57">HAL/GPT-4o/single</strong> · 6 of these</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd">
+      <code style="min-width:96px">multi_agent</code>
+      <span style="color:#69788a">goal</span><span style="color:#0b5cad">→</span>
+      <span style="background:#e8f0fa;color:#0b5cad;border:1px solid #b9d2ee;border-radius:5px;padding:2px 8px;font-weight:600">LLM proposes</span>
+      <span style="color:#9a6b00">⇄</span>
+      <span style="background:#e8f0fa;color:#0b5cad;border:1px solid #b9d2ee;border-radius:5px;padding:2px 8px;font-weight:600">LLM reviews</span>
+      <span style="color:#0b5cad">→</span><span style="color:#69788a">agreed answer</span>
+      <span style="margin-left:auto;color:#9aa7b3;font-size:12px">e.g. <strong style="color:#3d4a57">HAL/GPT-4o/multi</strong> · 4 of these</span>
+    </div>
+  </div>
 
   <p class="howto"><span style="color:var(--accent)">$</span> make show-w6</p>
 
@@ -1034,25 +1141,36 @@ Composition patterns:
   <div id="r-w7" class="demo hidden">
     <div class="term">
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w7.py apt_engine.db</span></div>
-      <pre>Agent compositions (48 total: 10 HAL + 38 WebArena):
-  [multi_agent ] HAL/GPT-4o/multi-agent        success=0.845 cost=$0.062/task
-  [multi_agent ] HAL/Claude-3.5-Sonnet/multi   success=0.831 cost=$0.048/task
-  [single_agent] HAL/GPT-4o/single-agent       success=0.782 cost=$0.038/task
-  [single_agent] HAL/Llama-3-70B/single        success=0.654 cost=$0.008/task
-  [single_agent] HAL/Llama-3-8B/single-agent   success=0.521 cost=$0.002/task
-  [web_nav     ] WebArena/GPT-4o/full-agent    success=<span class="t-yellow">44.5%</span> cost=$0.095/task
-  [web_nav     ] WebArena/Claude-3.5/agent     success=42.8% cost=$0.055/task
-  [web_nav     ] WebArena/Claude-3.5/text      success=39.5% cost=<span class="t-green">$0.038/task</span>
-  ... (30 per-site rows across 6 WebArena environments)
+      <pre><span class="t-dim">What is "agent data"? Unlike a one-shot QA score, an agent must take
+MANY steps (plan → act → observe → repeat) to finish ONE task. So the
+metric is <span class="t-yellow">success rate</span> = fraction of whole tasks completed, and cost
+is <span class="t-yellow">per task</span> (a task burns many LLM calls), not per 1k tokens.</span>
 
-Cost-Quality Frontier (summarization task, lowest cost per quality tier):
-  Name                  Quality  Lat(ms)  Cost/1k
-  ---------------------------------------------------
-  <span class="t-green">MLPerf/BERT-Large       0.875       45   $0.0001 ★</span>
-  MLPerf/ResNet-50        0.762       19   $0.0001
-  MLPerf/Llama-3-8B       0.720      262   $0.0002
-  MLEnergy/Phi-3-mini     0.680      145   $0.0002
-  HELM/GPT-4o             0.920      320   $0.0150  ← highest quality, 150× cost</pre>
+<span class="t-blue">HAL</span> — autonomous long-horizon tasks (e.g. "debug this repo and make tests pass")
+  one task = a full episode; success = did it actually finish?
+  [multi_agent ] HAL/GPT-4o/multi-agent      success=<span class="t-green">0.845</span> cost=$0.062/task <span class="t-dim">← 2 LLMs: propose+review</span>
+  [multi_agent ] HAL/Claude-3.5/multi        success=0.831 cost=$0.048/task
+  [single_agent] HAL/GPT-4o/single-agent     success=0.782 cost=$0.038/task <span class="t-dim">← 1 LLM, ~2× cheaper, ~6pt worse</span>
+  [single_agent] HAL/Llama-3-70B/single      success=0.654 cost=$0.008/task
+  [single_agent] HAL/Llama-3-8B/single       success=<span class="t-red">0.521</span> cost=$0.002/task <span class="t-dim">← cheapest, fails ~half</span>
+
+<span class="t-blue">WebArena</span> — drive a real browser across 6 sites (shop, Reddit, GitLab, …)
+  one task = "order the cheapest size-M shirt"; success = did the order go through?
+  [web_nav] WebArena/GPT-4o/full-agent       success=<span class="t-yellow">44.5%</span> cost=$0.095/task <span class="t-dim">← best, still fails the majority</span>
+  [web_nav] WebArena/Claude-3.5/text-only    success=39.5% cost=<span class="t-green">$0.038/task</span> <span class="t-dim">← 2.5× cheaper, ~5pt worse</span>
+  <span class="t-dim">... (web agents are HARD — nobody clears 50%)</span>
+
+<span class="t-dim">── Now the frontier (separate, for summarization) ───────────</span>
+<span class="t-blue">Cost-Quality Frontier</span> — cheapest model at each quality tier:
+  Name                 Quality  Lat    Cost/1k
+  <span class="t-dim">--------------------------------------------------</span>
+  <span class="t-green">MLPerf/BERT-Large      0.875    45ms   $0.0001 ★ Pareto-optimal</span>
+  MLPerf/Llama-3-8B      0.720    262ms  $0.0002
+  HELM/GPT-4o            0.920    320ms  $0.0150 <span class="t-dim">← +5pt quality, 150× the cost</span>
+
+<span class="t-dim">------------------------------------------------------------</span>
+<span class="t-green">→ Answer:</span> agent success tops out below 85% (web below 50%), and
+  spending 150× more buys only +5 quality points. "Best" ≠ "right-sized".</pre>
     </div>
   </div>
 </div>
@@ -1152,9 +1270,20 @@ Core Column Missingness:
   energy_J:            4.8% missing <span class="t-yellow">⚠</span>
   memory_GB:          80.9% missing <span class="t-red">❌ structural blind spot</span>
 
+So what can each profile actually decide? Two real cases:
+
+  <span class="t-green">✓ rsp-accenture</span> — needs quality≥0.85, GDPR, human-review
+     all three map to <span class="t-green">covered</span> axes (quality + provenance flags)
+     <span class="t-green">→ DECIDABLE</span>: engine can rank candidates and commit.
+
+  <span class="t-red">✗ rsp-telekom</span> — also wants on-prem fit: <span class="t-yellow">memory_GB ≤ 16</span>
+     memory is <span class="t-red">⊥ for 80.9%</span> of models → can't verify the fit
+     <span class="t-red">→ BLOCKED</span>: engine withholds + says "measure memory to decide",
+        instead of pretending the model fits.
+
 <span class="t-dim">------------------------------------------------------------</span>
-<span class="t-green">→ Answer:</span> quality/latency/cost fully answerable; memory is a
-  permanent blind spot. The engine knows what it cannot decide.</pre>
+<span class="t-green">→ Answer:</span> the SAME engine decides Accenture but refuses Telekom's
+  memory clause — because it tracks which axes it can actually see.</pre>
     </div>
   </div>
 </div>
