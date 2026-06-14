@@ -7,18 +7,18 @@ install:
 	$(PYTHON) -m pip install -r requirements.txt -q
 
 populate: install
-	$(PYTHON) -m apt_engine.loaders.helm_lite $(DB)
-	$(PYTHON) -m apt_engine.loaders.mlperf $(DB)
-	$(PYTHON) -m apt_engine.loaders.routerbench $(DB)
-	$(PYTHON) -m apt_engine.loaders.bfcl $(DB)
-	$(PYTHON) -m apt_engine.loaders.mlenergy $(DB)
-	$(PYTHON) -m apt_engine.loaders.beir_kilt $(DB)
-	$(PYTHON) -m apt_engine.loaders.medhelm $(DB)
-	$(PYTHON) -m apt_engine.loaders.hal $(DB)
-	$(PYTHON) -m apt_engine.loaders.webarena $(DB)
-	$(PYTHON) -m apt_engine.loaders.zenml_cases $(DB)
-	$(PYTHON) -c "import sys; sys.path.insert(0,'src'); from apt_engine.profiles import seed_default_profiles; seed_default_profiles('$(DB)')"
-	$(PYTHON) -m apt_engine.loaders._energy_supplement $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.helm_lite $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.mlperf $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.routerbench $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.bfcl $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.mlenergy $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.beir_kilt $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.medhelm $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.hal $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.webarena $(DB)
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders.zenml_cases $(DB)
+	PYTHONPATH=src $(PYTHON) -c "from apt_engine.profiles import seed_default_profiles; seed_default_profiles('$(DB)')"
+	PYTHONPATH=src $(PYTHON) -m apt_engine.loaders._energy_supplement $(DB)
 	@echo "DB populated."
 
 show-w1: install
