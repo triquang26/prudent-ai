@@ -514,45 +514,79 @@ Total rows (all tables): <span class="t-yellow">818</span>
   <p><strong>What the result shows:</strong> Four queries run against the 502 rows. Of all compositions, <strong>68</strong> are feasible under a typical budget (quality ≥ 0.7, latency ≤ 800ms, cost ≤ $0.02/1k); <strong>175</strong> have at least one constraint they can never meet (a "binding" constraint). And after every read, the database is byte-for-byte unchanged — the engine cannot mutate the evidence it reasons over.</p>
   <p class="howto"><span style="color:var(--accent)">$</span> make show-w2</p>
 
-  <button class="run-btn" onclick="toggle('r-w2')"><span class="tri">▶</span> What do the four queries return — without touching the data? &nbsp;→ show me</button>
-  <div id="r-w2" class="demo hidden">
+  <p style="font-family:var(--sans);font-size:14px;color:var(--ink-faint);margin:18px 0 4px">Click a query — each asks ONE yes/no question of every composition, using its <strong>worst</strong> measured value per axis (so a "pass" is a guarantee, not luck):</p>
+  <div class="scen-row">
+    <button class="scen-btn active" data-target="q2p" onclick="pickTab(this,'q2p')">Q2 · fits my budget?</button>
+    <button class="scen-btn bad" data-target="q4p" onclick="pickTab(this,'q4p')">Q4 · impossible SLA?</button>
+    <button class="scen-btn" data-target="q1p" onclick="pickTab(this,'q1p')">Q1 · unmeasured axis?</button>
+    <button class="scen-btn" data-target="q3p" onclick="pickTab(this,'q3p')">Q3 · right on the edge?</button>
+    <button class="scen-btn" data-target="invp" onclick="pickTab(this,'invp')">🔒 read-only check</button>
+  </div>
+
+  <div id="q2p" class="demo">
     <div class="term">
-      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w2.py apt_engine.db</span></div>
-      <pre><span class="t-blue">HELM Lite loaded: 120 new rows</span> (DB now 502 runs, 11 sources)
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>Q2 — Feasible (fits a typical budget)</span></div>
+      <pre>rule: worst quality ≥ 0.70  AND  worst lat ≤ 800ms  AND  worst cost ≤ $0.02
+<span class="t-blue">68 of 175 compositions pass.</span>
 
-Each query asks ONE yes/no question of every composition, using its
-<span class="t-yellow">worst</span> measured value per axis — so a "pass" is a guarantee, not luck.
+<span class="t-green">✓ RETURNED — e.g.:</span>
+  <span class="t-green">HELM/GPT-4o</span>             q≥0.88  lat≤320ms   cost≤$0.0150  <span class="t-dim">all 3 pass</span>
+  <span class="t-green">HELM/Claude-3.5-Sonnet</span>  q≥0.85  lat≤280ms   cost≤$0.0120  <span class="t-dim">all 3 pass</span>
 
-<span class="t-dim">── Q2 · "Which fit a typical budget?" ───────────────────────</span>
-  rule: worst quality ≥ 0.70  AND  worst lat ≤ 800ms  AND  worst cost ≤ $0.02
+<span class="t-red">✗ NOT returned — and exactly why:</span>
+  <span class="t-red">MLPerf/Mixtral-8x7B</span>     q≥0.79  <span class="t-red">lat≤1200ms</span>  cost≤$0.0006  <span class="t-dim">good+cheap, too SLOW</span>
+  <span class="t-red">HELM/Llama-3-8B</span>         <span class="t-red">q≥0.69</span>  lat≤80ms    cost≤$0.0004  <span class="t-dim">fast+cheap, quality short</span></pre>
+    </div>
+  </div>
+  <div id="q4p" class="demo hidden">
+    <div class="term">
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>Q4 — Binding (can NEVER hit a strict SLA)</span></div>
+      <pre>rule: quality ≥ 0.95  AND  latency ≤ 100ms  AND  cost ≤ $0.001
+<span class="t-blue">175 compositions can never satisfy this</span> — each with the blocking axis named.
 
-  <span class="t-green">✓ RETURNED — 68 compositions. e.g.:</span>
-    <span class="t-green">HELM/GPT-4o</span>             q≥0.88  lat≤320ms   cost≤$0.0150  <span class="t-dim">all 3 pass</span>
-    <span class="t-green">HELM/Claude-3.5-Sonnet</span>  q≥0.85  lat≤280ms   cost≤$0.0120  <span class="t-dim">all 3 pass</span>
+  <span class="t-red">HELM/GPT-4o</span>
+    best-ever quality 0.940  <span class="t-dim">(need ≥0.95)</span>
+    fastest      320ms       <span class="t-dim">(need ≤100ms)</span>
+    cheapest     $0.0150     <span class="t-dim">(need ≤$0.001)</span>
+    → <span class="t-red">all three unreachable</span> — not missing data, just impossible.
 
-  <span class="t-red">✗ NOT returned — and exactly why:</span>
-    <span class="t-red">MLPerf/Mixtral-8x7B</span>     q≥0.79  <span class="t-red">lat≤1200ms</span>  cost≤$0.0006  <span class="t-dim">good+cheap, too SLOW</span>
-    <span class="t-red">HELM/Llama-3-8B</span>         <span class="t-red">q≥0.69</span>  lat≤80ms    cost≤$0.0004  <span class="t-dim">fast+cheap, quality short</span>
+<span class="t-dim">This is the honest "no": the engine tells you WHICH constraint to relax.</span></pre>
+    </div>
+  </div>
+  <div id="q1p" class="demo hidden">
+    <div class="term">
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>Q1 — Missingness (a required axis never measured)</span></div>
+      <pre>ask: any composition missing a <span class="t-yellow">required</span> axis (never measured at all)?
 
-<span class="t-dim">── Q4 · "Which can NEVER hit a strict SLA?" ─────────────────</span>
-  rule: quality ≥ 0.95  AND  latency ≤ 100ms  AND  cost ≤ $0.001
+  <span class="t-green">0 returned.</span> In HELM Lite, every required axis is measured —
+  so nothing is blocked at this stage.
 
-  <span class="t-green">✓ RETURNED — 175, each with the blocking axis named:</span>
-    <span class="t-red">HELM/GPT-4o</span>  best-ever quality 0.940 <span class="t-dim">(&lt;0.95)</span> · fastest 320ms <span class="t-dim">(&gt;100)</span>
-                · cheapest $0.0150 <span class="t-dim">(&gt;$0.001)</span> → <span class="t-red">all three unreachable</span>
+<span class="t-dim">Contrast W8: memory_GB is ⊥ for 80.9% of models. THAT is what makes
+a query asking about memory underdetermined — the data simply doesn't exist.</span></pre>
+    </div>
+  </div>
+  <div id="q3p" class="demo hidden">
+    <div class="term">
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>Q3 — Borderline (sitting right on a threshold)</span></div>
+      <pre>ask: within ±5% of the bar? (quality 0.80, lat 500ms, cost $0.012)
+<span class="t-blue">136 compositions are borderline. e.g.:</span>
 
-<span class="t-dim">── Q1 · "Any required axis never measured?" ─────────────────</span>
-  <span class="t-green">0 returned</span> — HELM Lite measures every required axis, nothing blocked here.
-  <span class="t-dim">(Contrast W8: memory_GB IS unmeasured → that one blocks.)</span>
+  HELM/GPT-4o       borderline on <span class="t-yellow">[quality]</span>
+  HELM/GPT-4-turbo  borderline on <span class="t-yellow">[quality, cost]</span>
 
-<span class="t-dim">── Q3 · "Sitting right on a threshold?" ─────────────────────</span>
-  136 borderline. e.g. HELM/GPT-4-turbo → axes <span class="t-yellow">[quality, cost]</span> within ±5% of the bar.
+<span class="t-dim">These are the "one more measurement would tip the verdict" cases —
+exactly where it's worth spending to reduce uncertainty.</span></pre>
+    </div>
+  </div>
+  <div id="invp" class="demo hidden">
+    <div class="term">
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>Read-only guarantee (C7 interface invariant)</span></div>
+      <pre>hash(apt_engine.db) <span class="t-dim">before</span> any query      = 140231…d9
+ran Q1, Q2, Q3, Q4 + 502 cell() reads
+hash(apt_engine.db) <span class="t-dim">after</span> all reads        = 140231…d9   <span class="t-green">← identical</span>
 
-Interface check: DB hash byte-identical before vs after all reads <span class="t-green">✅</span>
-
-<span class="t-dim">------------------------------------------------------------</span>
-<span class="t-green">→ Answer:</span> the engine sorts all 502 runs into feasible / borderline /
-  binding by asking precise questions — and reading them never changes them.</pre>
+<span class="t-green">→</span> cell(), candidates(), required_fields() only SELECT — never write.
+  The engine reasons over evidence it is structurally unable to alter.</pre>
     </div>
   </div>
 </div>
@@ -803,30 +837,50 @@ Column coverage across all 502 rows:
     </table>
   </div>
 
-  <h3>The same engine, three asks — what actually comes back</h3>
-  <p>To make the three outcomes concrete, here is the literal result the engine returns for one ask of each kind. Notice the engine never just shrugs — even when it can't decide, it hands you the next move.</p>
-  <div class="demo" style="margin-top:8px">
+  <h3>The same engine, three asks — click one</h3>
+  <p style="font-family:var(--sans);font-size:14px;color:var(--ink-faint);margin:8px 0 4px">Each is a real ask; the panel shows the literal result. Notice the engine never just shrugs — even when it can't decide, it hands you the next move.</p>
+  <div class="scen-row">
+    <button class="scen-btn active" data-target="o-dec" onclick="pickTab(this,'o-dec')">✓ decidable</button>
+    <button class="scen-btn" data-target="o-und" onclick="pickTab(this,'o-und')">⚠ underdetermined</button>
+    <button class="scen-btn bad" data-target="o-inf" onclick="pickTab(this,'o-inf')">✗ infeasible</button>
+  </div>
+  <div id="o-dec" class="demo">
     <div class="term">
-      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>three asks, three outcomes</span></div>
-      <pre><span class="t-green">═══ DECIDABLE ═══════════════════════════════════════════</span>
-  ask: summarization, quality ≥ 0.30, lat ≤ 2000ms, cost ≤ $0.05
-  <span class="t-green">→ COMMITS:</span> MedHELM/BioMedLM  quality 0.612 · 420ms · <span class="t-green">$0.0003/1k</span>
-     why: 3 candidates all clear the bar; this is the cheapest
-          within 10% of the top quality. Provenance: MedHELM, kappa=H.
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>outcome: DECIDABLE — the evidence proves an answer</span></div>
+      <pre>ask: summarization, quality ≥ 0.30, lat ≤ 2000ms, cost ≤ $0.05
 
-<span class="t-yellow">═══ UNDERDETERMINED ═════════════════════════════════════</span>
-  ask: summarization, quality ≥ 0.80, <span class="t-yellow">memory_GB ≤ 24</span> (must fit 1 GPU)
-  candidate: HELM/GPT-4o → quality [0.905, 0.925] <span class="t-green">✓ clears 0.80</span>
-                          → memory_GB = <span class="t-red">⊥  (never measured)</span>
+  <span class="t-green">→ COMMITS:</span> MedHELM/BioMedLM   quality 0.612 · 420ms · <span class="t-green">$0.0003/1k</span>
+
+  why: 3 candidates all clear the bar; this is the <span class="t-green">cheapest within
+       10%</span> of the top quality. Provenance: MedHELM, confidence=H.
+       Not the highest scorer — the most cost-efficient safe pick.</pre>
+    </div>
+  </div>
+  <div id="o-und" class="demo hidden">
+    <div class="term">
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>outcome: UNDERDETERMINED — the data can't decide yet</span></div>
+      <pre>ask: summarization, quality ≥ 0.80, <span class="t-yellow">memory_GB ≤ 24</span> (must fit 1 GPU)
+
+  candidate HELM/GPT-4o → quality [0.905, 0.925]  <span class="t-green">✓ clears 0.80</span>
+                        → memory_GB = <span class="t-red">⊥  (never measured)</span>
+
   <span class="t-yellow">→ WITHHOLDS:</span> cannot decide — blocking axis = <span class="t-yellow">memory_GB</span>
      next move: run MLPerf inference (it reports memory) to resolve.
-     <span class="t-dim">The engine refuses to guess GPT-4o's memory just to look decisive.</span>
 
-<span class="t-red">═══ INFEASIBLE ══════════════════════════════════════════</span>
-  ask: quality ≥ 0.99, latency ≤ 10ms, cost ≤ $0.00001
-  <span class="t-red">→ REFUSES:</span> no composition can satisfy all three at once
-     best in DB: quality 0.94 (need 0.99) · 19ms (need ≤10) · $0.0001 (need ≤$0.00001)
-     binding axes: <span class="t-red">[quality, latency, cost]</span> — not missing data, just impossible.</pre>
+  <span class="t-dim">The engine refuses to guess GPT-4o's memory just to look decisive.</span></pre>
+    </div>
+  </div>
+  <div id="o-inf" class="demo hidden">
+    <div class="term">
+      <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>outcome: INFEASIBLE — the ask is impossible, not unmeasured</span></div>
+      <pre>ask: quality ≥ 0.99, latency ≤ 10ms, cost ≤ $0.00001
+
+  <span class="t-red">→ REFUSES:</span> no composition satisfies all three at once.
+     best in DB: quality 0.94 <span class="t-dim">(need 0.99)</span> · 19ms <span class="t-dim">(need ≤10)</span>
+                 · $0.0001 <span class="t-dim">(need ≤$0.00001)</span>
+     binding axes: <span class="t-red">[quality, latency, cost]</span>
+
+  <span class="t-dim">Not missing data — genuinely impossible. Relax a constraint to proceed.</span></pre>
     </div>
   </div>
 </div>
@@ -1722,6 +1776,19 @@ function showScen(id) {
   if (target) target.classList.remove('hidden');
   // highlight clicked button
   event.target.classList.add('active');
+}
+
+// Generic chip-tab: within one .scen-row, show the clicked chip's panel, hide the rest.
+function pickTab(btn, targetId) {
+  var row = btn.parentElement;
+  row.querySelectorAll('.scen-btn').forEach(function(b) {
+    b.classList.remove('active');
+    var t = document.getElementById(b.getAttribute('data-target'));
+    if (t) t.classList.add('hidden');
+  });
+  btn.classList.add('active');
+  var panel = document.getElementById(targetId);
+  if (panel) panel.classList.remove('hidden');
 }
 
 // Stepper highlight on scroll
