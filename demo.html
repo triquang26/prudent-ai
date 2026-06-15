@@ -272,6 +272,7 @@ footer p{font-family:var(--sans);font-size:13px;color:var(--ink-faint);margin:0 
     <a class="step-chip" href="#w8">W8 Deploy</a>
     <a class="step-chip" href="#w9">W9 Right-Size</a>
     <a class="step-chip" href="#w10">W10 Demo</a>
+    <a class="step-chip" href="#brief">Brief ✓</a>
   </div>
 </div>
 </div>
@@ -805,7 +806,7 @@ Column coverage across all 502 rows:
         <tr>
           <td><span class="verdict good">decidable</span></td>
           <td>At least one option is provably above the bar. Every axis you asked about has high-confidence evidence and all constraints are satisfied.</td>
-          <td>A ranked list. The top pick is the cheapest composition within 10% of the best quality score — not the absolute best, but the most cost-efficient safe choice.</td>
+          <td>A ranked list. The primary pick is the <strong>cheapest cost/task</strong>; if several tie within 10% of that minimum cost, the <strong>smallest model</strong> wins (smaller proxies for lower energy and risk) — not the absolute best, the minimum-sufficient safe choice.</td>
         </tr>
         <tr>
           <td><span style="display:inline-block;font-family:Inter,sans-serif;font-size:12px;font-weight:700;background:var(--warn-soft);color:var(--warn);border:1px solid #e8c97a;border-radius:6px;padding:3px 10px">underdetermined</span></td>
@@ -851,9 +852,9 @@ Column coverage across all 502 rows:
 
   <span class="t-green">→ COMMITS:</span> MedHELM/BioMedLM   quality 0.612 · 420ms · <span class="t-green">$0.0003/1k</span>
 
-  why: 3 candidates all clear the bar; this is the <span class="t-green">cheapest within
-       10%</span> of the top quality. Provenance: MedHELM, confidence=H.
-       Not the highest scorer — the most cost-efficient safe pick.</pre>
+  why: 3 candidates clear the bar; 2 tie at the <span class="t-green">minimum cost</span>, so the
+       <span class="t-green">smallest model</span> (BioMedLM-2.7B) wins. Provenance: MedHELM, kappa=H.
+       Not the highest scorer — the minimum-sufficient safe pick.</pre>
     </div>
   </div>
   <div id="o-und" class="demo hidden">
@@ -1351,7 +1352,7 @@ So what can each profile actually decide? Two real cases:
     <h2 style="text-align:left;margin:0">How right_size() Makes a Decision</h2>
   </div>
 
-  <p><code>right_size(query, db)</code> takes a deployment query (task type, quality floor, latency ceiling, cost ceiling, regulatory flags) and runs a deterministic 5-step decision process. Each step has one question; the answer routes to a branch. The engine stops at the first branch that fires.</p>
+  <p><code>right_size(query, db)</code> takes a deployment query (task type, quality floor, latency ceiling, cost ceiling, regulatory flags) and runs the deterministic decision rule from <strong>brief §4.3</strong>: filter to candidates that satisfy every hard constraint → rank survivors by <strong>cost per task</strong> (cheapest is the primary pick) → if several tie within 10% of the minimum cost, break the tie by <strong>smallest model size</strong> (a proxy for lower energy and operational risk) → mark everything within 20% of the minimum cost as comparable alternatives → if nothing qualifies, name the binding constraint. The engine stops at the first branch that fires.</p>
 
   <!-- W9 figure: 5-branch decision flowchart -->
   <div class="fig-wrap">
@@ -1399,52 +1400,54 @@ So what can each profile actually decide? Two real cases:
       <line x1="350" y1="208" x2="350" y2="230" stroke="#5a6878" stroke-width="1.5" marker-end="url(#dt-arr)"/>
       <text x="357" y="223" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#5a6878">YES</text>
 
-      <!-- Spread measurement box -->
-      <rect x="215" y="230" width="270" rx="6" height="44" fill="#f0f4f8" stroke="#5a6878" stroke-width="1.5"/>
-      <text x="350" y="250" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#11181f" text-anchor="middle" font-weight="700">Measure quality spread</text>
-      <text x="350" y="266" font-family="SFMono-Regular, Consolas, monospace" font-size="11" fill="#5a6878" text-anchor="middle">spread = (q_best − q_worst) / q_best</text>
+      <!-- Cost-ranking box (§4.3 step 2) -->
+      <rect x="205" y="230" width="290" rx="6" height="44" fill="#f0f4f8" stroke="#5a6878" stroke-width="1.5"/>
+      <text x="350" y="250" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#11181f" text-anchor="middle" font-weight="700">Rank feasible by cost / task</text>
+      <text x="350" y="266" font-family="SFMono-Regular, Consolas, monospace" font-size="11" fill="#5a6878" text-anchor="middle">cheapest = primary · min_cost</text>
 
-      <!-- Arrow down from spread box to split -->
+      <!-- Arrow down from cost box to split -->
       <line x1="350" y1="274" x2="350" y2="296" stroke="#5a6878" stroke-width="1.5"/>
       <!-- Horizontal split bar -->
       <line x1="80" y1="296" x2="620" y2="296" stroke="#cbd6e0" stroke-width="1.5"/>
 
       <!-- Left arm → tiebreak_10pct -->
       <line x1="80" y1="296" x2="80" y2="316" stroke="#1a7f4b" stroke-width="1.5" marker-end="url(#dt-g)"/>
-      <text x="80" y="312" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#1a7f4b" text-anchor="middle">spread ≤ 10%</text>
-      <rect x="8" y="318" width="144" rx="6" height="58" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="1.5"/>
-      <text x="80" y="338" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#1a7f4b" text-anchor="middle" font-weight="700">tiebreak_10pct</text>
-      <text x="80" y="354" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#1a7f4b" text-anchor="middle">return cheapest within</text>
-      <text x="80" y="367" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#1a7f4b" text-anchor="middle">10% of top quality</text>
+      <text x="80" y="312" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#1a7f4b" text-anchor="middle">&gt;1 within 10% of min cost</text>
+      <rect x="6" y="318" width="148" rx="6" height="62" fill="#e6f4ec" stroke="#1a7f4b" stroke-width="1.5"/>
+      <text x="80" y="337" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#1a7f4b" text-anchor="middle" font-weight="700">tiebreak_10pct</text>
+      <text x="80" y="353" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#1a7f4b" text-anchor="middle">pick the smallest</text>
+      <text x="80" y="365" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#1a7f4b" text-anchor="middle">model (lower energy</text>
+      <text x="80" y="377" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#1a7f4b" text-anchor="middle">&amp; operational risk)</text>
 
       <!-- Center arm → comparable_20pct -->
       <line x1="350" y1="296" x2="350" y2="316" stroke="#0b5cad" stroke-width="1.5" marker-end="url(#dt-b)"/>
-      <text x="350" y="312" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#0b5cad" text-anchor="middle">spread 10–20%</text>
-      <rect x="268" y="318" width="164" rx="6" height="58" fill="#e8f0fa" stroke="#0b5cad" stroke-width="1.5"/>
-      <text x="350" y="338" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#0b5cad" text-anchor="middle" font-weight="700">comparable_20pct</text>
-      <text x="350" y="354" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#0b5cad" text-anchor="middle">return ranked list</text>
-      <text x="350" y="367" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#0b5cad" text-anchor="middle">of near-equal options</text>
+      <text x="350" y="312" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#0b5cad" text-anchor="middle">&gt;1 within 20% of min cost</text>
+      <rect x="268" y="318" width="164" rx="6" height="62" fill="#e8f0fa" stroke="#0b5cad" stroke-width="1.5"/>
+      <text x="350" y="337" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#0b5cad" text-anchor="middle" font-weight="700">comparable_20pct</text>
+      <text x="350" y="353" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#0b5cad" text-anchor="middle">return the ranked</text>
+      <text x="350" y="365" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#0b5cad" text-anchor="middle">set as comparable</text>
+      <text x="350" y="377" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#0b5cad" text-anchor="middle">alternatives</text>
 
       <!-- Right arm → feasible -->
       <line x1="620" y1="296" x2="620" y2="316" stroke="#5a6878" stroke-width="1.5" marker-end="url(#dt-arr)"/>
-      <text x="620" y="312" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#5a6878" text-anchor="middle">spread &gt; 20%</text>
-      <rect x="548" y="318" width="144" rx="6" height="58" fill="#f8f9fb" stroke="#5a6878" stroke-width="1.5"/>
-      <text x="620" y="338" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#5a6878" text-anchor="middle" font-weight="700">feasible</text>
-      <text x="620" y="354" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#5a6878" text-anchor="middle">clear winner — return</text>
-      <text x="620" y="367" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#5a6878" text-anchor="middle">top-quality model</text>
+      <text x="620" y="312" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#5a6878" text-anchor="middle">sole cheapest</text>
+      <rect x="548" y="318" width="144" rx="6" height="62" fill="#f8f9fb" stroke="#5a6878" stroke-width="1.5"/>
+      <text x="620" y="337" font-family="Inter, -apple-system, Arial, sans-serif" font-size="12" fill="#5a6878" text-anchor="middle" font-weight="700">feasible</text>
+      <text x="620" y="353" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#5a6878" text-anchor="middle">one clear min-cost</text>
+      <text x="620" y="365" font-family="Inter, -apple-system, Arial, sans-serif" font-size="10" fill="#5a6878" text-anchor="middle">winner — return it</text>
     </svg>
-    <p class="fig-cap">Figure 8 — right_size() 5-branch decision tree. The engine stops at the first branch that fires (top-to-bottom). HIPAA clinical example: 3 MedHELM rows pass Q1 (all constraints met), all are M-confidence (Q2 passes), spread = 9.5% ≤ 10% → <strong>tiebreak_10pct</strong> fires, returning BioMedLM at $0.0003/1k.</p>
+    <p class="fig-cap">Figure 8 — right_size() 5-branch decision tree, implementing brief §4.3. The engine stops at the first branch that fires (top-to-bottom). Hard-constraint filter → rank survivors by <strong>cost/task</strong> → if several tie within 10% of the minimum cost, the <strong>smallest model</strong> wins (smaller proxies for lower energy and operational risk). HIPAA example: 2 MedHELM rows sit within 10% of min cost ($0.0003), both BioMedLM-2.7B → <strong>tiebreak_10pct</strong> returns BioMedLM summarization.</p>
   </div>
 
   <h3>Walk-through: HIPAA clinical summarization</h3>
   <div class="tablewrap">
     <table>
-      <thead><tr><th>Step</th><th>Question</th><th>Answer</th><th>Branch?</th></tr></thead>
+      <thead><tr><th>Step (§4.3)</th><th>Question</th><th>Answer</th><th>Branch?</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td>Any rows with ROUGE-L ≥ 0.30, latency ≤ 2000ms, cost ≤ $0.05?</td><td>Yes — 3 MedHELM rows qualify</td><td>continue</td></tr>
-        <tr><td>2</td><td>Are they all H/M confidence?</td><td>Yes — MedHELM is tier M (published leaderboard)</td><td>continue</td></tr>
-        <tr><td>3</td><td>Quality spread across 3 candidates?</td><td>(0.651 − 0.589) / 0.651 = 9.5% → ≤ 10%</td><td>tiebreak_10pct fires</td></tr>
-        <tr><td>4a</td><td>Which is cheapest within 10% of top quality?</td><td>BioMedLM summarization: quality=0.612, cost=$0.0003/1k</td><td>← return this</td></tr>
+        <tr><td>1 · filter</td><td>Any rows with ROUGE-L ≥ 0.30, latency ≤ 2000ms, cost ≤ $0.05, HIPAA-safe?</td><td>Yes — 3 MedHELM rows qualify</td><td>continue</td></tr>
+        <tr><td>2 · confidence</td><td>Do they survive the H/M kappa filter?</td><td>Yes — MedHELM is tier M (published leaderboard)</td><td>continue</td></tr>
+        <tr><td>3 · rank by cost</td><td>Cheapest cost/task? Which others within 10% of it?</td><td>min = $0.0003. Two BioMedLM rows tie at $0.0003; meditron-70b ($0.0008) is &gt;10% out</td><td>tiebreak_10pct fires</td></tr>
+        <tr><td>4 · model-size tiebreak</td><td>Of the 2 within 10% of min cost, which is the smallest model?</td><td>Both are BioMedLM-2.7B; summarization variant (q=0.612) wins</td><td>← return this</td></tr>
       </tbody>
     </table>
   </div>
@@ -1457,26 +1460,22 @@ So what can each profile actually decide? Two real cases:
       <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><span>show_w9.py apt_engine.db</span></div>
       <pre>Canonical query: clinical-note summarization, HIPAA, lat≤2000ms, ROUGE-L≥0.30
 Branch: <span class="t-blue">tiebreak_10pct</span>
-Top candidates (3):
-  [decidable] MedHELM/biomedlm-v2/summarization
-    quality=0.612  latency=420.0ms  cost=<span class="t-green">$0.0003/1k</span>  ← CHEAPEST
-  [decidable] MedHELM/biomedlm-v2/radiology
-    quality=0.589  latency=756.0ms  cost=$0.0003/1k
-  [decidable] MedHELM/meditron-70b/radiology
-    quality=0.651  latency=1404.0ms cost=$0.0008/1k
 
-Right-sizing profiles (6 patterns):
-  [rag          ] enterprise_qa       q≥0.85 lat≤2000ms GDPR
-  [bare_llm     ] customer_service    q≥0.80 lat≤800ms
-  [rag_reasoning] trip_planning       q≥0.82 lat≤1500ms
-  [tool_agent   ] job_matching        q≥0.78 lat≤3000ms GDPR
-  [web_nav      ] web_automation      q≥0.60 lat≤10000ms
-  [multi_agent  ] enterprise_workflow q≥0.85 lat≤5000ms GDPR
+Step 1 filter → 3 feasible.  Step 2 kappa → all survive (tier M).
+Step 3 rank by cost/task:
+  <span class="t-green">$0.0003/1k</span>  MedHELM/biomedlm-v2/summarization   q=0.612  <span class="t-yellow">2.7B</span>  ← within 10%
+  <span class="t-green">$0.0003/1k</span>  MedHELM/biomedlm-v2/radiology       q=0.589  <span class="t-yellow">2.7B</span>  ← within 10%
+  $0.0008/1k  MedHELM/meditron-70b/radiology      q=0.651  70B   <span class="t-dim">&gt;10% — dropped</span>
+
+Step 4 tiebreak among the two within 10% of min cost:
+  both are <span class="t-yellow">BioMedLM-2.7B</span> → smallest model → return summarization variant.
+
+<span class="t-green">RECOMMENDED:</span> MedHELM/biomedlm-v2/summarization
+  quality 0.612 · 420ms · <span class="t-green">$0.0003/1k</span> · 2.7B · evidence=MedHELM(kappa=H)
 
 <span class="t-dim">------------------------------------------------------------</span>
-<span class="t-green">→ Answer:</span> Q1 ✓ (3 candidates) · Q2 ✓ (all M-confidence) ·
-  spread 9.5% ≤ 10% → <span class="t-blue">tiebreak_10pct</span> fires →
-  returns BioMedLM at $0.0003/1k, the cheapest within 10% of top quality.</pre>
+<span class="t-green">→ Answer (§4.3):</span> filter → cheapest cost is primary → 2 tie within 10%
+  of min cost → <span class="t-blue">tiebreak picks the smaller model</span> → BioMedLM-2.7B at $0.0003/1k.</pre>
     </div>
   </div>
 </div>
@@ -1490,7 +1489,7 @@ Right-sizing profiles (6 patterns):
     <h2 style="text-align:left;margin:0">Four-Scenario End-to-End Demo</h2>
   </div>
   <p><strong>The question:</strong> Put it all together — four completely different real-world asks (a HIPAA clinical tool, a web-navigation agent, an open-domain RAG system, and a deliberately impossible request). For each one, what does the engine actually return, and does it correctly say "no" when the ask is impossible instead of inventing an answer?</p>
-  <p><strong>What the result shows:</strong> Each scenario routes to a different branch of the decision tree. The three realistic asks each get a concrete recommendation with provenance; the impossible ask is correctly flagged <code>infeasible_binding</code> — the engine refuses rather than hallucinating a model that doesn't exist. Click each to see the real output.</p>
+  <p><strong>What the result shows:</strong> Together the scenarios exercise three branches of the §4.3 rule — <code>tiebreak_10pct</code> (HIPAA, web-nav), <code>feasible</code> (RAG), and <code>infeasible_binding</code> (impossible). The three realistic asks each get a concrete recommendation with provenance; the impossible ask is correctly refused — the engine names the binding constraint rather than hallucinating a model that doesn't exist. Click each to see the real output.</p>
   <p class="howto"><span style="color:var(--accent)">$</span> make demo</p>
 
   <!-- Scenario buttons -->
@@ -1568,19 +1567,21 @@ Query: composition_pattern=web_nav, quality≥0.35,
 Query: task=question_answering, pattern=rag,
        quality≥0.75, cost≤$0.02/1k
 
-  Branch: <span class="t-blue">tiebreak_10pct</span>
+  Branch: <span class="t-blue">feasible</span>  (one clear min-cost winner)
   #1 [<span class="t-green">decidable</span>] BEIR/Contriever+Llama3-70B
-     quality=0.758  latency=305ms   cost=<span class="t-green">$0.00100/1k</span>
+     quality=0.758  latency=305ms   cost=<span class="t-green">$0.00100/1k</span>  ← min cost
   #2 [<span class="t-green">decidable</span>] BEIR/BM25+GPT-4o
-     quality=0.780  latency=462ms   cost=$0.01550/1k
+     quality=0.780  latency=462ms   cost=$0.01550/1k  <span class="t-dim">15× pricier</span>
   #3 [<span class="t-green">decidable</span>] BEIR/E5+GPT-4o
      quality=0.805  latency=474ms   cost=$0.01550/1k
 
+  #2 and #3 are far outside 20% of min cost, so no tiebreak/comparable
+  branch fires — Contriever+Llama3-70B wins outright.
   Source: BEIR — Heterogeneous Retrieval Benchmark (Apache-2.0)
   Metric: nDCG@10</pre>
     </div>
     <div style="margin:10px 0">
-      <span class="verdict good">decidable → tiebreak_10pct</span>
+      <span class="verdict good">decidable → feasible</span>
       <span style="font-family:var(--sans);font-size:13px;color:var(--ink-faint);margin-left:10px">Contriever+Llama3-70B: 15× cheaper than GPT-4o RAG with similar quality</span>
     </div>
   </div>
@@ -1629,7 +1630,8 @@ Query: quality≥0.99, latency≤10ms, cost≤$0.00001/1k
   Branch: tiebreak_10pct → Claude-3.5-Sonnet/text (39.5% success, 7800ms)
 
 === SCENARIO 3: Open-Domain QA (RAG) ===
-  Branch: tiebreak_10pct → BEIR/Contriever+Llama3-70B (q=0.758, $0.001/1k)
+  Branch: feasible → BEIR/Contriever+Llama3-70B (q=0.758, $0.001/1k)
+          (one clear min-cost winner — no 10%/20% tie)
 
 === SCENARIO 4: Failure Case — Impossible Constraints ===
   Branch: <span class="t-red">infeasible_binding</span> — all candidates violate quality+latency+cost
@@ -1637,7 +1639,7 @@ Query: quality≥0.99, latency≤10ms, cost≤$0.00001/1k
 Summary
   Clinical HIPAA  => <span class="t-blue">tiebreak_10pct</span>
   Web Nav         => <span class="t-blue">tiebreak_10pct</span>
-  RAG QA          => <span class="t-blue">tiebreak_10pct</span>
+  RAG QA          => <span class="t-blue">feasible</span>
   Impossible      => <span class="t-red">infeasible_binding</span>
 
 <span class="t-dim">------------------------------------------------------------</span>
@@ -1699,6 +1701,173 @@ Summary
 <span class="t-green">→ Every promise this page makes is one of the checks above,
   and each re-runs automatically whenever the code changes.</span></pre>
     </div>
+  </div>
+</div>
+</section>
+
+<!-- ===== FULL BRIEF COVERAGE ===== -->
+<section id="brief" class="bg-soft">
+<div class="wrap">
+  <p class="kicker">Project brief, mapped</p>
+  <h2 style="text-align:left">Every appendix of the brief — in the engine</h2>
+  <p>The ten weeks above are the build. This section closes the loop with the rest of the project brief: the canonical 13-table architecture the 7-table MVP is a subset of, the controlled vocabularies, the derived prudence profiles, the full 5-tier source plan, the weekly checkpoints and scope-reduction order, the flat-extraction scratchpad, and the risk register. Click a tab.</p>
+
+  <div class="scen-row">
+    <button class="scen-btn active" data-target="ap-schema" onclick="pickTab(this,'ap-schema')">13-table schema</button>
+    <button class="scen-btn" data-target="ap-vocab" onclick="pickTab(this,'ap-vocab')">Controlled vocab</button>
+    <button class="scen-btn" data-target="ap-prudence" onclick="pickTab(this,'ap-prudence')">Prudence profiles</button>
+    <button class="scen-btn" data-target="ap-sources" onclick="pickTab(this,'ap-sources')">50 sources / 5 tiers</button>
+    <button class="scen-btn" data-target="ap-plan" onclick="pickTab(this,'ap-plan')">Checkpoints + scope</button>
+    <button class="scen-btn" data-target="ap-flat" onclick="pickTab(this,'ap-flat')">Flat scratchpad</button>
+    <button class="scen-btn" data-target="ap-risks" onclick="pickTab(this,'ap-risks')">Risks + method</button>
+  </div>
+
+  <!-- ===== 13-table canonical schema (App A + C) ===== -->
+  <div id="ap-schema" class="demo">
+    <p><strong>App A + C.</strong> The canonical long-term architecture is <strong>13 tables</strong> that separate <em>components</em> (one table per system type) from <em>compositions</em>. The 10-week MVP implements a <strong>7-table</strong> simplification: the seven per-type component tables (base_llm, retriever, rag_system, reasoning_method, agent_system, tool_use_system, optimization_augmented_system, serving_stack) collapse into one generic <code>component</code> table, and <code>composition_pattern</code> becomes a controlled-vocab field. Availability: <strong>P1</strong> = dense, <strong>P2</strong> = sparse/paper-specific, <strong>P3</strong> = rare / needs custom APT eval.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Canonical table</th><th>Purpose</th><th>Avail.</th><th>In 7-table MVP</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>base_llm</code></td><td>One row per model/version/config</td><td>P1 q/cost · P2 energy</td><td>→ <code>component</code></td></tr>
+          <tr><td>2</td><td><code>retriever</code></td><td>Dense/sparse/late-interaction retrievers</td><td>P1 q · P2 cost</td><td>→ <code>component</code></td></tr>
+          <tr><td>3</td><td><code>rag_system</code></td><td>Config-level RAG record</td><td>P1/P2</td><td>→ <code>composition</code></td></tr>
+          <tr><td>4</td><td><code>reasoning_method</code></td><td>Prompting / deliberation / verification</td><td>P1 q · P3 failure</td><td>→ <code>composition</code></td></tr>
+          <tr><td>5</td><td><code>agent_system</code></td><td>Single/multi-agent benchmarked system</td><td>P1 HAL</td><td>→ <code>composition</code></td></tr>
+          <tr><td>6</td><td><code>tool_use_system</code></td><td>Function-calling / tool-use system</td><td>P1 BFCL</td><td>→ <code>composition</code></td></tr>
+          <tr><td>7</td><td><code>optimization_augmented_system</code></td><td>LLM + solver / code-exec / verifier</td><td>P2/P3</td><td>(deferred)</td></tr>
+          <tr><td>8</td><td><code>serving_stack</code></td><td>Runtime / inference-serving stack</td><td>P2</td><td>→ <code>component</code></td></tr>
+          <tr><td>9</td><td><code>deployment_context</code></td><td>Operational & regulatory setting</td><td>P2/P3</td><td>→ <code>right_sizing_profile</code></td></tr>
+          <tr style="background:#eef5ff"><td>10</td><td><code>composition</code></td><td>A benchmarked/deployed AI Box — the heart</td><td>P1/P2</td><td><strong>✓ kept</strong></td></tr>
+          <tr style="background:#eef5ff"><td>11</td><td><code>benchmark_run</code></td><td>One row per composition × benchmark × seed</td><td>P1</td><td><strong>✓ kept</strong></td></tr>
+          <tr><td>12</td><td><code>composition_pattern</code></td><td>Controlled-vocab AI Box archetypes</td><td>derived</td><td>→ field on <code>composition</code></td></tr>
+          <tr style="background:#eef5ff"><td>13</td><td><code>source</code></td><td>Source / evidence metadata</td><td>required</td><td><strong>✓ kept</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="howto">7-table MVP = <code>source · evidence_item · component · composition · composition_component · benchmark_run · right_sizing_profile</code> — see the ER diagram at the top of this page.</p>
+  </div>
+
+  <!-- ===== Controlled vocabularies (App D) ===== -->
+  <div id="ap-vocab" class="demo hidden">
+    <p><strong>App D.</strong> Every categorical field is constrained to a fixed vocabulary, enforced by the database at insert time (the W1 check). These are the canonical archetype lists.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Field</th><th>Allowed values</th></tr></thead>
+        <tbody>
+          <tr><td><code>base_llm.archetype</code></td><td>dense-decoder · MoE · state-space · hybrid · reasoning-tuned · instruction-tuned-only · RLHF · RLVR</td></tr>
+          <tr><td><code>retriever.archetype</code></td><td>lexical-bm25 · dense-bi-encoder · sparse-learned · late-interaction · cross-encoder-reranker · generative-retriever</td></tr>
+          <tr><td><code>rag_system.archetype</code></td><td>standard · multi-hop · iterative/self-RAG · corrective-RAG · agentic-RAG · graph-RAG · multimodal-RAG · realm-pretrained · react-style</td></tr>
+          <tr><td><code>reasoning_method.archetype</code></td><td>direct · cot · cot-self-consistency · tot · react · reflexion · debate · mcts · best-of-N · genrm-verify · budget-forced · latent-steering</td></tr>
+          <tr><td><code>agent_system.archetype</code></td><td>single-agent-reactive · single-agent-planner-executor · supervisor-worker · multi-agent-debate · role-play · pipeline-of-roles · dynamic-team · parallel-sampling+selector</td></tr>
+          <tr><td><code>tool_use_system.archetype</code></td><td>single-turn-function-calling · parallel-function-calling · nested · multi-turn-stateful · MCP-server-orchestration</td></tr>
+          <tr><td><code>optimization_augmented.archetype</code></td><td>formulate-and-solve · generate-and-check · proof-loop · code-exec-verify · heuristic-synthesis</td></tr>
+          <tr><td><code>composition.task_archetype</code></td><td>closed-domain QA · open-domain QA · summarization · classification · extraction · reasoning-math · code-generation · code-repair · web-navigation · desktop-automation · customer-service · scientific-research · optimization · verification · data-analysis</td></tr>
+          <tr><td><code>deployment.regulatory_regime</code></td><td>HIPAA · GDPR · EU AI Act high-risk · EU AI Act limited-risk · SOC 2 · FedRAMP · PCI-DSS · none-public · internal-only</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== Prudence profiles (App B / W9 §6) ===== -->
+  <div id="ap-prudence" class="demo hidden">
+    <p><strong>App B / week-9 deliverable.</strong> The <code>right_sizing_profile</code> derives a <em>prudence envelope</em> per composition pattern from the real <code>benchmark_run</code> rows: minimum &amp; median quality, median cost / latency / energy. The <strong>prudence_score</strong> normalizes each axis to [0,1] across patterns (utility higher-better; cost, latency, energy inverted so lower is better) and averages them — a single "minimum-sufficient" ranking. Numbers below are computed live from the 502 rows.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Pattern</th><th>n</th><th>q&nbsp;min</th><th>q&nbsp;median</th><th>cost&nbsp;med</th><th>lat&nbsp;med</th><th>energy&nbsp;med</th><th>prudence</th></tr></thead>
+        <tbody>
+          <tr style="background:#eef7f0"><td><code>bare_llm</code></td><td>265</td><td>0.620</td><td>0.800</td><td>$0.0010</td><td>240ms</td><td>75J</td><td><strong>0.97</strong></td></tr>
+          <tr style="background:#eef7f0"><td><code>tool_agent</code></td><td>62</td><td>0.710</td><td>0.851</td><td>$0.0070</td><td>320ms</td><td>78J</td><td><strong>0.93</strong></td></tr>
+          <tr><td><code>rag</code></td><td>124</td><td>0.589</td><td>0.789</td><td>$0.0018</td><td>317ms</td><td>85J</td><td>0.71</td></tr>
+          <tr><td><code>single_agent</code></td><td>6</td><td>0.445</td><td>0.594</td><td>$0.0700</td><td>5350ms</td><td>83J</td><td>0.51</td></tr>
+          <tr><td><code>web_nav</code></td><td>38</td><td>0.168</td><td>0.395</td><td>$0.0550</td><td>12000ms</td><td>85J</td><td>0.27</td></tr>
+          <tr style="background:#fbf0ef"><td><code>multi_agent</code></td><td>4</td><td>0.621</td><td>0.681</td><td>$0.2050</td><td>17750ms</td><td>83J</td><td>0.22</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Reading: <code>bare_llm</code> and <code>tool_agent</code> are the most prudent — high quality at the lowest cost/latency. <code>multi_agent</code> is least prudent: it buys a few quality points at <strong>200× the cost</strong> and 70× the latency of a bare LLM. This is the quantitative form of "right-sized ≠ biggest." (The MVP's <code>right_sizing_profile</code> table also stores the 11 enterprise <em>deployment</em> profiles seen in W8 — the constraints a query is matched against.)</p>
+  </div>
+
+  <!-- ===== Source priority (App F) ===== -->
+  <div id="ap-sources" class="demo hidden">
+    <p><strong>App F.</strong> The brief prioritizes ~50 sources across 5 tiers, densest first. The MVP loaded <span class="t-green" style="font-weight:700">11 (highlighted)</span>; the rest are reference material to extract after the Tier-1 set passes the week-4 checkpoint. Counts are carried from the consolidated schema artifact and flagged for verification before external use.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Sources (✓ = loaded in this MVP)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1 — dense leaderboards</strong></td><td>HELM Classic · HELM Capabilities · <span style="color:var(--good);font-weight:700">✓ HELM Lite</span> · <span style="color:var(--good);font-weight:700">✓ MLPerf Inference v5.0/5.1/6.0</span> · <span style="color:var(--good);font-weight:700">✓ HAL (Holistic Agent Leaderboard)</span> · AI Agents That Matter · <span style="color:var(--good);font-weight:700">✓ BFCL</span> · <span style="color:var(--good);font-weight:700">✓ RouterBench</span></td></tr>
+          <tr><td><strong>2 — RAG &amp; retrieval</strong></td><td><span style="color:var(--good);font-weight:700">✓ BEIR</span> · <span style="color:var(--good);font-weight:700">✓ KILT</span> · RAGAS · RAGBench · RAGTruth · MIRAGE · BERGEN · ARES · MEMERAG · RAG-RewardBench</td></tr>
+          <tr><td><strong>3 — agents / tools / reasoning</strong></td><td>AgentBench · SWE-bench Verified · GAIA · τ-bench / τ²-Bench · AppWorld · <span style="color:var(--good);font-weight:700">✓ WebArena</span> / VisualWebArena · OSWorld · CORE-Bench · ToolBench / StableToolBench · HumanEval / MBPP / LiveCodeBench · GSM8K / MATH / AIME / GPQA</td></tr>
+          <tr><td><strong>4 — serving / energy / optimization</strong></td><td>vLLM · Orca · SGLang · TensorRT-LLM · <span style="color:var(--good);font-weight:700">✓ ML.ENERGY</span> · NL4Opt · OptiBench · ConstraintBench · DafnyBench / FVEval · Code2Inv</td></tr>
+          <tr><td><strong>5 — composition / production</strong></td><td>Compound AI Systems (BAIR) · DSPy · FrugalGPT · LLMSelector · Cascadia · Routing-and-Cascading · Enterprise Blueprint · <span style="color:var(--good);font-weight:700">✓ ZenML LLMOps DB</span> (Accenture, DoorDash, Uber, LinkedIn, Deutsche Telekom…) · <span style="color:var(--good);font-weight:700">✓ MedHELM</span> · Beyond-Accuracy / AgentPrune</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="howto">Canonical extraction-yield estimate: benchmark_run 1,500–3,000 rows · composition 300–600. The MVP's conservative target was 500–1,000 benchmark rows / 50–150 compositions — <strong>this build reached 502 / 175</strong>.</p>
+  </div>
+
+  <!-- ===== Checkpoints + scope reduction (§6.1/§6.2) ===== -->
+  <div id="ap-plan" class="demo hidden">
+    <p><strong>§6.1 — weekly checkpoints.</strong> Each Friday is a binary gate; a miss triggers scope reduction, not failure. This build met every one (final tallies in parentheses).</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Week</th><th>Checkpoint criterion</th><th>This build</th></tr></thead>
+        <tbody>
+          <tr><td>W1</td><td>7 tables + FKs, data dictionary, ≥20 seed rows across 5 tables</td><td>818 rows</td></tr>
+          <tr><td>W2</td><td>CSV/JSON loader, ≥1 real source loaded, Q1–Q4 run on seed data</td><td>HELM Lite + Q1–Q4</td></tr>
+          <tr><td>W4</td><td>≥200 benchmark_run with 4/5 core cols; ≥50 MLPerf; ≥50 HELM</td><td>502 · 54 · 120</td></tr>
+          <tr><td>W6</td><td>≥400 rows; retriever/RAG/tool components; ≥30 compositions linked</td><td>502 · 175 comps</td></tr>
+          <tr><td>W8</td><td>≥500 rows; ≥50 compositions; ≥5 ZenML deployment_context rows</td><td>502 · 175 · 5</td></tr>
+          <tr><td>W9</td><td>right_sizing_profile for ≥4 patterns; §4.3 rule as one function; demo sane</td><td>6 patterns · ✓</td></tr>
+          <tr><td>W10</td><td>Demo runs clean-checkout end-to-end; reproducible in &lt;30 min</td><td>&lt;5 min, no API key</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>§6.2 — scope-reduction order</strong> (if behind, in this fixed order, supervisor-approved): ① drop optimization-augmented sources → ② drop production case studies → ③ cut composition patterns 8 → 4 → ④ drop <code>right_sizing_profile</code>, ship <code>benchmark_run</code> only.</p>
+    <div class="callout"><p><strong>Non-negotiable (never reduced):</strong> the 7-table MVP schema · the evidence-linkage workflow · the §4.3 right-sizing decision rule · the week-10 demo.</p></div>
+  </div>
+
+  <!-- ===== Flat observation table (App G) ===== -->
+  <div id="ap-flat" class="demo hidden">
+    <p><strong>App G.</strong> A single denormalized table, <code>apt_experiment_observation</code>, exists only as a <em>manual-QA scratchpad</em> for auditing rows in a spreadsheet before they enter the normalized schema. It is explicitly <strong>not</strong> a valid deliverable — it can't support the §4.3 rule or the demo because component reuse, composition lineage, and evidence linkage all need the normalized structure. Rows captured here in weeks 3–5 must be migrated by end of week 6.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Column group</th><th>Representative columns</th></tr></thead>
+        <tbody>
+          <tr><td>Identity / provenance</td><td>record_id · paper_id · doi_or_arxiv_url · evidence_locator · extraction_confidence · manual_review_status</td></tr>
+          <tr><td>Task &amp; dataset</td><td>domain · task_family · downstream_task_name · dataset_name · evaluation_setting · distribution_shift_tested</td></tr>
+          <tr><td>Model / system identity</td><td>system_type · model_name · base_model · parameter_count_m · num_agents · num_tools</td></tr>
+          <tr><td>Right-sizing knobs</td><td>quantization_bits · pruning_used · distillation_used · retrieval_type · retrieval_top_k · cache_used</td></tr>
+          <tr><td>Hardware / deployment</td><td>hardware_tier · gpu_or_accelerator_type · vram_gb · power_limit_w · offline_capable</td></tr>
+          <tr><td>Effectiveness</td><td>primary_metric_name · primary_metric_value · metric_direction · robustness/calibration/abstention_json</td></tr>
+          <tr><td>Efficiency</td><td>latency_p50/p95_ms · throughput_per_sec · peak_memory_gb · energy_j_per_task · inference_cost_usd_per_1k</td></tr>
+          <tr><td>Governance / burden</td><td>explainability_level · traceability_level · privacy_mode · human_review_required · reviewer_time_sec · escalation_rate</td></tr>
+          <tr><td>Derived right-sizing</td><td>utility/cost/latency/energy/governance/burden_score_norm · prudence_score · pareto_rank · recommended_min_tier</td></tr>
+          <tr><td>Missingness / QC</td><td>missing_critical_fields · normalization_notes · unit_conversion_notes · needs_manual_check</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== Risks + methodology (§8 / §7.3 / §4.4 / §4.5) ===== -->
+  <div id="ap-risks" class="demo hidden">
+    <p><strong>§8 — risk register.</strong> The design choices throughout this engine trace back to these risks.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation (visible in the build)</th></tr></thead>
+        <tbody>
+          <tr><td>Noisy paper extraction (PDFs omit hardware/cost/energy)</td><td>Structured leaderboards first; missing fields kept as ⊥, never invented (W4, W8)</td></tr>
+          <tr><td>Over-large schema starves the timeline</td><td>7-table MVP first; 13-table kept as canonical target (this section)</td></tr>
+          <tr><td>Benchmark incomparability</td><td>Preserve metric name, direction, units, dataset, split, hardware (benchmark_run columns)</td></tr>
+          <tr><td>Vendor case-study bias</td><td><code>value_source_type</code> + confidence tiers; reported / estimated / measured kept separate (W3, W8)</td></tr>
+          <tr><td>Sparse energy &amp; human-burden data</td><td>Treated as P3; caveated ⊥ unless locally measured (W8 missingness)</td></tr>
+          <tr><td>Outdated cost numbers</td><td>Store <code>price_as_of_date</code> / <code>value_source_type</code>; refresh before deployment use</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>§7.3 — time allocation.</strong> ~30–40% of the 10 weeks is engineering (schema migrations, loaders, unit normalization, query + demo packaging), concentrated in weeks 1–2 and 9–10 — so row-count is the wrong progress metric there.</p>
+    <p><strong>§4.4 — snapshot policy.</strong> All sources frozen at their week-1 versions (recorded in <code>source.version</code> / <code>access_date</code>); no re-extraction on upstream updates without supervisor sign-off, so HELM/MLPerf/HAL re-runs don't move the target.</p>
+    <p><strong>§4.5 — experience assumption.</strong> Brief assumes an intern with ≥1 prior data-eng/ML project, SQL + Python, paper-reading basics; for a more junior intern, weeks 1–2 stretch to 3 and source/row targets drop to the lower bound.</p>
   </div>
 </div>
 </section>
